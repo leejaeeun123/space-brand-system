@@ -1,27 +1,34 @@
 # space-brand-system
 
-공간 대여 사업의 **브랜딩 & 디자인 시스템**을 마크다운으로 구축하는 레포입니다.
-브랜드 네이밍 · 컨셉 · 로고 방향 · 사이니지(간판/실내 안내판) 디자인을 단계별로 문서화합니다.
+공간 대여 사업의 **브랜딩 & 디자인 시스템**. 브랜드 네이밍 · 컨셉 · 로고 방향 · 사이니지를 마크다운으로 문서화합니다.
 
 ## 현재 상태
 
-🟡 **계획 단계** — 실행 승인 대기 중
+🟢 **1차 산출물 작성 완료 — 사용자 검토 대기**
 
-- 확정 입력: 인테리어 가구 발주 리스트 (무드 = 미드센추리 모던 디자인 아이콘 라운지)
-- 컨셉 방향: 멀티유즈 라운지 — "편안하고 자유로운 모임의 장소" (사무실 / 요가 클래스 / 소개팅·모임)
+- 사업: 합정역 앞 3층(52.49㎡) **멀티유즈 라운지** — 사무실 / 요가 클래스 / 소개팅·모임
+- 컨셉: **"분위기는 하나, 용도는 여럿"** / 미드센추리 모던 디자인 아이콘 라운지
+- 네이밍(1순위 가정): **겸 (GYEOM)** — 최종 확정·상표 확인 대기
 
-👉 전체 계획은 **[PLAN.md](./PLAN.md)** 참고 (합의 완료 v4, pending approval)
+👉 시작점: **[05-design-system/README.md](./05-design-system/README.md)** (우산 문서)
+👉 구축 계획: **[PLAN.md](./PLAN.md)** (합의 완료 v4)
 
 ## 구조
 
 ```
 PLAN.md            구축 계획 (합의 완료)
-01-strategy/       디스커버리 · 포지셔닝 · 페르소나 · 브랜드 보이스 · 비주얼 원칙 · 무드보드
-02-naming/         네이밍 기준 · 후보 · 검증
-03-identity/       로고 가이드 · 컬러 · 타이포 · 디자인 토큰
-04-signage/        사이니지 시스템 · 외부 간판 · 실내 안내판 · 픽토그램
-05-design-system/  디자인 시스템 우산 문서
+01-strategy/       discovery · positioning · personas · brand-voice · visual-principles · moodboard
+02-naming/         naming-criteria · candidates · validation
+03-identity/       logo-guidelines · color-palette · typography · design-tokens
+04-signage/        signage-system · exterior-signage · interior-wayfinding · pictograms
+05-design-system/  README (우산 문서)
 assets/            무드보드 · 레퍼런스 이미지
 ```
 
-> 각 폴더의 산출물은 승인 후 작성됩니다.
+## 검토 포인트 (사용자)
+
+1. **네이밍 확정** — 겸 / 여백 중 선택 + 상표·도메인 라이브 확인 (`02-naming/validation.md`)
+2. **확정대기 입력** — 층고 · 운영모델 · 가격대
+3. 승인 시 → 로고 벡터·픽토 제작, 사이니지 실측·발주
+
+> 실제 그래픽 제작(로고·픽토 벡터, 사이니지 실물)은 검토·승인 후 진행합니다.
