@@ -1,6 +1,7 @@
 # 디자인 시스템 — 우산 문서 (v2)
 
-> **선룸 (SUN ROOM)** 공간 브랜드 디자인 시스템 단일 진입점. (1순위 가정 — 최종 확정 대기. 대안: 오빗·모드룸·노모룸)
+> 공간 브랜드 디자인 시스템 단일 진입점. **네이밍은 결정 보류**(후보 풀 → `02-naming/`).
+> 비주얼 예시는 **선룸(SUN ROOM)** 가정으로 전개하되, 이름이 바뀌어도 시스템은 유효(name-agnostic).
 > 토큰 원본은 `03-identity/design-tokens.md`.
 
 ## 한눈에 보기
@@ -11,7 +12,7 @@
 | 코어 무드 | **미드센추리 모던 + 웜우드** (2개로 압축) | `01-strategy/discovery.md` |
 | 비주얼 | **MCM 그래픽** — 바우하우스·스위스·기하, 볼드 웜 컬러 (그루비 배제) | `01-strategy/visual-principles.md`, `moodboard.md` |
 | 보이스 | 따뜻·안목·솔직 (격식체 존댓말) | `01-strategy/brand-voice.md` |
-| 네이밍 | 선룸(SUN ROOM) 1순위 / 오빗·모드룸·노모룸 | `02-naming/` |
+| 네이밍 | 🟡 결정 보류 / 후보 풀(오브룸·라운드온·모듈룸·선룸·오빗·모드룸…) | `02-naming/` |
 | 로고 | 'O' 모티프 + 기하 산세 워드마크 | `03-identity/logo-guidelines.md` |
 | 컬러 | 오렌지·크림·잉크 스파인 + 그린·코발트 + 브라스·월넛 | `03-identity/color-palette.md` |
 | 타이포 | League Spartan(기하 산세) + Inter/Pretendard | `03-identity/typography.md` |
@@ -39,7 +40,7 @@
 | Phase 0 디스커버리 | ✅ (합정 3층·52.49㎡, 무드 2개로 압축) |
 | Phase 1 전략·보이스 | ✅ |
 | Phase 1.5 무드보드 게이트 | 🟡 v2(MCM 그래픽) 충돌 0 / verifier 재검증 권장 |
-| Phase 2 네이밍 | 🟡 선룸 추천(노모 루트 해제) / 상표·도메인 라이브 확인 대기 |
+| Phase 2 네이밍 | 🟡 결정 보류 / 후보 풀 확장(사용자 제안 포함) |
 | Phase 3 아이덴티티 | ✅ 방향·토큰 / 벡터 제작은 승인 후 |
 | Phase 4 사이니지 | ✅ 체계·시나리오 / 절대치수 `[[placeholder]]` |
 | Phase 5 문서화 | ✅ |
