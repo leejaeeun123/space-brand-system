@@ -1,49 +1,48 @@
-# Phase 3 — 타이포그래피
+# Phase 3 — 타이포그래피 (v3, MCM 그래픽)
 
-> 미드센추리의 따뜻함(세리프) + 정밀한 중립(산세리프) 페어링.
-> 국문/영문 모두 무료·상업적 사용 가능한 폰트로 선정(초기 비용·웹 적용 고려).
+> 미드센추리 그래픽 = **기하 산세리프(바우하우스·스위스)**. 볼드하되 그루비/사이키델릭 배제.
+> 가구의 바우하우스 DNA와 같은 결. 무료·상업적 사용 가능 폰트 중심.
 
 ## 1. 폰트 시스템
 
-| 역할 | 국문 | 영문 | 근거 |
+| 역할 | 영문 | 국문 | 근거 |
 |---|---|---|---|
-| 디스플레이 (제목·로고) | **마루부리 (Maru Buri)** | **Fraunces** | 따뜻한 명조/올드스타일 — 미드센추리 클래식감 (V1·V3) |
-| 본문 (Body) | **Pretendard** | **Inter** | 모던 그로테스크 — 정밀·중립·고가독 (V4) |
+| 디스플레이 (로고·헤드라인) | **League Spartan** (Black) | **G마켓 산스 / Pretendard Black** | 푸투라 계열 **기하 산세리프** — 바우하우스 직계. 볼드 키비주얼 (V1·V3) |
+| 본문 (Body) | **Inter** | **Pretendard** | 스위스 그로테스크 — 중립·고가독 |
+| 액센트 (선택) | **Fraunces Italic** | — | 에디토리얼 강조 1곳에만(과용 금지) |
 
-- 마루부리: 네이버 제공, 상업적 사용 가능. 이름의 '마루'가 우드 무드와도 호응.
-- Fraunces / Inter / Pretendard: OFL, 웹·인쇄 자유 사용.
-
-대체 폰트(미설치 환경): 디스플레이 국문 → 본명조(Noto Serif KR), 본문 국문 → 본고딕(Noto Sans KR).
+- League Spartan / Inter: OFL 무료. 기하 산세 디스플레이의 대표격.
+- 대안 디스플레이(더 두껍게): Archivo Black, Anton(둘 다 무료) — RETROTIKA식 헤비 지오메트릭.
+- 그루비/Cooper류는 **사용하지 않음** (가구와 톤차 발생).
 
 ## 2. 타입 스케일 (토큰)
 
 | 토큰 | 폰트/굵기 | 크기/행간 | 용도 |
 |---|---|---|---|
-| `display/xl` | Maru Buri / Fraunces SemiBold | 40px / 1.2 | 히어로·간판 |
-| `display/lg` | Maru Buri / Fraunces SemiBold | 32px / 1.25 | 섹션 타이틀 |
-| `heading/md` | Pretendard / Inter SemiBold | 24px / 1.3 | 소제목 |
-| `body/lg` | Pretendard / Inter Regular | 18px / 1.6 | 리드 문단 |
-| `body/md` | Pretendard / Inter Regular | 16px / 1.6 | 기본 본문 |
-| `label/md` | Pretendard / Inter Medium | 14px / 1.4 | 라벨·캡션 |
-| `mode/tag` | Fraunces / Inter Medium · 자간 +0.08em | 14px / 1.4 · 대문자 | WORK·CLASS·GATHER 모드 태그 |
+| `display/2xl` | League Spartan Black · 자간 -0.01em | 56px / 1.0 | 포스터·키비주얼(글자가 레이아웃) |
+| `display/xl` | League Spartan Black | 40px / 1.05 | 간판·히어로 |
+| `display/lg` | League Spartan Bold | 28px / 1.1 | 섹션 타이틀 |
+| `heading/md` | Pretendard / Inter SemiBold | 22px / 1.3 | 소제목 |
+| `body/lg` | Pretendard / Inter Regular | 18px / 1.6 | 리드 |
+| `body/md` | Pretendard / Inter Regular | 16px / 1.6 | 본문 |
+| `label/md` | Pretendard / Inter Medium · 대문자 | 14px / 1.4 | 라벨·모드 태그 |
 
 ## 3. 운용 규칙
 
-- **한 화면에 디스플레이는 하나** — 여백 우선(V2 절제).
-- 본문은 산세리프로만, 세리프는 제목·브랜드 요소에 한정.
-- 자간: 국문 본문 0 ~ -0.01em, 디스플레이 -0.02em(또렷). 모드 태그만 대문자+양수 자간.
-- 행간 본문 1.6 이상 확보(편안한 가독).
-- 강조는 **굵기(Medium/SemiBold)** 로, 색·밑줄 남용 금지.
+- **빅 타이포가 주인공**: 디스플레이는 크고 과감하게, 글자 조형 자체가 그래픽(RETROTIKA/furn. 방식).
+- 디스플레이는 기하 산세 **단일** — 한 화면 한 종류. 세리프 이탤릭은 강조 1곳만.
+- 자간: 디스플레이 -0.01~ -0.02em(또렷·꽉 찬 조형), 본문 0.
+- 대문자 + 약간의 자간으로 라벨/모드 태그 처리.
+- 강조는 굵기·컬러블록으로, 밑줄·그림자 금지.
 
-## 4. 모드 태그 타이포 (브랜드 시그니처)
+## 4. 모드 태그 (시그니처)
 
 ```
-WORK   ·   CLASS   ·   GATHER
+WORK · CLASS · GATHER
 ```
-- Fraunces/Inter Medium, 대문자, 자간 +0.08em, 가운뎃점(·)으로 구분.
-- 멀티유즈 정체성을 한 줄로 보여주는 **반복 사용 요소** — 사이니지·웹·인스타에 공통.
+- League Spartan / 대문자 / 가운뎃점 구분. 컬러블록 위 크림/잉크로.
 
 ## 5. 접근성
 
-- 본문 최소 16px, 모바일에서도 14px 미만 금지.
-- 명조는 작은 크기에서 가독 저하 → 12~14px 영역은 산세리프(Pretendard) 사용.
+- 본문 최소 16px. 12~14px 영역은 그로테스크(Inter/Pretendard).
+- 기하 산세는 소문자 가독이 양호하나, 초대형 디스플레이는 대비 확보 필수.
