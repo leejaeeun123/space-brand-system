@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>멀티유즈 라운지 · 공간 브랜드 시스템 — 발표 덱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@500;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{
+    --orange:#E2531E;
+    --cream:#F4E9C8;
+    --ink:#16130F;
+    --green:#235C42;
+    --cobalt:#1B4FA0;
+    --brass:#B0883C;
+    --walnut:#8A5A33;
+    --disp:"League Spartan","Pretendard",sans-serif;
+    --body:"Pretendard",sans-serif;
+    --maxw:1180px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--body);
+    background:var(--ink);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    word-break:keep-all;
+    text-wrap:pretty;
+  }
+
+  /* ===== Deck mechanics ===== */
+  #deck{height:100vh;width:100vw;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+  #deck::-webkit-scrollbar{display:none}
+  #deck{scrollbar-width:none}
+
+  .slide{
+    height:100vh;width:100vw;scroll-snap-align:start;scroll-snap-stop:always;
+    position:relative;display:flex;flex-direction:column;justify-content:center;
+    padding:6vh 7vw;overflow:hidden;
+  }
+  .inner{width:100%;max-width:var(--maxw);margin:0 auto;position:relative;z-index:3}
+
+  /* solid backgrounds only */
+  .bg-cream{background:var(--cream)}
+  .bg-ink{background:var(--ink);color:var(--cream)}
+  .bg-orange{background:var(--orange);color:var(--cream)}
+  .bg-green{background:var(--green);color:var(--cream)}
+  .bg-cobalt{background:var(--cobalt);color:var(--cream)}
+
+  /* ===== Typography ===== */
+  .kicker{
+    font-family:var(--disp);font-weight:700;text-transform:uppercase;
+    letter-spacing:.18em;font-size:clamp(11px,1vw,14px);
+    display:inline-flex;align-items:center;gap:.7em;margin-bottom:24px;opacity:.9;
+  }
+  .kicker::before{content:"";width:34px;height:3px;background:currentColor;display:inline-block}
+
+  h1.display{
+    font-family:var(--disp);font-weight:900;line-height:.92;letter-spacing:-.02em;
+    font-size:clamp(44px,8.4vw,128px);text-transform:uppercase;
+  }
+  h2.title{
+    font-family:var(--disp);font-weight:800;line-height:.98;letter-spacing:-.015em;
+    font-size:clamp(32px,5vw,72px);text-transform:uppercase;
+  }
+  h3.sub{
+    font-family:var(--disp);font-weight:700;letter-spacing:-.01em;
+    font-size:clamp(20px,2.4vw,32px);text-transform:uppercase;line-height:1.05;
+  }
+  .ko-title{ /* Korean display — no italic, unified weight */
+    font-family:var(--body);font-weight:800;line-height:1.08;letter-spacing:-.015em;
+  }
+  .lead{font-size:clamp(17px,1.7vw,23px);line-height:1.6;font-weight:400;max-width:42ch}
+  .accent{font-weight:800;color:var(--orange)} /* emphasis: bold + color, no italic */
+  .muted{opacity:.72}
+  .mono-num{font-family:var(--disp);font-weight:800}
+
+  /* ===== Reusable bits ===== */
+  .grid{display:grid;gap:22px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+
+  .card{
+    background:var(--cream);color:var(--ink);border:2.5px solid var(--ink);
+    border-radius:8px;padding:24px 24px 26px;position:relative;
+  }
+  .card .tag{
+    font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    font-size:13px;color:var(--orange);display:block;margin-bottom:10px;
+  }
+  .card h4{font-family:var(--body);font-weight:800;font-size:clamp(18px,1.7vw,23px);letter-spacing:-.01em;margin-bottom:8px;line-height:1.12}
+  .card p{font-size:14.5px;line-height:1.55}
+  .card .num{position:absolute;top:16px;right:20px;font-family:var(--disp);font-weight:900;font-size:40px;color:rgba(22,19,15,.12);line-height:1}
+
+  .pill{
+    display:inline-block;font-family:var(--disp);font-weight:800;text-transform:uppercase;
+    letter-spacing:.06em;font-size:13px;padding:7px 15px;border-radius:100px;
+    border:2.5px solid currentColor;margin:0 8px 8px 0;
+  }
+
+  /* mode tag */
+  .modetag{font-family:var(--disp);font-weight:900;letter-spacing:.04em;text-transform:uppercase;
+    font-size:clamp(20px,3vw,44px);display:flex;gap:.5em;flex-wrap:wrap;align-items:center}
+  .modetag .dot{width:.18em;height:.18em;border-radius:50%;background:currentColor;display:inline-block;margin:0 .15em}
+
+  /* table */
+  table.t{width:100%;border-collapse:collapse;font-size:14.5px}
+  table.t th,table.t td{text-align:left;padding:11px 14px;border-bottom:1.5px solid rgba(22,19,15,.18);vertical-align:top}
+  table.t th{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:12.5px;color:var(--orange)}
+  table.t tr:last-child td{border-bottom:none}
+  .bg-ink table.t td,.bg-ink table.t th,.bg-cobalt table.t td,.bg-cobalt table.t th{border-color:rgba(244,233,200,.22)}
+
+  /* color swatches */
+  .swatch{border-radius:8px;border:2.5px solid var(--ink);overflow:hidden}
+  .swatch .chip{height:92px;display:flex;align-items:flex-end;padding:10px}
+  .swatch .meta{background:var(--cream);padding:11px 13px;border-top:2.5px solid var(--ink)}
+  .swatch .name{font-family:var(--disp);font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:.02em}
+  .swatch .hex{font-family:var(--disp);font-weight:700;font-size:12px;opacity:.6;letter-spacing:.04em}
+  .swgroup{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--orange);margin:0 0 10px}
+
+  ul.clean{list-style:none}
+  ul.clean li{position:relative;padding-left:26px;margin-bottom:13px;font-size:clamp(15px,1.5vw,18px);line-height:1.5}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.45em;width:13px;height:13px;border-radius:50%;background:var(--orange)}
+  .bg-ink ul.clean li::before,.bg-orange ul.clean li::before,.bg-green ul.clean li::before,.bg-cobalt ul.clean li::before{background:var(--cream)}
+
+  .footer{position:absolute;left:7vw;right:7vw;bottom:3.2vh;display:flex;justify-content:space-between;align-items:center;font-family:var(--disp);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:11px;opacity:.55;z-index:4}
+  .footer span:last-child{display:none} /* 우하단 텍스트 제거 — HUD와 겹침 방지 */
+
+  /* ===== HUD ===== */
+  #hud{position:fixed;z-index:50;right:22px;bottom:18px;display:flex;align-items:center;gap:14px;
+    font-family:var(--disp);font-weight:800;color:var(--cream);mix-blend-mode:difference;font-size:13px;letter-spacing:.1em}
+  #hud .nav{display:flex;gap:6px}
+  #hud button{font-family:var(--disp);font-weight:800;background:none;border:2px solid var(--cream);color:var(--cream);
+    width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1;transition:transform .12s}
+  #hud button:hover{transform:scale(1.12)}
+  #progress{position:fixed;top:0;left:0;height:5px;background:var(--orange);width:0;z-index:60;transition:width .25s ease}
+  #dots{position:fixed;z-index:50;left:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+  #dots span{width:9px;height:9px;border-radius:50%;background:var(--cream);opacity:.32;cursor:pointer;transition:all .2s;mix-blend-mode:difference}
+  #dots span.on{opacity:1;transform:scale(1.45)}
+
+  .hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;font-family:var(--disp);font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--cream);mix-blend-mode:difference;opacity:.7;
+    animation:fade 4.5s ease forwards}
+  @keyframes fade{0%,70%{opacity:.7}100%{opacity:0;visibility:hidden}}
+
+  .ref-img{width:100%;object-fit:cover;border:2.5px solid var(--ink);border-radius:8px;display:block;background:#222}
+  .bg-ink .ref-img{border-color:var(--cream)}
+  .ref-cap{font-family:var(--disp);font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:.04em;margin-top:9px}
+  .ref-cap small{display:block;font-family:var(--body);font-weight:400;text-transform:none;letter-spacing:0;font-size:12.5px;opacity:.72;margin-top:3px;line-height:1.4}
+
+  .statline{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1.5px solid rgba(22,19,15,.16);font-size:clamp(14px,1.4vw,17px)}
+  .statline .st{font-family:var(--disp);font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:.05em;padding:4px 10px;border-radius:100px;flex-shrink:0}
+  .st.done{background:var(--green);color:var(--cream)}
+  .st.hold{background:var(--brass);color:var(--ink)}
+
+  .ocircle{display:inline-block;width:.78em;height:.78em;border-radius:50%;background:var(--orange);vertical-align:-.07em;margin:0 .02em}
+
+  @media (max-width:780px){
+    .g3,.g4{grid-template-columns:repeat(2,1fr)}
+    .g2{grid-template-columns:1fr}
+    .slide{padding:5vh 6vw}
+    .hide-sm{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="dots"></div>
+<div id="hud"><span id="counter">01 / 21</span><div class="nav"><button id="prev" aria-label="이전">‹</button><button id="next" aria-label="다음">›</button></div></div>
+<div class="hint">← → 또는 스크롤로 이동</div>
+
+<main id="deck">
+
+  <!-- 01 COVER -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">Space Brand System · 2026</div>
+      <h1 class="display">Multiuse<br/>L<span class="ocircle"></span>unge</h1>
+      <p class="ko-title" style="margin-top:24px;font-size:clamp(20px,2.4vw,34px)">
+        멀티유즈 라운지 <span class="muted" style="font-weight:600">· 네이밍 미정</span>
+      </p>
+      <p class="muted" style="margin-top:16px;font-size:16px;white-space:nowrap">합정역 앞 3층, 미드센추리 가구로 채운 멀티유즈 라운지의 브랜딩&nbsp;&amp;&nbsp;디자인 시스템.</p>
+      <div style="margin-top:28px">
+        <span class="pill">WORK</span><span class="pill">CLASS</span><span class="pill">GATHER</span>
+      </div>
+    </div>
+    <div class="footer"><span>NO MORE WORK CO. · Space silo</span><span>One mood · many uses</span></div>
+  </section>
+
+  <!-- 02 OVERVIEW -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">00 · 디스커버리</div>
+      <h2 class="title">사업 개요</h2>
+      <div class="grid g4" style="margin-top:36px">
+        <div class="card"><span class="tag">위치</span><h4>합정역 앞</h4><p>마포구 합정동 3층. 홍대·상수·망원 인접, 디자인 감수성 높은 2030 밀집.</p></div>
+        <div class="card"><span class="tag">규모</span><h4>52.49㎡</h4><p>약 15.9평. 라운지 존 + 룸 존. 바닥 시공 42.9㎡(워시 오크).</p></div>
+        <div class="card"><span class="tag">컨셉</span><h4>멀티유즈 라운지</h4><p>사무실 · 요가 클래스 · 소개팅·모임으로 자유롭게 전환되는 라운지.</p></div>
+        <div class="card"><span class="tag">코어 무드</span><h4>미드센추리 + 웜우드</h4><p>미드센추리 모던 디자인 가구가 만드는 따뜻한 큐레이션.</p></div>
+      </div>
+      <p class="muted" style="margin-top:26px;font-size:14.5px">
+        <strong>확정 ✅</strong> 층고 약 2m(낮은 편) · 운영모델 <strong>무인 자동화</strong>(모회사 Space 시스템 구축 중) &nbsp;·&nbsp; <strong>대기 ⏳</strong> 가격대 <code>[대기]</code>. 가격 확정 전까지 포지셔닝 톤은 무드 기반 잠정 프리미엄 폴백.
+      </p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 03 POSITIONING -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">01 · 포지셔닝</div>
+      <h3 class="sub" style="opacity:.65">한 문장 정의</h3>
+      <p class="ko-title" style="font-size:clamp(28px,4.6vw,62px);margin-top:18px;max-width:17ch">
+        비어 있어서 무엇이든 될 수 있지만,<br/>늘 따뜻한 <span class="accent">멀티유즈 라운지.</span>
+      </p>
+      <p class="lead" style="margin-top:30px;max-width:50ch">
+        무미건조한 대관 스튜디오와 달리, 미드센추리 가구로 큐레이션된 라운지라
+        <strong>어떤 모임을 가져와도 이미 분위기가 완성되어 있습니다.</strong>
+      </p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 04 CONCEPT AXIS -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">01 · 컨셉의 축</div>
+      <h2 class="title">변하는 것 / 변하지 않는 것</h2>
+      <div class="grid g2" style="margin-top:34px">
+        <div class="card" style="border-color:var(--cobalt)">
+          <span class="tag" style="color:var(--cobalt)">변하는 것 — 용도</span>
+          <div class="modetag" style="color:var(--cobalt);font-size:clamp(22px,2.6vw,34px)">WORK<span class="dot"></span>CLASS<span class="dot"></span>GATHER</div>
+          <p style="margin-top:14px">사무실 · 요가/원데이 클래스 · 소개팅·소셜 모임 · 촬영 · 소규모 파티. 한 공간이 모드별로 재구성.</p>
+        </div>
+        <div class="card" style="border-color:var(--green)">
+          <span class="tag" style="color:var(--green)">변하지 않는 것 — 분위기</span>
+          <div class="modetag" style="color:var(--green);font-size:clamp(20px,2.2vw,28px)">미드센추리 · 웜우드</div>
+          <p style="margin-top:14px">절제된 큐레이션, 편안한 라운지감. 디자인 클래식 가구가 분위기를 미리 만들어 둔다.</p>
+        </div>
+      </div>
+      <p class="ko-title" style="margin-top:30px;font-size:clamp(20px,2.6vw,32px);color:var(--orange)">
+        “분위기는 하나, 용도는 여럿 — One mood, many uses.”
+      </p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 05 DIFFERENTIATION -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">01 · 차별화</div>
+      <h2 class="title">왜 이 공간인가</h2>
+      <div class="grid g4" style="margin-top:34px">
+        <div class="card"><span class="num">01</span><span class="tag">이미 완성된 무드</span><p>빈 화이트박스가 아니라, 디자인 가구가 분위기를 미리 완성. 세팅 노동이 없음.</p></div>
+        <div class="card"><span class="num">02</span><span class="tag">변신하는 라운지</span><p>가벽·확장 테이블·가변 좌석으로 한 공간이 모드별로 재구성됨.</p></div>
+        <div class="card"><span class="num">03</span><span class="tag">역세권 접근성</span><p>약속·모임 잡기 쉬운 합정 입지. 단, 3층이라 사이니지가 발견의 장치.</p></div>
+        <div class="card"><span class="num">04</span><span class="tag">큐레이션의 신뢰</span><p>아무 가구가 아니라 고른 가구. 디자인 소양이 곧 브랜드 신뢰.</p></div>
+      </div>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 06 PERSONAS -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">01 · 페르소나</div>
+      <h2 class="title">셋의 쓰임, 하나의 라운지</h2>
+      <p class="muted" style="margin-top:10px;font-size:14.5px">운영모델 <strong>무인 자동화</strong>(스태프 없는 셀프 이용) → 사이니지 자가안내가 중요. 3종 페르소나 동등 가중, 각 모드 시나리오와 1:1 대응.</p>
+      <div class="grid g3" style="margin-top:28px">
+        <div class="card" style="border-color:var(--cobalt)">
+          <span class="tag" style="color:var(--cobalt)">WORK · 1인 워커</span>
+          <h4>집중하는 라운지</h4>
+          <p><strong>JTBD</strong> 카페보다 사적인, 분위기 좋은 작업 공간.</p>
+          <p style="margin-top:8px" class="muted">기대 — 좋은 책상, 조용함, 시간 단위 결제, 콘센트·와이파이.</p>
+        </div>
+        <div class="card" style="border-color:var(--green)">
+          <span class="tag" style="color:var(--green)">CLASS · 클래스 호스트</span>
+          <h4>비우면 스튜디오</h4>
+          <p><strong>JTBD</strong> 가구를 빼면 매트를 깔 수 있는, 사진 잘 나오는 공간.</p>
+          <p style="margin-top:8px" class="muted">기대 — 가변 레이아웃, 따뜻한 조명, 전신거울.</p>
+        </div>
+        <div class="card" style="border-color:var(--orange)">
+          <span class="tag" style="color:var(--orange)">GATHER · 모임 주최자</span>
+          <h4>둘러앉는 라운지</h4>
+          <p><strong>JTBD</strong> 어색하지 않게 대화가 트이는, 우리끼리 편한 자리.</p>
+          <p style="margin-top:8px" class="muted">기대 — 라운지 소파·데이베드, 무드 조명, 프라이버시.</p>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:24px;font-size:14.5px">공통 인사이트 — 셋 모두 “분위기는 이미 완성, 나는 콘텐츠만”. 시간대가 달라(낮·저녁·주말) <strong>가동률 순환</strong> 설계 가능.</p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 07 CORE MOOD -->
+  <section class="slide bg-green">
+    <div class="inner">
+      <div class="kicker">01 · 코어 무드</div>
+      <h2 class="title">미드센추리 · 웜우드</h2>
+      <p class="lead" style="margin-top:22px;max-width:52ch">무드는 핵심 2개로 압축. 블랙 가죽·크롬·페이퍼·리드드 글라스는 가구의 부수 요소일 뿐, 브랜드 무드의 헤드라인이 아니다.</p>
+      <div class="grid g2" style="margin-top:30px">
+        <div class="card"><span class="tag">M1 · 미드센추리 모던</span><h4>디자인 클래식의 형태 언어</h4><p>바실리·바르셀로나·핀율·프루베·임스·알토풍 — 큐레이티드 라운지. 바우하우스 DNA.</p></div>
+        <div class="card"><span class="tag">M2 · 웜우드</span><h4>오크·자작·고무나무의 따뜻한 결</h4><p>라이트 우드 + 블랙 가죽 + 브라스·크롬 + 웜 페이퍼/린넨의 재질 팔레트.</p></div>
+      </div>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 08 VISUAL PRINCIPLES -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">01 · 비주얼 원칙</div>
+      <h2 class="title">MCM 그래픽 — 볼드하되 정제됨</h2>
+      <div class="grid g2" style="margin-top:30px;gap:34px">
+        <div>
+          <h3 class="sub" style="color:var(--green);font-size:20px">지향 (V1–V5)</h3>
+          <ul class="clean" style="margin-top:14px">
+            <li><strong>볼드·웜</strong> — 자신감 있는 따뜻한 원색, 큰 조형</li>
+            <li><strong>기하</strong> — 원·사각·블롭의 또렷한 도형(바우하우스)</li>
+            <li><strong>정제</strong> — 볼드하되 난잡하지 않은 스위스적 질서</li>
+            <li><strong>재질감</strong> — 웜우드 + 브라스의 실제 질감</li>
+            <li><strong>위트</strong> — 둥근 O·태양 같은 작은 재치</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="sub" style="color:var(--ink);font-size:20px">회피 (X1–X5)</h3>
+          <ul class="clean" style="margin-top:14px">
+            <li style="opacity:.85">차가운 테크 미니멀(SaaS 화이트)</li>
+            <li style="opacity:.85">그루비·사이키델릭·흐물 레터링</li>
+            <li style="opacity:.85">뮤트·소심한 파스텔 일색</li>
+            <li style="opacity:.85">디테일 과잉·러스틱 장식</li>
+            <li style="opacity:.85">납작한 플랫·재질 없는 일러스트</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card" style="margin-top:22px;background:var(--ink);color:var(--cream);border-color:var(--ink)">
+        <span class="tag" style="color:var(--orange)">레이어 분리 (핵심)</span>
+        <p style="font-size:15.5px"><strong>디지털·마케팅</strong>(인스타·포스터·웹)은 컬러블록 과감하게. &nbsp;·&nbsp; <strong>공간 사이니지</strong>는 우드·브라스·블랙 재질 중심으로 차분하게 — 가구를 이기지 않도록.</p>
+      </div>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 09 MOODBOARD / REFS -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">01.5 · 무드보드 게이트</div>
+      <h2 class="title">레퍼런스 — 충돌 셀 0</h2>
+      <div class="grid g4" style="margin-top:28px">
+        <figure><img class="ref-img" style="aspect-ratio:4/5" src="assets/references/ref-01.jpg" alt="THE SPIN ROOM" /><figcaption class="ref-cap">The Spin Room<small>70s 그루비 — 참고만(제외)</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:4/5" src="assets/references/ref-02.jpg" alt="Chromatics / Desire" /><figcaption class="ref-cap">Chromatics · Desire<small>레드 온 블랙 에디토리얼</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:4/5" src="assets/references/ref-03.jpg" alt="furn." /><figcaption class="ref-cap">furn. — 앵커<small>컬러블록 + 유기적 블롭</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:4/5" src="assets/references/ref-04.jpg" alt="RETROTIKA" /><figcaption class="ref-cap">RETROTIKA — 앵커<small>볼드 지오메트릭 + 브라스</small></figcaption></figure>
+      </div>
+      <p class="muted" style="margin-top:24px;font-size:14.5px">
+        코어 무드(미드센추리·웜우드) ↔ 비주얼 형용사 1:1 매핑 → <strong style="color:var(--cream)">충돌 0개 = 게이트 통과</strong>. furn.·RETROTIKA(정제된 볼드)를 앵커로, 그루비 레터링은 제외(가구와 톤차 방지).
+      </p>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 10 VOICE -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">01 · 브랜드 보이스</div>
+      <h2 class="title">좋은 안목, 으스대지 않는 호스트</h2>
+      <div class="grid g4" style="margin-top:30px">
+        <div class="card"><span class="tag">따뜻한</span><p>“오셔서 편하게 쓰시면 돼요. 분위기는 저희가 준비해 둘게요.”</p><p class="muted" style="margin-top:8px;font-size:13px">↔ 과장된 친근함·오버 텐션 ✕</p></div>
+        <div class="card"><span class="tag">절제된</span><p>“비어 있어서, 무엇이든 될 수 있어요.”</p><p class="muted" style="margin-top:8px;font-size:13px">↔ 미사여구·형용사 남발 ✕</p></div>
+        <div class="card"><span class="tag">안목 있는</span><p>“미드센추리 가구로 골라 채웠어요. 앉아보시면 알아요.”</p><p class="muted" style="margin-top:8px;font-size:13px">↔ 브랜드명 나열·지식 자랑 ✕</p></div>
+        <div class="card"><span class="tag">솔직한</span><p>“넓진 않지만, 그래서 오히려 아늑해요. 6~8명 모임에 좋아요.”</p><p class="muted" style="margin-top:8px;font-size:13px">↔ 공허한 완벽 약속 ✕</p></div>
+      </div>
+      <p class="muted" style="margin-top:22px;font-size:14.5px">격식체 존댓말 + 대화적 어미(~거든요·~지요). 느낌표 절제, 가구 제품 고유명 직접 차용 금지.</p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 11 NAMING -->
+  <section class="slide bg-cobalt">
+    <div class="inner">
+      <div class="kicker">02 · 네이밍</div>
+      <h2 class="title">‘멀티유즈 라운지’가 드러나는 이름</h2>
+      <p style="margin-top:14px;font-size:15px;max-width:62ch;opacity:.92">
+        방향 전환 — <strong>하우스오브</strong>는 사무실 용도가 배제되는 느낌, <strong>모듈룸</strong>은 발음·검색이 어려움 → 둘 다 보류.
+        멀티유즈 라운지 컨셉을 더 직접적으로 담는 후보로 확장(음절 제한 없음).
+      </p>
+      <div class="grid g2" style="margin-top:22px;align-items:start">
+        <table class="t">
+          <tr><th>신규 후보</th><th>왜 멀티유즈 라운지인가</th></tr>
+          <tr><td><strong>무드룸</strong><br/>MOOD ROOM</td><td>“분위기는 하나”를 이름에. 용도가 바뀌어도 무드는 하나 — 컨셉 직결. 발음·검색 쉬움, ‘O’ 로고 적합. <span style="opacity:.8">★ 추천</span></td></tr>
+          <tr><td><strong>모드라운지</strong><br/>MODE LOUNGE</td><td>WORK·CLASS·GATHER ‘모드’ + 컨셉 단어 ‘라운지’ 직접 사용. 멀티유즈를 가장 명시적으로 표현</td></tr>
+          <tr><td><strong>레이어</strong><br/>LAYER</td><td>한 공간에 여러 쓰임이 ‘겹쳐’ 있음. 로고의 <strong>겹침 모티프</strong>와 시너지</td></tr>
+          <tr><td><strong>모도</strong><br/>MODO</td><td>이탈리안 ‘방식/무드’. 미드센추리 톤, 짧고 변별력 높음</td></tr>
+        </table>
+        <div>
+          <div class="card"><span class="tag">함께 검토할 기존 후보</span>
+            <p><strong>오브룸 OVE ROOM</strong> — 오브제가 놓인 감도 있는 방, ‘O’ 모티프.<br/>
+            <strong>오빗 ORBIT</strong> — 60s 우주시대 원형 모티프(변별력↑).</p>
+          </div>
+          <p style="margin-top:16px;font-size:13.5px;opacity:.9">🟡 <strong>결정 보류</strong> — 마음 가는 2~3개를 상표(KIPRIS 43류)·도메인·인스타 핸들 <strong>라이브 확인</strong> 후 압축. 비주얼 예시는 name-agnostic(이름 바뀌어도 시스템 유효).</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 12 COLOR -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">03 · 컬러 팔레트</div>
+      <h2 class="title">메인 · 세컨더리 · 재질</h2>
+      <div class="grid" style="grid-template-columns:1.5fr 1.2fr 1.2fr;margin-top:26px;gap:26px;align-items:start">
+        <div>
+          <p class="swgroup">브랜드 식별 3색 — 메인 + 엑센트</p>
+          <div class="grid g3">
+            <div class="swatch"><div class="chip" style="background:var(--cream)"></div><div class="meta"><div class="name">메인 · Cream</div><div class="hex">#F4E9C8</div></div></div>
+            <div class="swatch"><div class="chip" style="background:var(--ink)"></div><div class="meta"><div class="name">메인 · Ink</div><div class="hex">#16130F</div></div></div>
+            <div class="swatch"><div class="chip" style="background:var(--orange)"></div><div class="meta"><div class="name">엑센트 · Orange</div><div class="hex">#E2531E</div></div></div>
+          </div>
+        </div>
+        <div>
+          <p class="swgroup">세컨더리 블록</p>
+          <div class="grid g2">
+            <div class="swatch"><div class="chip" style="background:var(--green)"></div><div class="meta"><div class="name">Green</div><div class="hex">#235C42</div></div></div>
+            <div class="swatch"><div class="chip" style="background:var(--cobalt)"></div><div class="meta"><div class="name">Cobalt</div><div class="hex">#1B4FA0</div></div></div>
+          </div>
+        </div>
+        <div>
+          <p class="swgroup">재질(물성) 포인트</p>
+          <div class="grid g2">
+            <div class="swatch"><div class="chip" style="background:var(--brass)"></div><div class="meta"><div class="name">Brass · 놋쇠</div><div class="hex">#B0883C</div></div></div>
+            <div class="swatch"><div class="chip" style="background:var(--walnut)"></div><div class="meta"><div class="name">Walnut · 우드</div><div class="hex">#8A5A33</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g3" style="margin-top:24px">
+        <div class="card"><span class="tag">메인 — 크림 · 잉크</span><p>배경·텍스트의 기본 토대. 브랜드를 차분하게 떠받치는 두 색.</p></div>
+        <div class="card"><span class="tag">엑센트 — 오렌지</span><p>‘O’/태양과 직결되는 시그니처 한 색. 컬러블록·로고·강조에만.</p></div>
+        <div class="card"><span class="tag">재질 포인트 — 브라스·월넛</span><p>색이 아니라 실제 <strong>재질(놋쇠·우드)</strong>. 사진·공간 사이니지의 질감으로 쓰임.</p></div>
+      </div>
+      <p class="muted" style="margin-top:16px;font-size:13.5px">레드는 오렌지와 겹쳐 제외. HEX/RGB는 디지털 확정값, CMYK/Pantone은 근사 — 발주 전 실물 스와치 확인. 오렌지·브라스는 작은 본문 색 금지(대비).</p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 13 TYPOGRAPHY -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">03 · 타이포그래피</div>
+      <h2 class="title">기하 산세가 주인공</h2>
+      <div class="grid g2" style="margin-top:28px;align-items:center">
+        <div>
+          <p style="font-family:var(--disp);font-weight:900;font-size:clamp(44px,6vw,92px);line-height:.9;letter-spacing:-.02em;color:var(--orange)">Aa Gg</p>
+          <p style="font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:20px;margin-top:8px">League Spartan · Black</p>
+          <p class="muted" style="font-size:14px;margin-top:4px">디스플레이(로고·헤드라인) — 푸투라 계열, 바우하우스 직계. 국문 Pretendard Black / G마켓산스.</p>
+          <hr style="border:none;border-top:1.5px solid rgba(22,19,15,.18);margin:22px 0" />
+          <p style="font-family:var(--body);font-weight:600;font-size:22px">본문은 Pretendard</p>
+          <p class="muted" style="font-size:14px;margin-top:4px">국·영문 한 가족으로 통일(고가독). 본문 최소 16px.</p>
+        </div>
+        <div>
+          <div class="card" style="background:var(--orange);border-color:var(--ink);color:var(--cream)">
+            <span class="tag" style="color:var(--ink)">시그니처 모드 태그</span>
+            <div class="modetag" style="color:var(--cream)">WORK<span class="dot"></span>CLASS<span class="dot"></span>GATHER</div>
+            <p style="margin-top:12px;font-size:14px">대문자 · 가운뎃점 구분 · 컬러블록 위 크림/잉크. 강조는 굵기·컬러블록으로(밑줄·그림자·이탤릭 금지).</p>
+          </div>
+          <p class="muted" style="margin-top:18px;font-size:14.5px">⚠️ <strong>로고가 확정되면</strong> 디스플레이 폰트도 로고 레터링에 맞춰 변경될 수 있습니다(현재는 방향값).</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 14 LOGO DIRECTION -->
+  <section class="slide bg-orange">
+    <div class="inner">
+      <div class="kicker">03 · 로고 방향</div>
+      <h2 class="title">‘O’ = 태양 · 원 · 겹침</h2>
+      <div class="grid g2" style="margin-top:30px;align-items:center">
+        <div style="text-align:center">
+          <div style="display:inline-flex;align-items:center;justify-content:center;gap:-8px;height:150px">
+            <span style="width:120px;height:120px;border-radius:50%;background:var(--cream);display:inline-block"></span>
+            <span style="width:120px;height:120px;border-radius:50%;background:var(--ink);display:inline-block;margin-left:-46px;mix-blend-mode:normal"></span>
+            <span style="width:120px;height:120px;border-radius:50%;border:5px solid var(--cream);display:inline-block;margin-left:-46px"></span>
+          </div>
+          <p style="font-family:var(--disp);font-weight:800;letter-spacing:.2em;margin-top:18px;color:var(--ink)">겹치는 원 = 멀티유즈</p>
+        </div>
+        <div>
+          <ul class="clean" style="--c:var(--ink)">
+            <li>‘O’/해를 <strong>완전한 원</strong>으로 — 바우하우스 기하 + 노구치 램프/태양의 MCM 곡선. 광선 디테일은 절제.</li>
+            <li><strong>겹침(overlap)</strong>을 핵심 장치로 — 여러 쓰임이 한 공간에 포개진 멀티유즈를 형태로 표현.</li>
+            <li>변형 — Primary 가로 / Stacked / Symbol only / Location lock-up.</li>
+            <li>금지 — 그루비 변형, 비율 왜곡, 팔레트 외 색, 가구 고유명 결합.</li>
+          </ul>
+          <p class="muted" style="margin-top:10px;font-size:13.5px">네이밍 미정 — 'O'가 들어가는 이름(무드룸·오브룸·오빗 등)과 특히 잘 맞음. 벡터 제작은 승인 후.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 15 LOGO MOODBOARD (NEW) -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">03 · 로고 무드보드</div>
+      <h2 class="title">겹침으로 표현하는 멀티유즈</h2>
+      <p class="muted" style="margin-top:10px;font-size:14.5px;max-width:64ch">원·도형이 <strong style="color:var(--cream)">겹쳐지며</strong> 생기는 형태 — 하나의 공간에 여러 쓰임이 포개진다는 컨셉을 로고/그래픽 언어로.</p>
+      <div class="grid g3" style="margin-top:24px">
+        <figure><img class="ref-img" style="aspect-ratio:3/4" src="assets/moodboard/logo-01.png" alt="겹치는 원형 — 라이트&섀도" /><figcaption class="ref-cap">원·반원의 겹침<small>도형이 포개지며 만드는 양/음 — 멀티유즈의 형태화</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:3/4" src="assets/moodboard/logo-02.png" alt="겹친 타원 레터폼 포스터" /><figcaption class="ref-cap">겹친 타원 = 레터폼<small>원형 모듈을 겹쳐 글자를 만드는 기하 타이포</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:3/4" src="assets/moodboard/logo-03.png" alt="구리빛 레이어 곡면" /><figcaption class="ref-cap">레이어드 곡면 · 웜<small>반복·겹층의 따뜻한 재질감(브라스·웜우드 톤)</small></figcaption></figure>
+      </div>
+      <p class="muted" style="margin-top:20px;font-size:13.5px">방향 — 단색·고대비 기하(좌·중)로 ‘겹침’의 구조를, 웜 톤(우)로 ‘재질감’을 가져온다. 그루비 배제, 바우하우스·노구치 곡선 유지.</p>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 16 SIGNAGE -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">04 · 사이니지</div>
+      <h2 class="title">찾아오게 만드는 동선</h2>
+      <p class="muted" style="margin-top:8px;font-size:14.5px">3층 입지 = 1층 노출 없음 → 사이니지가 “발견의 장치”. 층고 약 2m(낮은 편) 확정 → 사인 높이·돌출 규격에 반영, 절대치수는 입면 실측 후 확정.</p>
+      <div class="grid g2" style="margin-top:26px;align-items:start">
+        <div class="card" style="border-color:var(--cobalt)">
+          <span class="tag" style="color:var(--cobalt)">외부 — 마케팅 레이어(컬러 과감)</span>
+          <ul class="clean" style="margin-top:6px;font-size:15px">
+            <li>블레이드(돌출) 사인 — 길에서 3층 인지, 야간 백릿</li>
+            <li>창문 사인 — 무드 노출 + 모드 태그</li>
+            <li>1층 디렉토리 — 끊김 없는 동선 유도</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--walnut)">
+          <span class="tag" style="color:var(--walnut)">실내 — 재질 레이어(우드·브라스·블랙)</span>
+          <ul class="clean" style="margin-top:6px;font-size:15px">
+            <li>입구 사인 · 모드 안내판(교체형 카드)</li>
+            <li>이용 가이드 · 웨이파인딩 · 에티켓</li>
+            <li>픽토그램 — 24px 라인, <strong>라벨 병행 필수</strong></li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:22px;font-family:var(--disp);font-weight:800;letter-spacing:.04em;font-size:14px;color:var(--ink)">길 위 → 블레이드 → 입구 디렉토리 → 엘리베이터 → 3F 입구 사인 — <span style="color:var(--orange)">한 번도 끊기지 않게.</span></p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 17 SIGNAGE MOODBOARD (NEW) -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">04 · 사이니지 무드보드</div>
+      <h2 class="title">도형으로 만든 방향</h2>
+      <p class="muted" style="margin-top:10px;font-size:14.5px;max-width:64ch">미드센추리 무드에 맞게 <strong style="color:var(--cream)">기하 도형을 활용한 화살표</strong>와 <strong style="color:var(--cream)">컬러블록의 겹침</strong>으로 길찾기를 표현. 콘크리트·우드 같은 실제 재질 위에 차분하게.</p>
+      <div class="grid g3" style="margin-top:24px">
+        <figure><img class="ref-img" style="aspect-ratio:3/4" src="assets/moodboard/signage-01.png" alt="오렌지 컬러블록 층 사인" /><figcaption class="ref-cap">컬러블록 겹침 + 빅 넘버<small>오렌지 면이 크림 패널 위에 겹쳐진 층 표기 — 식별 3색 그대로</small></figcaption></figure>
+        <figure><img class="ref-img" style="aspect-ratio:3/4" src="assets/moodboard/signage-02.png" alt="계단형 도형 화살표 사인" /><figcaption class="ref-cap">도형으로 조립한 화살표<small>사각형을 쌓아 만든 방향 기호 — 기하 언어의 웨이파인딩</small></figcaption></figure>
+        <div class="card" style="aspect-ratio:3/4;display:flex;flex-direction:column;justify-content:center"><span class="tag">방향</span><p>① 컬러블록을 <strong>겹쳐</strong> 위계를(층·구역).<br/><br/>② 화살표·픽토는 <strong>도형 조립</strong>으로.<br/><br/>③ 콘크리트·우드 실제 재질을 배경으로 — 가구를 이기지 않게.</p></div>
+      </div>
+      <p class="muted" style="margin-top:18px;font-size:13.5px">무인 자동화 운영이라 <strong style="color:var(--cream)">스태프 없는 자가안내</strong>가 핵심 — 도형·컬러블록만으로 직관적으로 읽히게.</p>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 18 MODE SCENARIOS -->
+  <section class="slide bg-green">
+    <div class="inner">
+      <div class="kicker">04 · 멀티유즈 모드</div>
+      <h2 class="title">세 모드, 세 시나리오</h2>
+      <div class="grid g3" style="margin-top:30px">
+        <div class="card"><span class="tag">WORK</span><h4>집중하는 라운지</h4><p>와이파이·콘센트 안내, “통화는 복도에서” 정숙. 다이닝테이블/데스크 + 프루베풍 체어.</p></div>
+        <div class="card"><span class="tag">CLASS</span><h4>비우면 스튜디오</h4><p>가구 재배치 가이드(가벽·스툴을 벽으로), 전신거울, 매트 구역·동선 확보.</p></div>
+        <div class="card"><span class="tag">GATHER</span><h4>둘러앉는 라운지</h4><p>라운지 소파·데이베드·확장 테이블, 무드 조명. 안내는 작은 카드로 최소.</p></div>
+      </div>
+      <p style="margin-top:24px;font-size:15px;opacity:.92">모드 안내판(I-2)은 <strong>카드 슬롯/마그넷 교체형</strong> — 운영자가 카드만 바꿔 모드를 전환. WORK/CLASS/GATHER 3종 사전 제작.</p>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 19 DESIGN TOKENS (plain language) -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">05 · 디자인 토큰</div>
+      <h2 class="title">디자인 토큰이란?</h2>
+      <p class="lead" style="margin-top:18px;max-width:60ch">
+        색·글자·간격 같은 디자인 값을 숫자로 규격화한 <strong style="color:var(--orange)">‘디자인 부품 목록’</strong>입니다.
+        누가 만들어도(웹·인쇄·간판) 같은 결과가 나오도록 하는 단일 기준이에요.
+      </p>
+      <div class="grid g3" style="margin-top:28px">
+        <div class="card"><span class="tag">예시 · 색</span><p><code>엑센트/오렌지 = #E2531E</code><br/>“오렌지”라고 말로 하지 않고 정확한 코드로 고정.</p></div>
+        <div class="card"><span class="tag">예시 · 글자</span><p><code>헤드라인 = 56px / League Spartan</code><br/>크기·폰트·행간을 규격으로.</p></div>
+        <div class="card"><span class="tag">예시 · 간격</span><p><code>기본 간격 = 8 · 16 · 24px</code><br/>여백을 8px 배수로 통일.</p></div>
+      </div>
+      <div class="grid g2" style="margin-top:22px">
+        <div class="card" style="background:var(--orange);border-color:var(--cream);color:var(--cream)"><span class="tag" style="color:var(--ink)">디지털·마케팅에서</span><p>화면용 값 <strong>HEX/RGB</strong> — 컬러블록 과감 + 기하 산세 디스플레이.</p></div>
+        <div class="card" style="background:var(--walnut);border-color:var(--cream);color:var(--cream)"><span class="tag" style="color:var(--cream);opacity:.9">공간 사이니지에서</span><p>인쇄·제작용 값 <strong>CMYK/Pantone·재질</strong> — 우드·브라스·블랙 재질 중심(차분).</p></div>
+      </div>
+      <p class="muted" style="margin-top:16px;font-size:13.5px">한 줄 요약 — 토큰이 있으면 “이 오렌지 맞아?” 같은 혼선 없이, 모든 제작물의 색·글자·간격이 자동으로 같아집니다.</p>
+    </div>
+    <div class="footer"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 20 STATUS / ROADMAP -->
+  <section class="slide bg-cream">
+    <div class="inner">
+      <div class="kicker" style="color:var(--orange)">06 · 상태 &amp; 로드맵</div>
+      <h2 class="title">지금 어디까지</h2>
+      <div style="margin-top:22px">
+        <div class="statline"><span class="st done">완료</span><span><strong>Phase 0</strong> 디스커버리 — 합정 3층·52.49㎡, 무드 2개 압축</span></div>
+        <div class="statline"><span class="st done">완료</span><span><strong>Phase 1</strong> 전략 · 포지셔닝 · 페르소나 · 보이스 · 비주얼 원칙</span></div>
+        <div class="statline"><span class="st hold">검증권장</span><span><strong>Phase 1.5</strong> 무드보드 게이트 — 충돌 0 / verifier 재검증 권장</span></div>
+        <div class="statline"><span class="st hold">보류</span><span><strong>Phase 2</strong> 네이밍 — 멀티유즈 라운지 방향으로 후보 확장, 결정 보류(상표·도메인 확인 대기)</span></div>
+        <div class="statline"><span class="st done">완료</span><span><strong>Phase 3</strong> 아이덴티티 — 컬러·타이포·로고 방향·토큰 (벡터 제작은 승인 후)</span></div>
+        <div class="statline"><span class="st done">완료</span><span><strong>Phase 4</strong> 사이니지 — 체계·시나리오·무드보드 (층고 2m 확정 반영)</span></div>
+        <div class="statline"><span class="st done">완료</span><span><strong>Phase 5</strong> 디자인 시스템 문서화</span></div>
+      </div>
+      <p class="muted" style="margin-top:16px;font-size:14px"><strong>확정 ✅</strong> 층고 약 2m · 운영모델 무인 자동화 &nbsp;·&nbsp; <strong>대기 ⏳</strong> 가격대 · 네이밍 최종 확정.</p>
+      <p style="margin-top:12px;font-size:14px;background:var(--ink);color:var(--cream);padding:13px 16px;border-radius:8px"><strong style="color:var(--orange)">로드맵</strong> &nbsp; 네이밍 확정 → <strong>+1주</strong> 로고·픽토·사이니지 디자인 → <strong>+2주</strong> brand · bx · product · ux 문서 작성·배포.</p>
+    </div>
+    <div class="footer" style="color:var(--ink)"><span>MULTIUSE LOUNGE</span><span>NO MORE WORK CO.</span></div>
+  </section>
+
+  <!-- 21 CLOSING -->
+  <section class="slide bg-ink">
+    <div class="inner">
+      <div class="kicker">검토 포인트</div>
+      <h1 class="display" style="font-size:clamp(40px,7vw,108px)">가져오기만<br/>하세요.</h1>
+      <p class="lead" style="margin-top:26px;max-width:52ch">분위기·가구·세팅은 이미 준비됨. 다음 단계는 — <strong>① 네이밍 좁히기</strong>(상표·도메인 라이브 확인), <strong>② 네이밍 확정 → 다음 주 로고·픽토·사이니지 디자인</strong>, <strong>③ 그 다음 주 brand · bx · product · ux 문서 작성·배포.</strong></p>
+      <p class="ko-title" style="margin-top:30px;font-size:clamp(20px,2.6vw,32px);color:var(--orange)">하나의 공간, 당신의 쓰임.</p>
+    </div>
+    <div class="footer"><span>NO MORE WORK CO. · Space silo</span><span>One mood · many uses</span></div>
+  </section>
+
+</main>
+
+<script>
+  const deck=document.getElementById('deck');
+  const slides=[...document.querySelectorAll('.slide')];
+  const total=slides.length;
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  const dotsWrap=document.getElementById('dots');
+  const pad=n=>String(n).padStart(2,'0');
+
+  slides.forEach((_,i)=>{
+    const d=document.createElement('span');
+    d.addEventListener('click',()=>slides[i].scrollIntoView());
+    dotsWrap.appendChild(d);
+  });
+  const dots=[...dotsWrap.children];
+
+  let current=0;
+  function update(){
+    let idx=Math.round(deck.scrollTop/window.innerHeight);
+    idx=Math.max(0,Math.min(total-1,idx));
+    current=idx;
+    counter.textContent=pad(idx+1)+' / '+pad(total);
+    progress.style.width=((idx)/(total-1)*100)+'%';
+    dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
+  }
+  deck.addEventListener('scroll',()=>{window.requestAnimationFrame(update)},{passive:true});
+
+  function go(n){
+    const t=Math.max(0,Math.min(total-1,n));
+    slides[t].scrollIntoView();
+  }
+  document.getElementById('next').onclick=()=>go(current+1);
+  document.getElementById('prev').onclick=()=>go(current-1);
+
+  window.addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();go(current+1);}
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(current-1);}
+    else if(e.key==='Home'){e.preventDefault();go(0);}
+    else if(e.key==='End'){e.preventDefault();go(total-1);}
+  });
+  update();
+</script>
+</body>
+</html>

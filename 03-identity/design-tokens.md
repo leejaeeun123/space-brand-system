@@ -1,9 +1,12 @@
 # Phase 3 — 디자인 토큰 (v2, MCM 그래픽)
 
+> 2026-06-21 개정. 레트로 레드 토큰 **삭제**(오렌지와 겹침). 컬러 역할을 **메인(크림·잉크)+엑센트(오렌지)**로 정리. 본문 폰트 **Inter→Pretendard 통일**, Fraunces Italic 액센트 **제거**(폰트 통일).
 > 단일 진실 공급원(SSOT). 컬러는 **디지털(RGB/HEX) + 물리(CMYK/Pantone·소재)** 이원 스키마.
 > 물리 값은 근사 — 인쇄·사이니지 발주 전 실물 스와치 확인 필수.
 
 ## 1. 컬러 토큰 (이원 스키마)
+
+> 역할: `spine/cream`·`spine/ink` = **메인**, `spine/orange` = **엑센트**. 셋이 브랜드 식별 3색. `material/*` = 재질(물성) 포인트.
 
 | 토큰 | HEX | RGB | CMYK (근사) | Pantone (근사) | 소재(물리) |
 |---|---|---|---|---|---|
@@ -14,20 +17,20 @@
 | `color/block/cobalt` | #1B4FA0 | 27,79,160 | 92·70·6·0 | 2132 C | 컬러 도장 |
 | `color/material/brass` | #B0883C | 176,136,60 | 28·44·90·8 | 7555 C / 871 C(메탈릭) | 브러시드 브라스(놋쇠) |
 | `color/material/walnut` | #8A5A33 | 138,90,51 | 35·63·85·25 | 7567 C | 월넛/오크 우드 |
-| `color/point/red` | #D8352A | 216,53,42 | 8·90·88·1 | 1788 C | 포인트(소량) |
 
 ## 2. 타이포 토큰
+
+> 본문·헤딩·라벨은 **Pretendard로 국·영문 통일**(한 가족). 디스플레이만 League Spartan(국문 Pretendard Black/G마켓산스). **로고 확정 시 디스플레이 폰트가 로고 레터링에 맞춰 변경될 수 있음(현재는 방향값).**
 
 | 토큰 | 폰트 (영문 / 국문) | 크기/행간 |
 |---|---|---|
 | `font/display/2xl` | League Spartan Black / G마켓산스·Pretendard Black | 56/1.0 |
 | `font/display/xl` | League Spartan Black / Pretendard Black | 40/1.05 |
 | `font/display/lg` | League Spartan Bold / Pretendard Bold | 28/1.1 |
-| `font/heading/md` | Inter SemiBold / Pretendard SemiBold | 22/1.3 |
-| `font/body/lg` | Inter Regular / Pretendard Regular | 18/1.6 |
-| `font/body/md` | Inter Regular / Pretendard Regular | 16/1.6 |
-| `font/label/md` | Inter Medium / Pretendard Medium · UPPERCASE | 14/1.4 |
-| `font/accent` | Fraunces Italic (강조 1곳만) | 가변 |
+| `font/heading/md` | Pretendard SemiBold | 22/1.3 |
+| `font/body/lg` | Pretendard Regular | 18/1.6 |
+| `font/body/md` | Pretendard Regular | 16/1.6 |
+| `font/label/md` | Pretendard Medium · UPPERCASE | 14/1.4 |
 
 ## 3. 스페이싱 토큰 (8px 베이스)
 
