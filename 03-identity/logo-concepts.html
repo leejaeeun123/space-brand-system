@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모드라운지 — 로고 컨셉 시안 보드 (겹침)</title>
+<style>
+  :root{
+    --orange:#E2531E; --cream:#F4E9C8; --ink:#16130F;
+    --green:#235C42; --cobalt:#1B4FA0; --brass:#B0883C;
+    --walnut:#8A5A33; --red:#D8352A;
+    --board:#FBF6EA;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic","Pretendard",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    padding:48px 40px 28px; border-bottom:3px solid var(--ink);
+  }
+  header h1{
+    margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;
+  }
+  header h1 .en{ font-weight:700; letter-spacing:.18em; font-size:20px; opacity:.55; margin-left:10px;}
+  header p{ margin:10px 0 0; max-width:760px; line-height:1.6; font-size:14px; opacity:.8;}
+  header .tag{
+    display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px;
+    background:var(--ink); color:var(--cream); font-size:12px; letter-spacing:.06em;
+  }
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; font-size:12px; opacity:.85;}
+  .legend span{ display:inline-flex; align-items:center; gap:6px;}
+  .legend i{ width:14px; height:14px; border-radius:3px; display:inline-block;}
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+    gap:22px; padding:34px 40px 80px;
+  }
+  .card{
+    background:var(--board); border:1px solid rgba(22,19,15,.12);
+    border-radius:14px; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .mark{
+    background:#fff; isolation:isolate; aspect-ratio:5/4;
+    display:flex; align-items:center; justify-content:center; padding:22px;
+  }
+  .mark svg{ width:78%; height:auto; display:block;}
+  .lockup{
+    display:flex; align-items:center; gap:12px;
+    padding:14px 18px; border-top:1px solid rgba(22,19,15,.1);
+    background:var(--board);
+  }
+  .lockup .lk{ background:#fff; isolation:isolate; border-radius:8px; padding:6px; flex:0 0 auto;}
+  .lockup .lk svg{ width:40px; height:32px; display:block;}
+  .wordmark{ line-height:1.05;}
+  .wordmark .ko{ font-size:18px; font-weight:800; letter-spacing:-.01em;}
+  .wordmark .en2{ font-size:10px; font-weight:600; letter-spacing:.22em; opacity:.55; margin-top:3px;}
+  .meta{ padding:12px 18px 18px;}
+  .meta h3{ margin:0 0 5px; font-size:14px; font-weight:800;}
+  .meta h3 .no{ color:var(--orange); margin-right:6px;}
+  .meta p{ margin:0; font-size:12.5px; line-height:1.5; opacity:.75;}
+  footer{ padding:0 40px 60px; max-width:820px; font-size:13px; line-height:1.7; opacity:.78;}
+  footer code{ background:#fff; padding:2px 6px; border-radius:5px; border:1px solid rgba(0,0,0,.1);}
+  .blend{ mix-blend-mode:multiply;}
+</style>
+</head>
+<body>
+
+<!-- ───────── SYMBOL DEFINITIONS (재사용) ───────── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- C1 · 2면 가로 겹침 -->
+  <symbol id="c1" viewBox="0 0 200 160">
+    <rect class="blend" x="14" y="24" width="118" height="98" rx="20" fill="#E2531E"/>
+    <rect class="blend" x="68" y="48" width="118" height="98" rx="20" fill="#1B4FA0"/>
+  </symbol>
+  <!-- C2 · 3면 겹침 (venn) -->
+  <symbol id="c2" viewBox="0 0 200 160">
+    <rect class="blend" x="58" y="6"  width="84" height="84" rx="18" fill="#E2531E"/>
+    <rect class="blend" x="18" y="66" width="84" height="84" rx="18" fill="#235C42"/>
+    <rect class="blend" x="98" y="66" width="84" height="84" rx="18" fill="#1B4FA0"/>
+  </symbol>
+  <!-- C3 · 레이어드 적층 (켜/깊이) -->
+  <symbol id="c3" viewBox="0 0 200 160">
+    <rect class="blend" x="20" y="22" width="118" height="92" rx="14" fill="#E2531E" opacity=".62"/>
+    <rect class="blend" x="44" y="40" width="118" height="92" rx="14" fill="#E2531E" opacity=".62"/>
+    <rect class="blend" x="68" y="58" width="118" height="92" rx="14" fill="#E2531E" opacity=".62"/>
+  </symbol>
+  <!-- C4 · 2면 세로 겹침 -->
+  <symbol id="c4" viewBox="0 0 200 160">
+    <rect class="blend" x="40" y="8"  width="120" height="78" rx="18" fill="#E2531E"/>
+    <rect class="blend" x="40" y="60" width="120" height="78" rx="18" fill="#235C42"/>
+  </symbol>
+  <!-- C5 · M 모노그램 (두 사선 면이 교차) -->
+  <symbol id="c5" viewBox="0 0 200 160">
+    <polygon class="blend" points="18,144 56,144 130,30 92,30" fill="#E2531E"/>
+    <polygon class="blend" points="182,144 144,144 70,30 108,30" fill="#1B4FA0"/>
+  </symbol>
+  <!-- C6 · 아치/포털 겹침 (두 개의 방) -->
+  <symbol id="c6" viewBox="0 0 200 160">
+    <path class="blend" d="M22,146 L22,80 A46,46 0 0 1 114,80 L114,146 Z" fill="#E2531E"/>
+    <path class="blend" d="M86,146 L86,80 A46,46 0 0 1 178,80 L178,146 Z" fill="#B0883C"/>
+  </symbol>
+  <!-- C7 · 평행사변형 2개 겹침 (동적) -->
+  <symbol id="c7" viewBox="0 0 200 160">
+    <polygon class="blend" points="18,128 78,40 150,40 90,128" fill="#E2531E"/>
+    <polygon class="blend" points="70,128 130,40 190,40 130,128" fill="#235C42"/>
+  </symbol>
+  <!-- C8 · 모듈 그리드 (4모드 겹침) -->
+  <symbol id="c8" viewBox="0 0 200 160">
+    <rect class="blend" x="34" y="14" width="78" height="64" rx="12" fill="#E2531E"/>
+    <rect class="blend" x="96" y="14" width="78" height="64" rx="12" fill="#1B4FA0"/>
+    <rect class="blend" x="34" y="62" width="78" height="64" rx="12" fill="#235C42"/>
+    <rect class="blend" x="96" y="62" width="78" height="64" rx="12" fill="#B0883C"/>
+  </symbol>
+  <!-- C9 · 동심 오프셋 프레임 (절제·깊이) -->
+  <symbol id="c9" viewBox="0 0 200 160">
+    <rect x="22" y="20" width="150" height="120" rx="16" fill="none" stroke="#16130F" stroke-width="7"/>
+    <rect x="42" y="34" width="150" height="120" rx="16" fill="none" stroke="#E2531E" stroke-width="7"/>
+  </symbol>
+  <!-- C10 · 소프트 2면 (큰 라운드) -->
+  <symbol id="c10" viewBox="0 0 200 160">
+    <rect class="blend" x="12" y="30" width="112" height="100" rx="50" fill="#E2531E"/>
+    <rect class="blend" x="76" y="30" width="112" height="100" rx="50" fill="#1B4FA0"/>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지<span class="en">MODE LOUNGE</span></h1>
+  <p>'겹침(Overlapping Planes)' 컨셉의 로고 아이디어 시안 보드입니다. 면이 겹쳐 생기는 멀티플라이 교집합 = 라운지(공유의 핵). 브랜드 팔레트(번트오렌지·그린·코발트·브라스)로 실제 렌더했습니다. 아이디어 단계 — 여기서 좁힌 뒤 최종 1개만 벡터로 출력합니다.</p>
+  <span class="tag">IDEA STAGE · 10 concepts · 흰 아트보드 기준</span>
+  <div class="legend">
+    <span><i style="background:#E2531E"></i>orange</span>
+    <span><i style="background:#235C42"></i>green</span>
+    <span><i style="background:#1B4FA0"></i>cobalt</span>
+    <span><i style="background:#B0883C"></i>brass</span>
+    <span><i style="background:#16130F"></i>ink</span>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- 카드 템플릿: mark + lockup + meta -->
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c1"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c1"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">01</span>2면 가로 겹침</h3>
+      <p>MODE×LOUNGE 두 면이 겹침. 가장 단순·견고, 소형에서 안 뭉개짐. 라운지의 수평감.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c2"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c2"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">02</span>3면 겹침 (WORK·CLASS·GATHER)</h3>
+      <p>세 모드가 한 점에서 겹침. "용도는 여럿, 무드는 하나" 서사 최강. 소형은 단순화 변형 필요.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c3"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c3"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">03</span>레이어드 적층 (켜·깊이)</h3>
+      <p>같은 면이 어긋나 쌓여 켜를 만듦. 깊이·물성감. 우드/브라스 엠보싱 사인으로 옮기기 좋음.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c4"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c4"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">04</span>2면 세로 겹침</h3>
+      <p>위아래로 겹친 면. 정사각·프로필에 안정적. 'ㅁ'·'룸'의 방 느낌과 호응.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c5"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c5"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">05</span>M 모노그램 (사선 교차)</h3>
+      <p>두 사선 면이 교차하며 M(MODE) 실루엣 + 교집합. 워드마크 없이 식별. 변별력 높음.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c6"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c6"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">06</span>아치 포털 겹침 (두 개의 방)</h3>
+      <p>겹친 두 아치 = 들어서는 두 개의 방/라운지. 미드센추리 아치 모티프. 따뜻·공간감.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c7"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c7"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">07</span>평행사변형 2면 (동적)</h3>
+      <p>기울어진 두 면의 겹침. 움직임·전환감. "모드가 슬라이드된다"는 가변성 표현.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c8"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c8"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">08</span>모듈 그리드 (4면 겹침)</h3>
+      <p>2×2 모듈이 가장자리에서 겹침. 모듈/가변 공간 메타포. 패턴 확장(벽지·굿즈)에 강함.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c9"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c9"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">09</span>동심 오프셋 프레임 (절제)</h3>
+      <p>어긋난 두 외곽선 프레임 = 겹친 공간의 윤곽. 가장 미니멀·라인형. 음각/브라스 라인 사인에 적합.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="mark"><svg viewBox="0 0 200 160"><use href="#c10"/></svg></div>
+    <div class="lockup"><div class="lk"><svg viewBox="0 0 200 160"><use href="#c10"/></svg></div>
+      <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+    <div class="meta"><h3><span class="no">10</span>소프트 2면 (큰 라운드)</h3>
+      <p>모서리를 크게 굴린 두 면. 부드럽고 친근. '원' 강조 없이도 따뜻한 라운지 정서.</p></div>
+  </div>
+</main>
+
+<footer>
+  <strong>다음 단계</strong> — 이 중 끌리는 1~3개를 골라주시면 그 방향만 ① 면 개수·각도·모서리 ② 컬러 조합 ③ 워드마크 정렬을 변주해 <em>2차 보드</em>로 좁히고, 최종 1개를 확정하면 그때 벡터(SVG/AI)로 출력합니다.<br><br>
+  <strong>보는 법</strong> — 이 파일을 브라우저로 열면 됩니다: <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-concepts.html</code><br>
+  ※ 각 마크는 흰 아트보드 기준. 잉크/오렌지 배경 위 시인성 테스트는 방향이 좁혀진 뒤 2차 보드에서 진행합니다.
+</footer>
+
+</body>
+</html>
