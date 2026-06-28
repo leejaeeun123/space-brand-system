@@ -53,6 +53,13 @@
   .orange .wm .ko{color:#fff} .orange .wm .en2{color:#fff}
   .swatch{display:flex;align-items:center;gap:10px;font-size:13px;}
   .swatch i{width:26px;height:26px;border-radius:6px;border:1px solid rgba(0,0,0,.12);display:inline-block;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .pcard{position:relative;text-align:center;background:var(--paper);}
+  .pcard .psym{height:78px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+  .pcard .psym svg{display:block;}
+  .pcard h3{font-size:15px;margin-bottom:2px} .pcard p{font-size:12px;opacity:.6}
+  .pcard.pick{border:2px solid var(--orange);}
+  .pcard .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:11px;font-weight:800;padding:3px 11px;border-radius:999px;white-space:nowrap;}
 
   .pager{position:fixed;right:22px;bottom:20px;z-index:50;display:flex;flex-direction:column;gap:8px;}
   .pager a{width:8px;height:8px;border-radius:50%;background:rgba(128,128,128,.5);transition:.2s;}
@@ -74,6 +81,30 @@
   </mask>
   <symbol id="sym" viewBox="36 68 110 88"><rect x="0" y="0" width="200" height="200" fill="#16130F" mask="url(#fan)"/></symbol>
   <symbol id="symW" viewBox="36 68 110 88"><rect x="0" y="0" width="200" height="200" fill="#ffffff" mask="url(#fan)"/></symbol>
+  <!-- 시안 탐색용 컨셉 심볼 (잉크) -->
+  <clipPath id="cutB"><rect x="0" y="0" width="200" height="112"/></clipPath>
+  <symbol id="symLine" viewBox="33 68 113 88">
+    <g fill="none" stroke="#16130F" stroke-width="3" stroke-linejoin="miter">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
+    </g>
+  </symbol>
+  <symbol id="symCirc" viewBox="24 52 168 96">
+    <circle cx="144" cy="100" r="44" fill="#16130F"/>
+    <circle cx="50" cy="108" r="22" fill="none" stroke="#16130F" stroke-width="3"/>
+    <circle cx="92" cy="104" r="32" fill="none" stroke="#16130F" stroke-width="3"/>
+  </symbol>
+  <symbol id="symFrame" viewBox="12 8 166 110">
+    <g clip-path="url(#cutB)">
+      <g transform="rotate(-20 100 95)" fill="none" stroke="#16130F" stroke-width="12" stroke-linejoin="miter">
+        <rect x="40" y="35" width="120" height="120"/>
+        <rect x="58" y="53" width="84" height="84"/>
+        <rect x="76" y="71" width="48" height="48"/>
+      </g>
+    </g>
+    <line x1="26" y1="112" x2="176" y2="112" stroke="#16130F" stroke-width="6"/>
+  </symbol>
 </svg>
 
 <div id="deck">
@@ -127,7 +158,6 @@
         <div class="card"><h3>국문</h3><p style="font-size:30px;font-weight:800;opacity:1;margin-top:6px">모드라운지</p><p style="margin-top:8px">붙여쓰기. 기본 표기.</p></div>
         <div class="card"><h3>영문</h3><p style="font-size:30px;font-weight:800;opacity:1;letter-spacing:.04em;margin-top:6px">MODELOUNGE</p><p style="margin-top:8px">국문이 붙으므로 영문도 붙여씀. 전부 대문자.</p></div>
       </div>
-      <p class="small" style="margin-top:22px">※ 모회사 = 노모컴퍼니(NOMO). 브랜드명에 ‘노모’ 병기는 필수 아님 — 모드라운지 단독으로 운용.</p>
     </div>
     <div class="foot">네이밍 · 표기</div><div class="pageno">04</div>
   </section>
@@ -147,7 +177,24 @@
     <div class="foot">로고 · 컨셉</div><div class="pageno">05</div>
   </section>
 
-  <!-- 6 · 심볼 -->
+  <!-- 6 · 시안 탐색 → 결정 -->
+  <section class="slide cream">
+    <div class="inner">
+      <div class="kicker">시안 탐색 → 결정</div>
+      <h2 style="font-size:clamp(24px,3.6vw,44px)">여러 시안을 거쳐, 솔리드 팬으로</h2>
+      <p class="lead" style="margin-top:8px">흑백 기하 레퍼런스에서 출발해 <strong>선·면·원·프레임</strong> 방향을 그려보고 좁혔습니다.</p>
+      <div class="grid4" style="margin-top:34px">
+        <div class="card pcard"><div class="psym"><svg style="width:84px;height:66px"><use href="#symLine"/></svg></div><h3>라인 팬</h3><p>선으로 그린 겹의 결</p></div>
+        <div class="card pcard"><div class="psym"><svg style="width:108px;height:62px"><use href="#symCirc"/></svg></div><h3>원 프로그레션</h3><p>선→면 성장</p></div>
+        <div class="card pcard"><div class="psym"><svg style="width:96px;height:66px"><use href="#symFrame"/></svg></div><h3>기울인 프레임</h3><p>동심 프레임·바닥선</p></div>
+        <div class="card pcard pick"><div class="badge">✓ 최종 결정</div><div class="psym"><svg style="width:88px;height:66px"><use href="#sym"/></svg></div><h3>솔리드 팬</h3><p>회전하는 솔리드 띠</p></div>
+      </div>
+      <p class="small" style="margin-top:22px">※ 컨셉 보드 v2~v8(약 14안)·회의 후보 4종을 거쳐 최종 확정.</p>
+    </div>
+    <div class="foot">로고 · 시안 탐색</div><div class="pageno">06</div>
+  </section>
+
+  <!-- 7 · 심볼 -->
   <section class="slide paper">
     <div class="inner">
       <div class="row">
@@ -163,7 +210,7 @@
         </div>
       </div>
     </div>
-    <div class="foot">로고 · 심볼</div><div class="pageno">06</div>
+    <div class="foot">로고 · 심볼</div><div class="pageno">07</div>
   </section>
 
   <!-- 7 · 락업 -->
@@ -185,7 +232,7 @@
       </div>
       <p class="small" style="margin-top:26px">폰트 <strong>Pretendard 단일</strong> · 영문은 자간을 늘려 국문 좌우 폭에 정확히 정렬.</p>
     </div>
-    <div class="foot">로고 · 락업</div><div class="pageno">07</div>
+    <div class="foot">로고 · 락업</div><div class="pageno">08</div>
   </section>
 
   <!-- 8 · 컬러/배경 -->
@@ -204,7 +251,7 @@
         <div class="swatch"><i style="background:#E2531E"></i>오렌지 #E2531E</div>
       </div>
     </div>
-    <div class="foot">로고 · 컬러</div><div class="pageno">08</div>
+    <div class="foot">로고 · 컬러</div><div class="pageno">09</div>
   </section>
 
   <!-- 9 · 응용 -->
@@ -227,7 +274,7 @@
         </div>
       </div>
     </div>
-    <div class="foot">로고 · 응용</div><div class="pageno">09</div>
+    <div class="foot">로고 · 응용</div><div class="pageno">10</div>
   </section>
 
   <!-- 10 · NEXT -->
@@ -244,7 +291,7 @@
       <div class="card" style="margin-top:18px;border-style:dashed">
         <h3>홀드</h3><p style="opacity:.85"><strong>사이니지</strong> — 공간 실측 사이즈 확정 후 진행 (단색 음각판 등).</p></div>
     </div>
-    <div class="foot">다음 단계</div><div class="pageno">10</div>
+    <div class="foot">다음 단계</div><div class="pageno">11</div>
   </section>
 
 </div>
