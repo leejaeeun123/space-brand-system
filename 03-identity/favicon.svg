@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="모드라운지 favicon">
+  <!-- 파비콘 · 잉크 라운드 타일 + 화이트 솔리드 팬 -->
+  <defs>
+    <mask id="favfan" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="62" y="72" width="80" height="80" fill="#fff"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-9 62 152)" fill="#000"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-18 62 152)" fill="#fff"/>
+      <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#000"/>
+      <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#fff"/>
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="100" height="100" rx="22" fill="#16130F"/>
+  <g transform="translate(-2.8 -15) scale(0.58)">
+    <rect x="0" y="0" width="200" height="200" fill="#ffffff" mask="url(#favfan)"/>
+  </g>
+</svg>

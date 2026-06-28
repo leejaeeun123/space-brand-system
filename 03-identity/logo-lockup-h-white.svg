@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 196 44" width="392" height="88" role="img" aria-label="모드라운지 MODELOUNGE">
+  <!-- 가로 락업 (화이트, 다크·오렌지 배경용) -->
+  <defs>
+    <style>@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');</style>
+    <mask id="fanHW" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="62" y="72" width="80" height="80" fill="#fff"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-9 62 152)" fill="#000"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-18 62 152)" fill="#fff"/>
+      <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#000"/>
+      <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#fff"/>
+    </mask>
+  </defs>
+  <g transform="translate(-12.7 -28.6) scale(0.409)">
+    <rect x="0" y="0" width="200" height="200" fill="#ffffff" mask="url(#fanHW)"/>
+  </g>
+  <text x="59" y="26" textLength="130" lengthAdjust="spacing"
+    font-family="Pretendard, sans-serif" font-weight="800" font-size="26" letter-spacing="-0.3" fill="#ffffff">모드라운지</text>
+  <text x="59" y="39.5" textLength="130" lengthAdjust="spacing"
+    font-family="Pretendard, sans-serif" font-weight="600" font-size="10.5" fill="#A8A39A">MODELOUNGE</text>
+</svg>
