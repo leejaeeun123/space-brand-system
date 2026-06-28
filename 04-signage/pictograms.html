@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>모드라운지 — 픽토그램 시안 (v1)</title>
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --line:rgba(22,19,15,.14);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Pretendard",system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  header{padding:48px 40px 26px;border-bottom:3px solid var(--ink);}
+  header h1{font-size:28px;font-weight:800;letter-spacing:-.01em;}
+  header h1 .en{font-weight:700;letter-spacing:.16em;font-size:16px;opacity:.5;margin-left:10px;}
+  header p{margin-top:10px;max-width:820px;line-height:1.6;font-size:14px;opacity:.82;}
+  header .tag{display:inline-block;margin-top:14px;padding:5px 12px;border-radius:999px;background:var(--ink);color:var(--cream);font-size:12px;letter-spacing:.06em;}
+  section{padding:14px 40px 0;}
+  .band{font-size:13px;font-weight:800;letter-spacing:.04em;margin:30px 0 4px;padding-bottom:8px;border-bottom:1px solid var(--ink);}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:24px 0 8px;}
+  .ico{background:var(--paper);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 14px 18px;}
+  .ico svg{width:96px;height:96px;color:var(--ink);
+    stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;display:block;}
+  .ico .ko{margin-top:18px;font-size:14px;font-weight:700;}
+  .ico .en{font-size:10.5px;letter-spacing:.12em;opacity:.5;margin-top:3px;}
+
+  .darkgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:13px;padding:22px;background:var(--ink);border-radius:16px;margin:8px 0 30px;}
+  .darkgrid .d{display:flex;align-items:center;justify-content:center;aspect-ratio:1;}
+  .darkgrid svg{width:56px;height:56px;color:#fff;stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;}
+
+  footer{padding:30px 40px 70px;max-width:860px;font-size:13px;line-height:1.7;opacity:.82;}
+  footer code{background:var(--paper);padding:2px 6px;border-radius:5px;border:1px solid var(--line);}
+  footer strong{color:var(--ink);}
+</style>
+</head>
+<body>
+
+<!-- ===== PICTOGRAM SPRITES (stroke/fill = currentColor) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 화장실 (스케치: 여=사다리꼴 스커트+일자다리, 남=좁은어깨+벌어진다리) -->
+  <symbol id="p-toilet" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <!-- 여 (왼쪽) -->
+      <rect x="30" y="14" width="9" height="9"/>
+      <path d="M31,30 L39,30 L46,62 L24,62 Z"/>
+      <path d="M32,62 L32,83"/><path d="M38,62 L38,83"/>
+      <!-- 남 (오른쪽) -->
+      <rect x="61" y="14" width="9" height="9"/>
+      <path d="M56,83 L62,31 L68,31 L74,83"/>
+    </g>
+  </symbol>
+  <!-- 탕비실(커피) -->
+  <symbol id="p-coffee" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <path d="M26,46 L74,46"/>
+      <path d="M30,46 L34,74 Q35,80 41,80 L59,80 Q65,80 66,74 L70,46"/>
+      <path d="M70,52 Q84,52 84,61 Q84,70 67,70"/>
+      <path d="M42,40 Q47,34 43,28 Q39,22 44,16"/>
+      <path d="M55,40 Q60,34 56,28 Q52,22 57,16"/>
+    </g>
+  </symbol>
+  <!-- 계단 -->
+  <symbol id="p-stairs" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <path d="M18,80 L18,68 L34,68 L34,55 L50,55 L50,42 L66,42 L66,29 L82,29"/>
+    </g>
+  </symbol>
+  <!-- 금지/제한 -->
+  <symbol id="p-no" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <circle cx="50" cy="50" r="30"/>
+      <path d="M29,29 L71,71"/>
+    </g>
+  </symbol>
+  <!-- 룸 (소파) -->
+  <symbol id="p-room" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <!-- 왼팔걸이 -->
+      <path d="M20,52 L20,46 Q20,42 24,42 Q28,42 28,46 L28,64 L20,64 Z"/>
+      <!-- 오른팔걸이 -->
+      <path d="M80,52 L80,46 Q80,42 76,42 Q72,42 72,46 L72,64 L80,64 Z"/>
+      <!-- 등받이 -->
+      <path d="M28,46 L28,40 Q28,36 33,36 L67,36 Q72,36 72,40 L72,46"/>
+      <!-- 좌석 -->
+      <path d="M28,52 L72,52"/>
+      <path d="M28,64 L72,64"/>
+      <!-- 다리 -->
+      <path d="M25,64 L25,71"/><path d="M75,64 L75,71"/>
+    </g>
+  </symbol>
+  <!-- 소화기 (ref: 돔 본체+하단밴드+우측핸들+좌측호스, 화살표 없음) -->
+  <symbol id="p-extinguisher" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <!-- 본체(돔 상단) -->
+      <path d="M43,52 L43,82 L61,82 L61,52 Q61,42 52,42 Q43,42 43,52 Z"/>
+      <!-- 하단 라벨 밴드 -->
+      <path d="M43,74 L61,74"/>
+      <!-- 밸브 넥 -->
+      <path d="M49,42 L49,36 L55,36 L55,42"/>
+      <!-- 핸들(레버) -->
+      <path d="M55,38 L64,38 L66,36 L66,41 L64,39"/>
+      <!-- 호스(좌측 아치, 화살표 없음) -->
+      <path d="M49,38 Q35,37 33,49 Q32,57 36,60"/>
+    </g>
+  </symbol>
+  <!-- 우산 (접혀 아래로 향함: 위 갈고리 손잡이 + 아래 삼각 캐노피) -->
+  <symbol id="p-umbrella" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <!-- 손잡이(갈고리) -->
+      <path d="M44,16 Q44,10 50,10 Q56,10 56,16 L56,20"/>
+      <!-- 샤프트 -->
+      <path d="M44,16 L44,42"/>
+      <!-- 리브 끝(작은 돌기) -->
+      <path d="M37,42 L37,37"/><path d="M44,42 L44,37"/><path d="M51,42 L51,37"/>
+      <!-- 접힌 캐노피(아래로 뾰족) -->
+      <path d="M33,42 L55,42 L44,84 Z"/>
+    </g>
+  </symbol>
+  <!-- 와이파이 (점 크게, 호 간격·길이 차이 확실) -->
+  <symbol id="p-wifi" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <path d="M40,62 Q50,53 60,62"/>
+      <path d="M30,55 Q50,37 70,55"/>
+      <path d="M20,48 Q50,21 80,48"/>
+      <circle cx="50" cy="76" r="3.8" fill="currentColor" stroke="none"/>
+    </g>
+  </symbol>
+  <!-- 금연 (스케치: 사선에서 담배 끊김 / 왼쪽 조각+오른쪽 몸통(필터선 길게) / 연기 물결 하나) -->
+  <symbol id="p-nosmoke" viewBox="0 0 100 100">
+    <g stroke="currentColor" fill="none">
+      <g transform="rotate(-26 52 56)">
+        <!-- 왼쪽 조각 -->
+        <rect x="28" y="51" width="15" height="10"/>
+        <path d="M32,51 L32,61"/>
+        <!-- 오른쪽 몸통 -->
+        <rect x="52" y="51" width="32" height="10"/>
+        <!-- 필터선(오른쪽, 길게) -->
+        <path d="M73,49 L73,63"/>
+      </g>
+      <!-- 연기 (물결 하나, 왼쪽) -->
+      <path d="M25,73 Q19,67 24,61 Q29,55 23,49"/>
+      <!-- 금지선 (끊긴 지점을 가로지름) -->
+      <path d="M37.5,36.4 L57.6,77.8"/>
+    </g>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지 — 픽토그램<span class="en">PICTOGRAMS v4</span></h1>
+  <p>로고·디자인 시스템에 맞춘 <strong>각진 모노라인</strong> 픽토그램 시안. 일정한 선 두께(3) + miter(각진) 조인으로 솔리드 팬 로고의 기하 언어와 통일. 잉크 on 크림(라이트) / 화이트 on 잉크(사이니지). 9종.</p>
+  <span class="tag">IDEA v4 · 9 pictograms · 각진 모노라인</span>
+</header>
+
+<section>
+  <div class="band">라이트 (잉크 on 크림)</div>
+  <div class="grid">
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-toilet"/></svg><div class="ko">화장실</div><div class="en">TOILET</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-coffee"/></svg><div class="ko">탕비실</div><div class="en">PANTRY · COFFEE</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-stairs"/></svg><div class="ko">계단</div><div class="en">STAIRS</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-no"/></svg><div class="ko">금지 · 제한</div><div class="en">NO ENTRY</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-room"/></svg><div class="ko">룸</div><div class="en">ROOM</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-extinguisher"/></svg><div class="ko">소화기</div><div class="en">FIRE EXT.</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-umbrella"/></svg><div class="ko">우산</div><div class="en">UMBRELLA</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-wifi"/></svg><div class="ko">와이파이</div><div class="en">WI-FI</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-nosmoke"/></svg><div class="ko">금연</div><div class="en">NO SMOKING</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="band">다크 (화이트 on 잉크) — 사이니지 적용감</div>
+  <div class="darkgrid">
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-toilet"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-coffee"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-stairs"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-no"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-room"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-extinguisher"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-umbrella"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-wifi"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-nosmoke"/></svg></div>
+  </div>
+</section>
+
+<footer>
+  <strong>시안 v2</strong> — 피드백 반영: 선 5로 ↓, 화장실 윤곽 실루엣, 룸→소파, 와이파이 점·간격 ↑, 소화기 핀/호스 구분.<br>
+  <strong>다음</strong> — 방향 확정 시 나머지(엘리베이터·방향·입구/출구·주차·금연 등)도 같은 시스템으로 확장.<br>
+  <strong>보는 법</strong> — <code>C:\Users\jaeeu\space-brand-system\04-signage\pictograms.html</code></footer>
+
+</body>
+</html>
