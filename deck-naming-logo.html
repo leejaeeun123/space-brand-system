@@ -61,15 +61,16 @@
   .pcard.pick{border:2px solid var(--orange);}
   .pcard .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:11px;font-weight:800;padding:3px 11px;border-radius:999px;white-space:nowrap;}
 
-  .pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px 14px;}
-  .pcell{display:flex;flex-direction:column;align-items:center;gap:8px;}
-  .pcell .pi{width:58px;height:58px;color:var(--ink);}
+  .pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:26px 16px;}
+  .pcell{display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .pcell .pi{width:90px;height:90px;color:var(--ink);}
   .pcell .pi svg{width:100%;height:100%;stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;display:block;}
-  .pcell span{font-size:12px;opacity:.72;}
+  .pcell span{font-size:13px;opacity:.72;}
   .mount{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-  .mcard{border:1px solid rgba(244,233,200,.18);background:rgba(244,233,200,.05);border-radius:14px;padding:20px 22px;}
-  .mcard .mi{height:88px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:var(--cream);}
-  .mcard .mi svg{display:block;}
+  .mcard{border:1px solid rgba(244,233,200,.18);background:rgba(244,233,200,.05);border-radius:14px;overflow:hidden;}
+  .mcard .mi{height:172px;overflow:hidden;background:#fff;}
+  .mcard .mi img{width:100%;height:100%;object-fit:cover;display:block;}
+  .mcard .body{padding:16px 20px 20px;}
   .mcard h3{font-size:16px;margin-bottom:6px;}
   .mcard p{font-size:13px;line-height:1.55;opacity:.82;}
   .pager{position:fixed;right:22px;bottom:20px;z-index:50;display:flex;flex-direction:column;gap:8px;}
@@ -338,22 +339,16 @@
       <h2 style="font-size:clamp(24px,3.4vw,42px)">안내판, 어떻게 세울까</h2>
       <div class="mount" style="margin-top:30px">
         <div class="mcard">
-          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
-            <rect x="32" y="10" width="36" height="48"/><rect x="39" y="18" width="22" height="32"/>
-            <circle cx="36" cy="14" r="2" fill="currentColor" stroke="none"/><circle cx="64" cy="14" r="2" fill="currentColor" stroke="none"/>
-            <circle cx="36" cy="54" r="2" fill="currentColor" stroke="none"/><circle cx="64" cy="54" r="2" fill="currentColor" stroke="none"/>
-            <path d="M24,66 L76,66"/><path d="M42,58 L37,66"/><path d="M58,58 L63,66"/></g></svg></div>
-          <h3>아크릴 스탠드</h3><p>투명 아크릴 패널 + 스탠드오프 볼트로 세움. 가볍고 모던, 임시 배치 유연.</p>
+          <div class="mi"><img src="assets/mount/mount-acrylic.jpg" alt="아크릴 스탠드"></div>
+          <div class="body"><h3>아크릴 스탠드</h3><p>투명 아크릴 패널 + 스탠드오프 볼트로 세움. 가볍고 모던, 임시 배치 유연.</p></div>
         </div>
         <div class="mcard">
-          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
-            <rect x="36" y="6" width="28" height="46"/><rect x="42" y="13" width="16" height="30"/><rect x="26" y="52" width="48" height="14"/></g></svg></div>
-          <h3>아크릴 + 우드 베이스</h3><p>아크릴 시트를 우드 받침(POP)에 꽂아 세움. 웜우드 무드와 호응, 테이블·선반용.</p>
+          <div class="mi"><img src="assets/mount/mount-acrylic-wood.jpg" alt="아크릴 + 우드 베이스"></div>
+          <div class="body"><h3>아크릴 + 우드 베이스</h3><p>아크릴 시트를 우드 받침(POP)에 꽂아 세움. 웜우드 무드와 호응, 테이블·선반용.</p></div>
         </div>
         <div class="mcard">
-          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
-            <rect x="26" y="8" width="48" height="60"/><rect x="32" y="14" width="36" height="48"/></g></svg></div>
-          <h3>우드 / 알루미늄 액자</h3><p>액자에 넣어 벽 부착. 무광 블랙·오크 등. 가장 정돈된 인상, 고정 위치용.</p>
+          <div class="mi"><img src="assets/mount/mount-frame.jpg" alt="우드/알루미늄 액자"></div>
+          <div class="body"><h3>우드 / 알루미늄 액자</h3><p>액자에 넣어 벽 부착. 무광 블랙·오크 등. 가장 정돈된 인상, 고정 위치용.</p></div>
         </div>
       </div>
       <p class="small" style="margin-top:26px;opacity:.7">※ 다음 주 주중 <strong style="color:#fff">공간 실측·인테리어 공사</strong> 중 실제로 보고 최종 결정.</p>
