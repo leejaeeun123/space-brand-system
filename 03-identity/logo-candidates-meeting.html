@@ -25,7 +25,7 @@
   .hero svg{ width:200px; height:150px; display:block;}
   .lockrow{ display:flex; align-items:center; justify-content:center; gap:14px; padding:6px 20px 18px; border-top:1px solid var(--line); margin-top:6px;}
   .lockrow .sym{ display:flex; align-items:center;}
-  .lockrow .sym svg{ width:84px; height:54px; display:block;}
+  .lockrow .sym svg{ width:64px; height:34px; display:block;}
   .wm{ display:inline-block;}
   .wm .ko{ font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1; white-space:nowrap; display:block;}
   .wm .en2{ font-size:9px; font-weight:600; margin-top:2px; white-space:nowrap; display:inline-block; color:var(--gray);}
@@ -39,6 +39,7 @@
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><clipPath id="cutB"><rect x="0" y="0" width="200" height="112"/></clipPath></defs>
   <!-- 1안: 라인 팬 (체인 80/66/54) -->
   <symbol id="s1" viewBox="33 68 113 88">
     <g fill="none" stroke="#16130F" stroke-width="3" stroke-linejoin="miter">
@@ -61,19 +62,23 @@
     <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#FBF6EA"/>
     <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#16130F"/>
   </symbol>
-  <!-- 1-a 참고: even-odd -->
-  <symbol id="s1aD" viewBox="30 66 120 92">
-    <path fill="#16130F" fill-rule="evenodd"
-      d="M62,72 H142 V152 H62 Z
-         M62,152 L141.7,141.4 L128,80 L48.4,90.6 Z
-         M62,152 L109.4,127.6 L84.3,79 L36.6,103.4 Z"/>
+  <!-- 1-b: 동심 프레임을 기울여 바닥선으로 자름 (재은 스케치) -->
+  <symbol id="s1aD" viewBox="12 8 166 110">
+    <g clip-path="url(#cutB)">
+      <g transform="rotate(-20 100 95)" fill="none" stroke="#16130F" stroke-width="12" stroke-linejoin="miter">
+        <rect x="40" y="35" width="120" height="120"/>
+        <rect x="58" y="53" width="84" height="84"/>
+        <rect x="76" y="71" width="48" height="48"/>
+      </g>
+    </g>
+    <line x1="26" y1="112" x2="176" y2="112" stroke="#16130F" stroke-width="6"/>
   </symbol>
 </svg>
 
 <header>
   <h1>모드라운지<span class="en">MODELOUNGE</span></h1>
-  <p><strong>심볼 후보 — 회의용 정리</strong>. <b>1안(확정·라인 팬)</b>은 이미 확정/SVG 출력 완료. 오늘 밤 회의에서 비교할 <b>2안(원 프로그레션·잉크)</b>과 <b>1-a안(솔리드 팬)</b>을 같은 락업 포맷으로 함께 둡니다. 모두 순수 잉크 모노크롬, 워드마크=모드라운지 / MODELOUNGE.</p>
-  <span class="tag">MEETING · 1안 확정 · 2·1-a 검토</span>
+  <p><strong>심볼 후보 — 회의용 정리</strong>. <b>1안(확정·라인 팬)</b>은 이미 확정/SVG 출력 완료. 오늘 밤 회의에서 비교할 <b>2안(원 프로그레션·잉크)</b>, <b>1-a안(솔리드 팬)</b>, <b>1-b안(기울인 프레임·바닥선 컷)</b>을 같은 락업 포맷으로 함께 둡니다. 모두 순수 잉크 모노크롬, 워드마크=모드라운지 / MODELOUNGE.</p>
+  <span class="tag">MEETING · 1안 확정 · 2·1-a·1-b 검토</span>
 </header>
 
 <div class="grid">
@@ -106,11 +111,11 @@
 
   <!-- 1-a 참고안 -->
   <div class="card">
-    <div class="hd"><span class="num">1-a · 참고</span><h2>솔리드 (겹침 녹아웃)</h2></div>
+    <div class="hd"><span class="num">1-b안</span><h2>기울인 프레임 (바닥선 컷)</h2></div>
     <div class="hero"><svg><use href="#s1aD"/></svg></div>
     <div class="lockrow"><div class="sym"><svg><use href="#s1aD"/></svg></div>
       <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
-    <div class="desc">네 스케치에 가까운 변형 — 솔리드 면이 겹치고 <b>겹친 부분이 비워지는</b> 방식(even-odd). 1-a안의 또 다른 방향.</div>
+    <div class="desc"><b>동심(중첩) 사각 프레임</b>을 통째로 기울인 뒤 바닥선으로 잘라낸 형태(재은 스케치). 부채살 없이 프레임만, 가운데가 잘려 사각형이 아님. 묵직·건축적.</div>
   </div>
 </div>
 
