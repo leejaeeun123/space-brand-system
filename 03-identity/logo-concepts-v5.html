@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모드라운지 — 로고 보드 v5 (13-A 벌어짐 · 14-C 수정)</title>
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --ivory:#ECDFB4; --line:rgba(22,19,15,.14);}
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic","Pretendard",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  header{ padding:48px 40px 26px; border-bottom:3px solid var(--ink);}
+  header h1{ margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;}
+  header h1 .en{ font-weight:700; letter-spacing:.18em; font-size:19px; opacity:.5; margin-left:10px;}
+  header p{ margin:10px 0 0; max-width:840px; line-height:1.65; font-size:14px; opacity:.82;}
+  header .tag{ display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px; background:var(--ink); color:var(--cream); font-size:12px; letter-spacing:.06em;}
+  section{ padding:8px 40px 0;}
+  .band{ display:flex; align-items:baseline; gap:14px; margin:38px 0 4px; padding-bottom:10px; border-bottom:1px solid var(--ink);}
+  .band h2{ margin:0; font-size:20px; font-weight:800; letter-spacing:-.01em;}
+  .band h2 .no{ color:var(--orange); margin-right:8px;}
+  .band .sub{ font-size:12.5px; opacity:.6;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:22px; padding:22px 0 6px;}
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;}
+  .card.pick{ border:2px solid var(--orange);}
+  .mark{ background:var(--paper); aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; padding:26px;}
+  .mark svg{ width:84%; height:auto; display:block;}
+  .lockup{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-top:1px solid var(--line); background:var(--paper);}
+  .lockup .lk{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:6px; flex:0 0 auto;}
+  .lockup .lk svg{ width:38px; height:38px; display:block;}
+  .wordmark .ko{ font-size:18px; font-weight:800; letter-spacing:-.01em; line-height:1;}
+  .wordmark .en2{ font-size:9.5px; font-weight:600; letter-spacing:.22em; opacity:.55; margin-top:4px;}
+  .meta{ padding:12px 18px 18px;}
+  .meta .tagm{ display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 8px; border-radius:6px; margin-bottom:8px;}
+  .tagm.old{ background:rgba(22,19,15,.1); color:var(--ink);}
+  .tagm.new{ background:var(--orange); color:#fff;}
+  .meta h3{ margin:0 0 5px; font-size:14px; font-weight:800;}
+  .meta p{ margin:0; font-size:12.5px; line-height:1.5; opacity:.75;}
+  footer{ padding:46px 40px 70px; max-width:860px; font-size:13px; line-height:1.7; opacity:.82;}
+  footer code{ background:var(--paper); padding:2px 6px; border-radius:5px; border:1px solid var(--line);}
+  footer strong{ color:var(--ink);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 13-A 펼침 각 변주 (피벗 62,152) -->
+  <symbol id="b12" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="5">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-12 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-24 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-36 62 152)"/>
+    </g>
+  </symbol>
+  <symbol id="b14" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="5">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-14 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-28 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-42 62 152)"/>
+    </g>
+  </symbol>
+  <symbol id="b18" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="5">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-18 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-36 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-54 62 152)"/>
+    </g>
+  </symbol>
+
+  <!-- 14-C 기존(앞쪽 잉크 솔리드 + 가운데만 두꺼움) -->
+  <symbol id="c3old" viewBox="0 0 200 200">
+    <circle cx="50" cy="108" r="22" fill="none" stroke="#16130F" stroke-width="5"/>
+    <circle cx="92" cy="104" r="32" fill="none" stroke="#16130F" stroke-width="7"/>
+    <circle cx="144" cy="100" r="44" fill="#F0E4C2" stroke="#16130F" stroke-width="5"/>
+  </symbol>
+  <!-- 14-C 새: 아이보리 솔리드 맨 뒤·무테, 테두리 동일 3pt, 가운데 테두리 겹쳐 보임 -->
+  <symbol id="c3new" viewBox="0 0 200 200">
+    <circle cx="144" cy="100" r="44" fill="#ECDFB4"/>
+    <circle cx="50" cy="108" r="22" fill="none" stroke="#16130F" stroke-width="3"/>
+    <circle cx="92" cy="104" r="32" fill="none" stroke="#16130F" stroke-width="3"/>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지<span class="en">MODE LOUNGE</span></h1>
+  <p><strong>v5</strong> — 두 가지 수정. ① <strong>13-A는 더 벌어지게</strong>(12°·14°·18° 비교, 14° 추천). ② <strong>14-C 수정</strong>: 아이보리 솔리드를 <strong>맨 뒤로</strong> 보내 가운데 원 테두리가 겹쳐 보이게 하고, 테두리는 <strong>전부 동일 3pt</strong>(가운데만 두껍던 것 제거), <strong>아이보리는 무테</strong>.</p>
+  <span class="tag">IDEA STAGE v5</span>
+</header>
+
+<!-- 13-A -->
+<section>
+  <div class="band"><h2><span class="no">13-A</span>팬드 회전 — 펼침 각</h2><span class="sub">넓을수록 운동감 · 좁을수록 정제. 14° 추천</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b12"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b12"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><span class="tagm old">기존</span><h3>4장 · 12°씩</h3><p>이전 기본값.</p></div>
+    </div>
+    <div class="card pick">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b14"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b14"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><span class="tagm new">14°</span><h3>4장 · 14°씩</h3><p>요청한 각. 살짝 더 벌어진 부채. 운동감과 정돈의 균형.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b18"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b18"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><span class="tagm old">참고</span><h3>4장 · 18°씩</h3><p>더 활짝. 시원하지만 끝 장이 많이 누움.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 14-C -->
+<section>
+  <div class="band"><h2><span class="no">14-C</span>원 프로그레션 — 아이보리(수정)</h2><span class="sub">아이보리 맨 뒤 · 테두리 동일 3pt · 무테 솔리드</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#c3old"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#c3old"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><span class="tagm old">기존</span><h3>아이보리 앞 · 두께 불균일</h3>
+        <p>솔리드가 앞에 있어 겹침이 가려지고, 가운데 테두리만 두꺼웠음.</p></div>
+    </div>
+    <div class="card pick">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#c3new"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#c3new"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><span class="tagm new">수정</span><h3>아이보리 뒤 · 동일 3pt · 무테</h3>
+        <p>아이보리 솔리드가 맨 뒤 → 가운데 원 테두리가 그 위로 지나가며 겹침이 보임. 모든 테두리 3pt 동일, 솔리드는 테두리 없음. 톤온톤·미니멀.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>참고</strong> — 아이보리 무테라 바탕과 가까우면 디스크 윤곽이 옅어집니다. 지금은 <code>#ECDFB4</code>(바탕보다 한 톤 깊게)로 잡아 형태가 보이게 했어요. 더 또렷/더 옅게는 한 단계 조절 가능.<br>
+  <strong>보는 법</strong> — <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-concepts-v5.html</code> · v1~v4 동일 폴더 보존.
+</footer>
+
+</body>
+</html>

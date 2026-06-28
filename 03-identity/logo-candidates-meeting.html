@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모드라운지 — 심볼 후보 (회의용: 1안·2안·1-a안)</title>
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --line:rgba(22,19,15,.14); --gray:#7E7768; --grayd:#A8A39A;}
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic","Pretendard",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  header{ padding:48px 40px 26px; border-bottom:3px solid var(--ink);}
+  header h1{ margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;}
+  header h1 .en{ font-weight:700; letter-spacing:.18em; font-size:19px; opacity:.5; margin-left:10px;}
+  header p{ margin:10px 0 0; max-width:860px; line-height:1.65; font-size:14px; opacity:.82;}
+  header .tag{ display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px; background:var(--ink); color:var(--cream); font-size:12px; letter-spacing:.06em;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:24px; padding:30px 40px 10px;}
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column;}
+  .card.confirmed{ border:2px solid var(--ink);}
+  .hd{ display:flex; align-items:center; gap:9px; padding:16px 20px 4px;}
+  .hd .num{ font-size:12.5px; font-weight:800; letter-spacing:.04em; color:#fff; background:var(--ink); padding:4px 10px; border-radius:7px;}
+  .hd .num.c{ background:var(--orange);}
+  .hd h2{ margin:0; font-size:16px; font-weight:800;}
+  .hero{ height:200px; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .hero svg{ width:200px; height:150px; display:block;}
+  .lockrow{ display:flex; align-items:center; justify-content:center; gap:14px; padding:6px 20px 18px; border-top:1px solid var(--line); margin-top:6px;}
+  .lockrow .sym{ display:flex; align-items:center;}
+  .lockrow .sym svg{ width:84px; height:54px; display:block;}
+  .wm{ display:inline-block;}
+  .wm .ko{ font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1; white-space:nowrap; display:block;}
+  .wm .en2{ font-size:9px; font-weight:600; margin-top:2px; white-space:nowrap; display:inline-block; color:var(--gray);}
+  .desc{ padding:4px 20px 20px; font-size:12.5px; line-height:1.55; opacity:.78;}
+  .desc b{ color:var(--ink);}
+  footer{ padding:30px 40px 70px; max-width:880px; font-size:13px; line-height:1.7; opacity:.82;}
+  footer code{ background:var(--paper); padding:2px 6px; border-radius:5px; border:1px solid var(--line);}
+  footer strong{ color:var(--ink);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 1안: 라인 팬 (체인 80/66/54) -->
+  <symbol id="s1" viewBox="33 68 113 88">
+    <g fill="none" stroke="#16130F" stroke-width="3" stroke-linejoin="miter">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
+    </g>
+  </symbol>
+  <!-- 2안: 원 프로그레션 잉크 -->
+  <symbol id="s2" viewBox="24 52 168 96">
+    <circle cx="144" cy="100" r="44" fill="#16130F"/>
+    <circle cx="50" cy="108" r="22" fill="none" stroke="#16130F" stroke-width="3"/>
+    <circle cx="92" cy="104" r="32" fill="none" stroke="#16130F" stroke-width="3"/>
+  </symbol>
+  <!-- 1-a: 솔리드 팬 (교차 프레임 5장, ref19형) -->
+  <symbol id="s1a" viewBox="36 68 110 88">
+    <rect x="62" y="72" width="80" height="80" fill="#16130F"/>
+    <rect x="62" y="86" width="66" height="66" transform="rotate(-9 62 152)" fill="#FBF6EA"/>
+    <rect x="62" y="98" width="54" height="54" transform="rotate(-18 62 152)" fill="#16130F"/>
+    <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#FBF6EA"/>
+    <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#16130F"/>
+  </symbol>
+  <!-- 1-a 참고: even-odd -->
+  <symbol id="s1aD" viewBox="30 66 120 92">
+    <path fill="#16130F" fill-rule="evenodd"
+      d="M62,72 H142 V152 H62 Z
+         M62,152 L141.7,141.4 L128,80 L48.4,90.6 Z
+         M62,152 L109.4,127.6 L84.3,79 L36.6,103.4 Z"/>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지<span class="en">MODELOUNGE</span></h1>
+  <p><strong>심볼 후보 — 회의용 정리</strong>. <b>1안(확정·라인 팬)</b>은 이미 확정/SVG 출력 완료. 오늘 밤 회의에서 비교할 <b>2안(원 프로그레션·잉크)</b>과 <b>1-a안(솔리드 팬)</b>을 같은 락업 포맷으로 함께 둡니다. 모두 순수 잉크 모노크롬, 워드마크=모드라운지 / MODELOUNGE.</p>
+  <span class="tag">MEETING · 1안 확정 · 2·1-a 검토</span>
+</header>
+
+<div class="grid">
+  <!-- 1안 -->
+  <div class="card confirmed">
+    <div class="hd"><span class="num c">1안 ✓</span><h2>라인 팬 (확정)</h2></div>
+    <div class="hero"><svg><use href="#s1"/></svg></div>
+    <div class="lockrow"><div class="sym"><svg><use href="#s1"/></svg></div>
+      <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    <div class="desc"><b>가변성·운동</b>을 선으로. 가볍고 절제됨. 펼쳐지는 겹의 결(체인 80/66/54). <b>이미 확정·벡터 출력 완료.</b></div>
+  </div>
+
+  <!-- 2안 -->
+  <div class="card">
+    <div class="hd"><span class="num">2안</span><h2>원 프로그레션 (잉크)</h2></div>
+    <div class="hero"><svg><use href="#s2"/></svg></div>
+    <div class="lockrow"><div class="sym"><svg><use href="#s2"/></svg></div>
+      <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    <div class="desc"><b>선→선→면</b>으로 자라는 성장 서사. 가장 단순·기억성 높음. 마지막 면이 잉크 솔리드(색 안 드러냄). 가운데 링이 면에 묻혀 겹침 표현.</div>
+  </div>
+
+  <!-- 1-a -->
+  <div class="card">
+    <div class="hd"><span class="num">1-a안</span><h2>솔리드 팬</h2></div>
+    <div class="hero"><svg><use href="#s1a"/></svg></div>
+    <div class="lockrow"><div class="sym"><svg><use href="#s1a"/></svg></div>
+      <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    <div class="desc">1안의 팬을 <b>선이 아닌 솔리드 도형</b>으로 — 회전하는 면이 만드는 띠(ref19형). 더 볼드·그래픽. 멀리서·작게도 강함.</div>
+  </div>
+
+  <!-- 1-a 참고안 -->
+  <div class="card">
+    <div class="hd"><span class="num">1-a · 참고</span><h2>솔리드 (겹침 녹아웃)</h2></div>
+    <div class="hero"><svg><use href="#s1aD"/></svg></div>
+    <div class="lockrow"><div class="sym"><svg><use href="#s1aD"/></svg></div>
+      <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    <div class="desc">네 스케치에 가까운 변형 — 솔리드 면이 겹치고 <b>겹친 부분이 비워지는</b> 방식(even-odd). 1-a안의 또 다른 방향.</div>
+  </div>
+</div>
+
+<footer>
+  <strong>회의 논의 포인트</strong> — ① 라인(1안, 가볍고 절제) vs 솔리드(1-a, 볼드·그래픽) vs 원(2안, 단순·기억성) ② 각 안의 소형·사이니지 적합성 ③ 1-a는 회전각·장수·even-odd 여부로 결을 더 조절 가능.<br>
+  <strong>참고</strong> — 1안은 이미 확정·푸시·SVG 출력 완료(<code>logo-symbol.svg</code>/<code>logo-symbol-white.svg</code>). 2안·1-a는 방향 확정 시 동일하게 정밀화→벡터.<br>
+  <strong>보는 법</strong> — <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-candidates-meeting.html</code></footer>
+
+<script>
+function fitWordmarks(){
+  var wms=document.querySelectorAll('.wm'); if(!wms.length) return;
+  var first=wms[0], ko=first.querySelector('.ko'), en=first.querySelector('.en2');
+  en.style.letterSpacing='0px'; en.style.marginRight='0px';
+  var target=ko.getBoundingClientRect().width;
+  var base=en.getBoundingClientRect().width;
+  var gaps=Math.max(1,(en.textContent||'').length-1);
+  var ls=(target-base)/gaps;
+  wms.forEach(function(wm){ var e=wm.querySelector('.en2'); if(!e) return; e.style.letterSpacing=ls+'px'; e.style.marginRight=(-ls)+'px'; });
+}
+window.addEventListener('load',fitWordmarks);
+window.addEventListener('resize',fitWordmarks);
+if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(fitWordmarks); }
+</script>
+
+</body>
+</html>

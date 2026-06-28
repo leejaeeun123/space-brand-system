@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모드라운지 — 로고 컨셉 보드 v3 (10·13·14 변주)</title>
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --line:rgba(22,19,15,.14);}
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic","Pretendard",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  header{ padding:48px 40px 26px; border-bottom:3px solid var(--ink);}
+  header h1{ margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;}
+  header h1 .en{ font-weight:700; letter-spacing:.18em; font-size:19px; opacity:.5; margin-left:10px;}
+  header p{ margin:10px 0 0; max-width:840px; line-height:1.65; font-size:14px; opacity:.82;}
+  header .tag{ display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px; background:var(--ink); color:var(--cream); font-size:12px; letter-spacing:.06em;}
+  section{ padding:8px 40px 0;}
+  .band{ display:flex; align-items:baseline; gap:14px; margin:38px 0 4px; padding-bottom:10px; border-bottom:1px solid var(--ink);}
+  .band h2{ margin:0; font-size:20px; font-weight:800; letter-spacing:-.01em;}
+  .band h2 .no{ color:var(--orange); margin-right:8px;}
+  .band .sub{ font-size:12.5px; opacity:.6;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:22px; padding:22px 0 6px;}
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;}
+  .mark{ background:var(--paper); aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; padding:26px;}
+  .mark svg{ width:84%; height:auto; display:block;}
+  .lockup{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-top:1px solid var(--line); background:var(--paper);}
+  .lockup .lk{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:6px; flex:0 0 auto;}
+  .lockup .lk svg{ width:38px; height:38px; display:block;}
+  .wordmark .ko{ font-size:18px; font-weight:800; letter-spacing:-.01em; line-height:1;}
+  .wordmark .en2{ font-size:9.5px; font-weight:600; letter-spacing:.22em; opacity:.55; margin-top:4px;}
+  .meta{ padding:12px 18px 18px;}
+  .meta h3{ margin:0 0 5px; font-size:14px; font-weight:800;}
+  .meta h3 .no{ color:var(--orange); margin-right:6px;}
+  .meta p{ margin:0; font-size:12.5px; line-height:1.5; opacity:.75;}
+  footer{ padding:46px 40px 70px; max-width:860px; font-size:13px; line-height:1.7; opacity:.82;}
+  footer code{ background:var(--paper); padding:2px 6px; border-radius:5px; border:1px solid var(--line);}
+  footer strong{ color:var(--ink);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- A1 어긋난 캡 -->
+    <clipPath id="a1bot"><polygon points="0,128 200,92 200,210 0,210"/></clipPath>
+    <clipPath id="a1top"><polygon points="0,128 200,92 200,-10 0,-10"/></clipPath>
+    <!-- A2 3단 오프셋 -->
+    <clipPath id="a2b1"><rect x="0" y="0" width="200" height="82"/></clipPath>
+    <clipPath id="a2b2"><rect x="0" y="88" width="200" height="30"/></clipPath>
+    <clipPath id="a2b3"><rect x="0" y="124" width="200" height="86"/></clipPath>
+    <!-- A3 스피드 슬릿 -->
+    <clipPath id="a3c"><circle cx="100" cy="100" r="62"/></clipPath>
+    <!-- C1 lenses -->
+    <clipPath id="c1a"><circle cx="62" cy="100" r="34"/></clipPath>
+    <clipPath id="c1b"><circle cx="100" cy="100" r="34"/></clipPath>
+    <!-- C2 lenses -->
+    <clipPath id="c2a"><circle cx="52" cy="100" r="30"/></clipPath>
+    <clipPath id="c2b"><circle cx="88" cy="100" r="30"/></clipPath>
+    <clipPath id="c2c"><circle cx="124" cy="100" r="30"/></clipPath>
+    <!-- C3 lenses -->
+    <clipPath id="c3a"><circle cx="50" cy="108" r="22"/></clipPath>
+    <clipPath id="c3b"><circle cx="92" cy="104" r="32"/></clipPath>
+  </defs>
+
+  <!-- ===== A · 슬라이스드 (역동) ===== -->
+  <symbol id="a1" viewBox="0 0 200 200">
+    <g clip-path="url(#a1bot)"><circle cx="100" cy="104" r="60" fill="#16130F"/></g>
+    <g clip-path="url(#a1top)"><circle cx="100" cy="104" r="60" fill="#16130F" transform="translate(22,-14)"/></g>
+  </symbol>
+  <symbol id="a2" viewBox="0 0 200 200">
+    <g clip-path="url(#a2b1)"><rect x="58" y="42" width="84" height="116" rx="42" fill="#16130F"/></g>
+    <g clip-path="url(#a2b2)"><rect x="58" y="42" width="84" height="116" rx="42" fill="#16130F" transform="translate(16,0)"/></g>
+    <g clip-path="url(#a2b3)"><rect x="58" y="42" width="84" height="116" rx="42" fill="#16130F" transform="translate(32,0)"/></g>
+  </symbol>
+  <symbol id="a3" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="62" fill="#16130F"/>
+    <g clip-path="url(#a3c)" fill="#FBF6EA">
+      <rect x="46" y="-20" width="9" height="240" transform="rotate(22 100 100)"/>
+      <rect x="74" y="-20" width="9" height="240" transform="rotate(22 100 100)"/>
+      <rect x="102" y="-20" width="9" height="240" transform="rotate(22 100 100)"/>
+      <rect x="130" y="-20" width="9" height="240" transform="rotate(22 100 100)"/>
+    </g>
+  </symbol>
+  <symbol id="a4" viewBox="0 0 200 200">
+    <g transform="rotate(-12 100 100)">
+      <rect x="56" y="42" width="88" height="116" rx="44" fill="#16130F"/>
+      <rect x="48" y="84" width="104" height="8" fill="#FBF6EA"/>
+      <rect x="48" y="116" width="104" height="8" fill="#FBF6EA"/>
+    </g>
+  </symbol>
+
+  <!-- ===== B · 팬드 회전 ===== -->
+  <symbol id="b1" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="5">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-12 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-24 62 152)"/>
+      <rect x="62" y="72" width="80" height="80" transform="rotate(-36 62 152)"/>
+    </g>
+  </symbol>
+  <symbol id="b2" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="4.5">
+      <rect x="64" y="78" width="74" height="74"/>
+      <rect x="64" y="78" width="74" height="74" transform="rotate(-9 64 152)"/>
+      <rect x="64" y="78" width="74" height="74" transform="rotate(-18 64 152)"/>
+      <rect x="64" y="78" width="74" height="74" transform="rotate(-27 64 152)"/>
+      <rect x="64" y="78" width="74" height="74" transform="rotate(-36 64 152)"/>
+      <rect x="64" y="78" width="74" height="74" transform="rotate(-45 64 152)"/>
+    </g>
+  </symbol>
+  <symbol id="b3" viewBox="0 0 200 200">
+    <g fill="none" stroke="#16130F" stroke-width="6">
+      <rect x="58" y="70" width="84" height="84"/>
+      <rect x="58" y="70" width="84" height="84" transform="rotate(-20 58 154)"/>
+      <rect x="58" y="70" width="84" height="84" transform="rotate(-40 58 154)"/>
+      <rect x="58" y="70" width="84" height="84" transform="rotate(-58 58 154)"/>
+    </g>
+  </symbol>
+
+  <!-- ===== C · 원 프로그레션 (교집합 오렌지) ===== -->
+  <symbol id="c1" viewBox="0 0 200 200">
+    <circle cx="62" cy="100" r="34" fill="none" stroke="#16130F" stroke-width="6"/>
+    <circle cx="100" cy="100" r="34" fill="none" stroke="#16130F" stroke-width="6"/>
+    <circle cx="138" cy="100" r="34" fill="#16130F"/>
+    <g clip-path="url(#c1a)"><circle cx="100" cy="100" r="34" fill="#E2531E"/></g>
+    <g clip-path="url(#c1b)"><circle cx="138" cy="100" r="34" fill="#E2531E"/></g>
+  </symbol>
+  <symbol id="c2" viewBox="0 0 200 200">
+    <circle cx="52" cy="100" r="30" fill="none" stroke="#16130F" stroke-width="3"/>
+    <circle cx="88" cy="100" r="30" fill="none" stroke="#16130F" stroke-width="6.5"/>
+    <circle cx="124" cy="100" r="30" fill="none" stroke="#16130F" stroke-width="11"/>
+    <circle cx="160" cy="100" r="30" fill="#16130F"/>
+    <g clip-path="url(#c2a)"><circle cx="88" cy="100" r="30" fill="#E2531E"/></g>
+    <g clip-path="url(#c2b)"><circle cx="124" cy="100" r="30" fill="#E2531E"/></g>
+    <g clip-path="url(#c2c)"><circle cx="160" cy="100" r="30" fill="#E2531E"/></g>
+  </symbol>
+  <symbol id="c3" viewBox="0 0 200 200">
+    <circle cx="50" cy="108" r="22" fill="none" stroke="#16130F" stroke-width="5"/>
+    <circle cx="92" cy="104" r="32" fill="none" stroke="#16130F" stroke-width="7"/>
+    <circle cx="144" cy="100" r="44" fill="#16130F"/>
+    <g clip-path="url(#c3a)"><circle cx="92" cy="104" r="32" fill="#E2531E"/></g>
+    <g clip-path="url(#c3b)"><circle cx="144" cy="100" r="44" fill="#E2531E"/></g>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지<span class="en">MODE LOUNGE</span></h1>
+  <p><strong>3차 보드</strong> — 고른 세 방향(<strong>10 슬라이스드 · 13 팬드 회전 · 14 원 프로그레션</strong>)만 변주했습니다. 요청대로 <strong>10번 계열엔 역동성</strong>(사선 슬라이스·어긋난 오프셋·기울임)을 넣었고, <strong>오렌지는 교집합에만</strong> — 특히 14번은 마지막 원 전체가 아니라 <strong>원들이 겹치는 렌즈</strong>에만 오렌지를 칠하도록 바꿨습니다.</p>
+  <span class="tag">IDEA STAGE v3 · 10 variations · 잉크 on 크림(엑센트 오렌지=교집합)</span>
+</header>
+
+<!-- A -->
+<section>
+  <div class="band"><h2><span class="no">10</span>슬라이스드 — 역동 변주</h2><span class="sub">SLICED / DYNAMIC — 솔리드 면을 선이 가르고, 켜가 어긋나며 움직인다</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#a1"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#a1"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">10-A</span>어긋난 캡</h3>
+        <p>원을 사선으로 자르고 윗켜를 밀어냄. 미끄러지는 듯한 운동감. 가장 절제되면서 동적.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#a2"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#a2"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">10-B</span>3단 오프셋</h3>
+        <p>세 켜가 아래로 갈수록 더 밀려나 비스듬한 흐름. 모드가 차례로 슬라이드되는 가변성.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#a3"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#a3"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">10-C</span>스피드 슬릿</h3>
+        <p>한쪽으로 기운 가는 슬릿이 면을 가름. 속도감·바람결. 가장 모션이 강한 안.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#a4"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#a4"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">10-D</span>기울인 슬라이스</h3>
+        <p>형태 전체를 기울여(이탤릭) 슬라이스. 차분하지만 앞으로 나아가는 인상. 워드마크와 균형 좋음.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- B -->
+<section>
+  <div class="band"><h2><span class="no">13</span>팬드 회전</h2><span class="sub">FANNED — 한 모서리를 축으로 사각이 부채처럼 펼쳐진다</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b1"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b1"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">13-A</span>4블레이드 (기본)</h3>
+        <p>네 장이 12°씩 회전·겹침. 균형감 있는 펼침. 식별성·재현성 가장 안정적.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b2"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b2"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">13-B</span>6블레이드 (조밀)</h3>
+        <p>여섯 장 촘촘히. 옵아트의 리듬·운동감 강함. 소형에선 단순화 변형 필요.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#b3"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#b3"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">13-C</span>와이드 스프레드</h3>
+        <p>크게 벌어진 4장(20°씩). 활짝 펼쳐지는 개방감. 가장 시원·동적.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- C -->
+<section>
+  <div class="band"><h2><span class="no">14</span>원 프로그레션</h2><span class="sub">PROGRESSION — 선→면으로 자라며, 겹치는 교집합만 오렌지</span></div>
+  <div class="grid">
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#c1"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#c1"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">14-A</span>3단 (선·선·면)</h3>
+        <p>윤곽→윤곽→솔리드. 두 겹침 렌즈만 오렌지. '겹침의 방식'을 한 줄로 압축. 가장 단순.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#c2"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#c2"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">14-B</span>4단 (선 굵기 성장)</h3>
+        <p>선이 점점 굵어지다 면이 됨. 점층적 리듬. 세 개의 오렌지 렌즈가 흐름을 이어줌.</p></div>
+    </div>
+    <div class="card">
+      <div class="mark"><svg viewBox="0 0 200 200"><use href="#c3"/></svg></div>
+      <div class="lockup"><div class="lk"><svg viewBox="0 0 200 200"><use href="#c3"/></svg></div>
+        <div class="wordmark"><div class="ko">모드라운지</div><div class="en2">MODE LOUNGE</div></div></div>
+      <div class="meta"><h3><span class="no">14-C</span>스케일 성장</h3>
+        <p>원이 커지며 선→면으로. 베이스라인을 살짝 어긋내 동세를 줌. 14·13의 중간 성격.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <strong>다음 단계</strong> — 이 중 1개(또는 두 안의 조합)를 골라주시면 그 안만 정밀하게 다듬어 ① 비율·각도·모서리 ② 오렌지 렌즈 위치/면적 ③ 워드마크 락업(가로/세로)을 확정하고, 최종 1개를 벡터(SVG/AI)로 출력합니다.<br><br>
+  <strong>보는 법</strong> — 브라우저로 열기: <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-concepts-v3.html</code><br>
+  ※ v1(컬러 10안)·v2(14안)는 <code>logo-concepts.html</code> / <code>logo-concepts-v2.html</code>에 그대로 보존.
+</footer>
+
+</body>
+</html>

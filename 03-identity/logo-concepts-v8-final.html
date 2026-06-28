@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모드라운지 — 로고 최종 적용 (1안 팬드 회전)</title>
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --line:rgba(22,19,15,.14);
+    --gray:#7E7768; --grayd:#A8A39A;}
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic","Pretendard",system-ui,-apple-system,sans-serif; -webkit-font-smoothing:antialiased;}
+  header{ padding:48px 40px 26px; border-bottom:3px solid var(--ink);}
+  header h1{ margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;}
+  header h1 .en{ font-weight:700; letter-spacing:.18em; font-size:19px; opacity:.5; margin-left:10px;}
+  header p{ margin:10px 0 0; max-width:840px; line-height:1.65; font-size:14px; opacity:.82;}
+  header .tag{ display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px; background:var(--ink); color:var(--cream); font-size:12px; letter-spacing:.06em;}
+  section{ padding:8px 40px 0;}
+  .band{ display:flex; align-items:baseline; gap:14px; margin:38px 0 4px; padding-bottom:10px; border-bottom:1px solid var(--ink);}
+  .band h2{ margin:0; font-size:20px; font-weight:800;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:24px; padding:22px 0 6px;}
+  .card{ border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--paper);}
+  .card.dark{ background:var(--ink); border-color:#000;}
+  .card.orange{ background:var(--orange); border-color:#b53e12;}
+  .cap{ padding:14px 20px; font-size:12px; font-weight:700; letter-spacing:.04em; opacity:.65;}
+  .card.dark .cap, .card.orange .cap{ color:#fff; opacity:.8;}
+  .box{ padding:26px; display:flex; align-items:center; justify-content:center; min-height:200px;}
+
+  /* 가로 락업 */
+  .lh{ display:flex; align-items:center; gap:14px;}
+  .lh .sym{ width:60px; height:60px; flex:0 0 auto;}
+  .lh .sym svg{ width:100%; height:100%; display:block;}
+  /* 세로 락업: 간격 4px, 심볼 왼쪽 2px 보정 */
+  .lv{ display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;}
+  .lv .sym{ width:84px; height:84px; transform:translateX(-2px);}
+  .lv .sym svg{ width:100%; height:100%; display:block;}
+  /* 워드마크 */
+  .wm{ display:inline-block;}
+  .wm .ko{ font-size:26px; font-weight:800; letter-spacing:-.01em; line-height:1; white-space:nowrap; display:block;}
+  .wm .en2{ font-size:10.5px; font-weight:600; margin-top:2px; white-space:nowrap; display:inline-block; color:var(--gray);}
+  .card.dark .wm .ko{ color:#fff;} .card.dark .wm .en2{ color:var(--grayd);}
+
+  .cs{ position:relative; width:140px; height:120px;}
+  .cs svg{ width:100%; height:100%; display:block;}
+  .cs .guide{ position:absolute; inset:-16px; border:1px dashed var(--orange); border-radius:6px; opacity:.55;}
+
+  .sizes{ display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap;}
+  .sizes .s{ text-align:center;}
+  .sizes .s .m svg{ display:block;}
+  .sizes .s .l{ font-size:11px; opacity:.55; margin-top:8px;}
+  .s96 svg{width:120px;height:96px;} .s64 svg{width:80px;height:64px;} .s48 svg{width:60px;height:48px;} .s40 svg{width:50px;height:40px;}
+
+  footer{ padding:36px 40px 70px; max-width:880px; font-size:13px; line-height:1.7; opacity:.82;}
+  footer code{ background:var(--paper); padding:2px 6px; border-radius:5px; border:1px solid var(--line);}
+  footer strong{ color:var(--ink);}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- 체인 80/66/54 · 중간→뒤 윗변, 앞→중간 윗변 · 선 4pt · viewBox 타이트(33 68 113 88) -->
+  <symbol id="sym" viewBox="33 68 113 88">
+    <g fill="none" stroke="#16130F" stroke-width="3" stroke-linejoin="miter">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
+    </g>
+  </symbol>
+  <symbol id="symW" viewBox="33 68 113 88">
+    <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter">
+      <rect x="62" y="72" width="80" height="80"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
+    </g>
+  </symbol>
+</svg>
+
+<header>
+  <h1>모드라운지<span class="en">MODELOUNGE</span></h1>
+  <p><strong>최종 적용 — 1안 팬드 회전</strong>(수정 7차). 체인 관계(80/66/54): 중간 위 모서리→뒤 윗변, 앞 위 모서리→중간 윗변에 닿게(계단식). 선 3pt, 가로 간격 14px, 영문 그레이·자간 공통, 세로 왼쪽 2px 보정.</p>
+  <span class="tag">FINAL v8.7</span>
+</header>
+
+<section>
+  <div class="band"><h2>락업 — 가로 / 세로</h2></div>
+  <div class="grid">
+    <div class="card"><div class="cap">가로 · 라이트</div><div class="box">
+      <div class="lh"><div class="sym"><svg><use href="#sym"/></svg></div>
+        <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    </div></div>
+    <div class="card dark"><div class="cap">가로 · 다크 (화이트)</div><div class="box">
+      <div class="lh"><div class="sym"><svg><use href="#symW"/></svg></div>
+        <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    </div></div>
+    <div class="card"><div class="cap">세로 · 라이트</div><div class="box">
+      <div class="lv"><div class="sym"><svg><use href="#sym"/></svg></div>
+        <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    </div></div>
+    <div class="card dark"><div class="cap">세로 · 다크 (화이트)</div><div class="box">
+      <div class="lv"><div class="sym"><svg><use href="#symW"/></svg></div>
+        <div class="wm"><div class="ko">모드라운지</div><div class="en2">MODELOUNGE</div></div></div>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <div class="band"><h2>심볼 단독 — 배경별</h2></div>
+  <div class="grid">
+    <div class="card"><div class="cap">라이트 (잉크)</div><div class="box"><div style="width:150px;height:120px"><svg style="width:100%;height:100%"><use href="#sym"/></svg></div></div></div>
+    <div class="card dark"><div class="cap">다크 (화이트)</div><div class="box"><div style="width:150px;height:120px"><svg style="width:100%;height:100%"><use href="#symW"/></svg></div></div></div>
+    <div class="card orange"><div class="cap">오렌지 (화이트)</div><div class="box"><div style="width:150px;height:120px"><svg style="width:100%;height:100%"><use href="#symW"/></svg></div></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="band"><h2>클리어스페이스 · 최소 크기</h2></div>
+  <div class="grid">
+    <div class="card"><div class="cap">클리어스페이스 (점선 = 보호영역)</div><div class="box">
+      <div class="cs"><svg><use href="#sym"/></svg><span class="guide"></span></div>
+    </div></div>
+    <div class="card"><div class="cap">사이즈 단계 (최소 40px)</div><div class="box">
+      <div class="sizes">
+        <div class="s"><div class="m s96"><svg><use href="#sym"/></svg></div><div class="l">96</div></div>
+        <div class="s"><div class="m s64"><svg><use href="#sym"/></svg></div><div class="l">64</div></div>
+        <div class="s"><div class="m s48"><svg><use href="#sym"/></svg></div><div class="l">48</div></div>
+        <div class="s"><div class="m s40"><svg><use href="#sym"/></svg></div><div class="l">40 (min)</div></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<footer>
+  <strong>벡터 출력</strong> — 심볼 원본: <code>03-identity/logo-symbol.svg</code>(잉크, 중간60·선4pt). 다크·오렌지는 stroke만 <code>#ffffff</code>로.<br>
+  <strong>수정 5차</strong> — ①중간 사각형 60(균등) ②선 4pt ③영문 그레이 색상(투명도 X) ④세로 간격 4px·심볼 왼쪽 2px 보정.<br>
+  <strong>보는 법</strong> — <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-concepts-v8-final.html</code></footer>
+
+<script>
+function fitWordmarks(){
+  var wms=document.querySelectorAll('.wm'); if(!wms.length) return;
+  // 모든 워드마크 공통: 첫 워드마크에서 자간 1값 계산 → 전부 동일 적용 (행간 margin-top도 CSS 공통)
+  var first=wms[0], ko=first.querySelector('.ko'), en=first.querySelector('.en2');
+  en.style.letterSpacing='0px'; en.style.marginRight='0px';
+  var target=ko.getBoundingClientRect().width;
+  var base=en.getBoundingClientRect().width;
+  var gaps=Math.max(1,(en.textContent||'').length-1);
+  var ls=(target-base)/gaps;
+  wms.forEach(function(wm){
+    var e=wm.querySelector('.en2'); if(!e) return;
+    e.style.letterSpacing=ls+'px'; e.style.marginRight=(-ls)+'px';
+  });
+}
+window.addEventListener('load',fitWordmarks);
+window.addEventListener('resize',fitWordmarks);
+if(document.fonts&&document.fonts.ready){ document.fonts.ready.then(fitWordmarks); }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="33 68 113 88" width="226" height="176" role="img" aria-label="MODELOUNGE symbol (reversed)">
+  <!-- 모드라운지 심볼 화이트 반전 (다크·오렌지 배경용). 잉크판과 동일 형태(80/66/54 체인, 선 3pt). -->
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter">
+    <rect x="62" y="72" width="80" height="80"/>
+    <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
+    <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
+  </g>
+</svg>
