@@ -61,6 +61,17 @@
   .pcard.pick{border:2px solid var(--orange);}
   .pcard .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:11px;font-weight:800;padding:3px 11px;border-radius:999px;white-space:nowrap;}
 
+  .pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px 14px;}
+  .pcell{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .pcell .pi{width:58px;height:58px;color:var(--ink);}
+  .pcell .pi svg{width:100%;height:100%;stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;display:block;}
+  .pcell span{font-size:12px;opacity:.72;}
+  .mount{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .mcard{border:1px solid rgba(244,233,200,.18);background:rgba(244,233,200,.05);border-radius:14px;padding:20px 22px;}
+  .mcard .mi{height:88px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:var(--cream);}
+  .mcard .mi svg{display:block;}
+  .mcard h3{font-size:16px;margin-bottom:6px;}
+  .mcard p{font-size:13px;line-height:1.55;opacity:.82;}
   .pager{position:fixed;right:22px;bottom:20px;z-index:50;display:flex;flex-direction:column;gap:8px;}
   .pager a{width:8px;height:8px;border-radius:50%;background:rgba(128,128,128,.5);transition:.2s;}
   .pager a.on{background:var(--orange);transform:scale(1.4)}
@@ -105,6 +116,28 @@
     </g>
     <line x1="26" y1="112" x2="176" y2="112" stroke="#16130F" stroke-width="6"/>
   </symbol>
+  <!-- 픽토그램 (각진 모노라인, currentColor) -->
+  <symbol id="pi-toilet" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <rect x="30" y="14" width="9" height="9"/><path d="M31,30 L39,30 L46,62 L24,62 Z"/><path d="M32,62 L32,83"/><path d="M38,62 L38,83"/>
+    <rect x="61" y="14" width="9" height="9"/><path d="M56,83 L62,31 L68,31 L74,83"/></g></symbol>
+  <symbol id="pi-coffee" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <path d="M26,46 L74,46"/><path d="M30,46 L34,74 Q35,80 41,80 L59,80 Q65,80 66,74 L70,46"/><path d="M70,52 Q84,52 84,61 Q84,70 67,70"/>
+    <path d="M42,40 Q47,34 43,28 Q39,22 44,16"/><path d="M55,40 Q60,34 56,28 Q52,22 57,16"/></g></symbol>
+  <symbol id="pi-stairs" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M18,80 L18,68 L34,68 L34,55 L50,55 L50,42 L66,42 L66,29 L82,29"/></g></symbol>
+  <symbol id="pi-no" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="50" cy="50" r="30"/><path d="M29,29 L71,71"/></g></symbol>
+  <symbol id="pi-room" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <path d="M20,52 L20,46 Q20,42 24,42 Q28,42 28,46 L28,64 L20,64 Z"/><path d="M80,52 L80,46 Q80,42 76,42 Q72,42 72,46 L72,64 L80,64 Z"/>
+    <path d="M28,46 L28,40 Q28,36 33,36 L67,36 Q72,36 72,40 L72,46"/><path d="M28,52 L72,52"/><path d="M28,64 L72,64"/><path d="M25,64 L25,71"/><path d="M75,64 L75,71"/></g></symbol>
+  <symbol id="pi-ext" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <path d="M43,52 L43,82 L61,82 L61,52 Q61,42 52,42 Q43,42 43,52 Z"/><path d="M43,74 L61,74"/><path d="M49,42 L49,36 L55,36 L55,42"/>
+    <path d="M55,38 L64,38 L66,36 L66,41 L64,39"/><path d="M49,38 Q35,37 33,49 Q32,57 36,60"/></g></symbol>
+  <symbol id="pi-umbrella" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <path d="M44,16 Q44,10 50,10 Q56,10 56,16 L56,20"/><path d="M44,16 L44,42"/><path d="M37,42 L37,37"/><path d="M44,42 L44,37"/><path d="M51,42 L51,37"/><path d="M33,42 L55,42 L44,84 Z"/></g></symbol>
+  <symbol id="pi-wifi" viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+    <path d="M40,62 Q50,53 60,62"/><path d="M30,55 Q50,37 70,55"/><path d="M20,48 Q50,21 80,48"/><circle cx="50" cy="76" r="3.8" fill="currentColor" stroke="none"/></g></symbol>
+  <symbol id="pi-nosmoke" viewBox="0 0 100 100"><g stroke="currentColor" fill="none">
+    <g transform="rotate(-26 52 56)"><rect x="28" y="51" width="15" height="10"/><path d="M32,51 L32,61"/><rect x="52" y="51" width="32" height="10"/><path d="M73,49 L73,63"/></g>
+    <path d="M25,73 Q19,67 24,61 Q29,55 23,49"/><path d="M37.5,36.4 L57.6,77.8"/></g></symbol>
 </svg>
 
 <div id="deck">
@@ -277,21 +310,72 @@
     <div class="foot">로고 · 응용</div><div class="pageno">10</div>
   </section>
 
-  <!-- 10 · NEXT -->
+  <!-- 11 · 픽토그램 -->
+  <section class="slide paper">
+    <div class="inner">
+      <div class="kicker">디자인 시스템 · 픽토그램</div>
+      <h2 style="font-size:clamp(24px,3.4vw,42px)">같은 언어로, 안내 픽토그램</h2>
+      <p class="lead" style="margin-top:6px">로고의 <strong>각진 모노라인</strong>을 그대로 — 공간 안내 픽토그램 9종(1차).</p>
+      <div class="pgrid" style="margin-top:34px">
+        <div class="pcell"><div class="pi"><svg><use href="#pi-toilet"/></svg></div><span>화장실</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-coffee"/></svg></div><span>탕비실</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-stairs"/></svg></div><span>계단</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-no"/></svg></div><span>금지</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-room"/></svg></div><span>룸</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-ext"/></svg></div><span>소화기</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-umbrella"/></svg></div><span>우산</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-wifi"/></svg></div><span>와이파이</span></div>
+        <div class="pcell"><div class="pi"><svg><use href="#pi-nosmoke"/></svg></div><span>금연</span></div>
+      </div>
+    </div>
+    <div class="foot">픽토그램</div><div class="pageno">11</div>
+  </section>
+
+  <!-- 12 · 사이니지 부착 -->
+  <section class="slide dark">
+    <div class="inner">
+      <div class="kicker">사이니지 · 부착 방식 (검토 중)</div>
+      <h2 style="font-size:clamp(24px,3.4vw,42px)">안내판, 어떻게 세울까</h2>
+      <div class="mount" style="margin-top:30px">
+        <div class="mcard">
+          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
+            <rect x="32" y="10" width="36" height="48"/><rect x="39" y="18" width="22" height="32"/>
+            <circle cx="36" cy="14" r="2" fill="currentColor" stroke="none"/><circle cx="64" cy="14" r="2" fill="currentColor" stroke="none"/>
+            <circle cx="36" cy="54" r="2" fill="currentColor" stroke="none"/><circle cx="64" cy="54" r="2" fill="currentColor" stroke="none"/>
+            <path d="M24,66 L76,66"/><path d="M42,58 L37,66"/><path d="M58,58 L63,66"/></g></svg></div>
+          <h3>아크릴 스탠드</h3><p>투명 아크릴 패널 + 스탠드오프 볼트로 세움. 가볍고 모던, 임시 배치 유연.</p>
+        </div>
+        <div class="mcard">
+          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
+            <rect x="36" y="6" width="28" height="46"/><rect x="42" y="13" width="16" height="30"/><rect x="26" y="52" width="48" height="14"/></g></svg></div>
+          <h3>아크릴 + 우드 베이스</h3><p>아크릴 시트를 우드 받침(POP)에 꽂아 세움. 웜우드 무드와 호응, 테이블·선반용.</p>
+        </div>
+        <div class="mcard">
+          <div class="mi"><svg viewBox="0 0 100 80" style="width:96px;height:77px"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter">
+            <rect x="26" y="8" width="48" height="60"/><rect x="32" y="14" width="36" height="48"/></g></svg></div>
+          <h3>우드 / 알루미늄 액자</h3><p>액자에 넣어 벽 부착. 무광 블랙·오크 등. 가장 정돈된 인상, 고정 위치용.</p>
+        </div>
+      </div>
+      <p class="small" style="margin-top:26px;opacity:.7">※ 다음 주 주중 <strong style="color:#fff">공간 실측·인테리어 공사</strong> 중 실제로 보고 최종 결정.</p>
+    </div>
+    <div class="foot">사이니지 · 부착</div><div class="pageno">12</div>
+  </section>
+
+  <!-- 13 · NEXT -->
   <section class="slide cream">
     <div class="inner">
       <div class="kicker">이번 주 마무리 · 다음</div>
       <h2 style="font-size:clamp(26px,3.6vw,44px)">확정 완료, 다음은 적용</h2>
       <div class="grid2" style="margin-top:28px">
         <div class="card"><h3 style="color:var(--orange)">✓ 이번 주 확정</h3>
-          <p style="opacity:.85">네이밍 <strong>모드라운지</strong> · 로고 시스템 <strong>솔리드 팬</strong>(심볼·워드마크·락업·컬러·파비콘) · 폰트 <strong>Pretendard</strong></p></div>
+          <p style="opacity:.85">네이밍 <strong>모드라운지</strong> · 로고 시스템 <strong>솔리드 팬</strong>(심볼·락업·컬러·파비콘) · 폰트 <strong>Pretendard</strong> · 픽토그램 <strong>9종(1차)</strong></p></div>
         <div class="card"><h3>다음 주 (킵)</h3>
-          <p style="opacity:.85">락업 아웃라인 변환본 · 파비콘 PNG 세트 · AI 마스터 파일</p></div>
+          <p style="opacity:.85">락업 아웃라인 변환본 · 파비콘 PNG 세트 · AI 마스터 · 픽토그램 확장</p></div>
       </div>
       <div class="card" style="margin-top:18px;border-style:dashed">
-        <h3>홀드</h3><p style="opacity:.85"><strong>사이니지</strong> — 공간 실측 사이즈 확정 후 진행 (단색 음각판 등).</p></div>
+        <h3>현장 결정 (다음 주 주중)</h3><p style="opacity:.85"><strong>사이니지</strong> — 공간 실측·인테리어 공사 중 부착 방식(아크릴 스탠드 / 아크릴+우드 / 액자) 최종 결정.</p></div>
     </div>
-    <div class="foot">다음 단계</div><div class="pageno">11</div>
+    <div class="foot">다음 단계</div><div class="pageno">13</div>
   </section>
 
 </div>
