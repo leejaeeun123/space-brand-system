@@ -58,27 +58,28 @@
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <!-- 체인 80/66/54 · 중간→뒤 윗변, 앞→중간 윗변 · 선 4pt · viewBox 타이트(33 68 113 88) -->
-  <symbol id="sym" viewBox="33 68 113 88">
-    <g fill="none" stroke="#16130F" stroke-width="3" stroke-linejoin="miter">
-      <rect x="62" y="72" width="80" height="80"/>
-      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
-      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
-    </g>
+  <!-- 1-a 솔리드 팬 · 교차 회전 프레임(80/66/54/44/36, 0/-9/-18/-27/-36°) · 마스크로 빈칸 투명(배경 비침) -->
+  <defs>
+    <mask id="fan" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="62" y="72" width="80" height="80" fill="#fff"/>
+      <rect x="62" y="86" width="66" height="66" transform="rotate(-9 62 152)" fill="#000"/>
+      <rect x="62" y="98" width="54" height="54" transform="rotate(-18 62 152)" fill="#fff"/>
+      <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#000"/>
+      <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#fff"/>
+    </mask>
+  </defs>
+  <symbol id="sym" viewBox="36 68 110 88">
+    <rect x="0" y="0" width="200" height="200" fill="#16130F" mask="url(#fan)"/>
   </symbol>
-  <symbol id="symW" viewBox="33 68 113 88">
-    <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter">
-      <rect x="62" y="72" width="80" height="80"/>
-      <rect x="62" y="86" width="66" height="66" transform="rotate(-14 62 152)"/>
-      <rect x="62" y="98" width="54" height="54" transform="rotate(-28 62 152)"/>
-    </g>
+  <symbol id="symW" viewBox="36 68 110 88">
+    <rect x="0" y="0" width="200" height="200" fill="#ffffff" mask="url(#fan)"/>
   </symbol>
 </svg>
 
 <header>
   <h1>모드라운지<span class="en">MODELOUNGE</span></h1>
-  <p><strong>최종 적용 — 1안 팬드 회전</strong>(수정 7차). 체인 관계(80/66/54): 중간 위 모서리→뒤 윗변, 앞 위 모서리→중간 윗변에 닿게(계단식). 선 3pt, 가로 간격 14px, 영문 그레이·자간 공통, 세로 왼쪽 2px 보정.</p>
-  <span class="tag">FINAL v8.7</span>
+  <p><strong>최종 확정 — 1-a 솔리드 팬</strong>. 회전하는 면이 만드는 띠(교차 프레임 5장, 0/-9/-18/-27/-36°). 빈칸은 마스크로 투명 처리해 어떤 배경에도 사용 가능(라이트=잉크, 다크·오렌지=화이트). 워드마크=모드라운지 / MODELOUNGE(영문 그레이·자간으로 한글 폭 정렬).</p>
+  <span class="tag">FINAL v8.7 · 1-a 솔리드 팬 확정</span>
 </header>
 
 <section>
@@ -130,8 +131,8 @@
 </section>
 
 <footer>
-  <strong>벡터 출력</strong> — 심볼 원본: <code>03-identity/logo-symbol.svg</code>(잉크, 중간60·선4pt). 다크·오렌지는 stroke만 <code>#ffffff</code>로.<br>
-  <strong>수정 5차</strong> — ①중간 사각형 60(균등) ②선 4pt ③영문 그레이 색상(투명도 X) ④세로 간격 4px·심볼 왼쪽 2px 보정.<br>
+  <strong>벡터 출력</strong> — 심볼 원본: <code>logo-symbol.svg</code>(잉크 채움) / <code>logo-symbol-white.svg</code>(화이트 채움). 빈칸은 마스크로 투명 → 어떤 배경에도 사용 가능.<br>
+  <strong>확정</strong> — 1-a 솔리드 팬(교차 회전 프레임 5장). 라이트=잉크 채움, 다크·오렌지=화이트 채움.<br>
   <strong>보는 법</strong> — <code>C:\Users\jaeeu\space-brand-system\03-identity\logo-concepts-v8-final.html</code></footer>
 
 <script>
