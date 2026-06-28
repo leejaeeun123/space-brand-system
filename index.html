@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>모드라운지 — 브랜드 시스템</title>
+<link rel="icon" href="03-identity/favicon.svg" />
+<link rel="apple-touch-icon" href="03-identity/favicon.svg" />
+<meta name="theme-color" content="#16130F" />
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root{ --ink:#16130F; --cream:#F4E9C8; --orange:#E2531E; --paper:#FBF6EA; --gray:#7E7768; --line:rgba(22,19,15,.14);}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Pretendard",system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;}
+  .wrap{max-width:960px;margin:0 auto;padding:64px 28px 80px;}
+  header{display:flex;align-items:center;gap:16px;border-bottom:3px solid var(--ink);padding-bottom:26px;}
+  header .sym{width:60px;height:48px;flex:0 0 auto;}
+  header .sym svg{width:100%;height:100%;display:block;}
+  header h1{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.01em;line-height:1;}
+  header .en{display:block;font-size:12px;font-weight:600;letter-spacing:.24em;color:var(--gray);margin-top:6px;}
+  .intro{margin-top:18px;font-size:15px;line-height:1.6;opacity:.82;max-width:680px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:34px;}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px;transition:.15s;}
+  a.card:hover{transform:translateY(-3px);border-color:var(--ink);}
+  a.card .tag{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--orange);}
+  a.card h2{font-size:19px;font-weight:800;margin:8px 0 6px;}
+  a.card p{font-size:13.5px;line-height:1.5;opacity:.72;}
+  a.card .go{margin-top:14px;font-size:13px;font-weight:700;}
+  a.card.feat{background:var(--ink);color:var(--cream);border-color:#000;}
+  a.card.feat p{opacity:.7;} a.card.feat .tag{color:#fff;}
+  footer{margin-top:40px;font-size:12px;opacity:.5;line-height:1.7;}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <mask id="fan" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+    <rect x="62" y="72" width="80" height="80" fill="#fff"/>
+    <rect x="62" y="86" width="66" height="66" transform="rotate(-9 62 152)" fill="#000"/>
+    <rect x="62" y="98" width="54" height="54" transform="rotate(-18 62 152)" fill="#fff"/>
+    <rect x="62" y="108" width="44" height="44" transform="rotate(-27 62 152)" fill="#000"/>
+    <rect x="62" y="116" width="36" height="36" transform="rotate(-36 62 152)" fill="#fff"/>
+  </mask>
+  <symbol id="sym" viewBox="36 68 110 88"><rect x="0" y="0" width="200" height="200" fill="#16130F" mask="url(#fan)"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="sym"><svg viewBox="36 68 110 88"><use href="#sym"/></svg></div>
+    <div><h1>모드라운지<span class="en">MODELOUNGE · BRAND SYSTEM</span></h1></div>
+  </header>
+  <p class="intro">합정 멀티유즈 라운지 <strong>모드라운지</strong>의 브랜드 시스템. 네이밍·로고·컬러·픽토그램과 발표 자료를 한곳에서.</p>
+
+  <div class="grid">
+    <a class="card feat" href="deck-naming-logo.html">
+      <div class="tag">발표 덱</div><h2>네이밍 &amp; 로고 시스템</h2>
+      <p>이번 주 결정 — 네이밍, 로고(탐색~확정), 픽토그램, 사이니지 부착 검토까지 13슬라이드.</p>
+      <div class="go">덱 열기 →</div>
+    </a>
+    <a class="card" href="03-identity/logo-concepts-v8-final.html">
+      <div class="tag">로고 시스템</div><h2>로고 적용 가이드</h2>
+      <p>심볼·락업(가로/세로)·라이트/다크/오렌지·클리어스페이스·최소 크기.</p>
+      <div class="go">열기 →</div>
+    </a>
+    <a class="card" href="04-signage/pictograms.html">
+      <div class="tag">사이니지</div><h2>픽토그램 9종</h2>
+      <p>각진 모노라인 — 화장실·탕비실·계단·금지·룸·소화기·우산·와이파이·금연.</p>
+      <div class="go">열기 →</div>
+    </a>
+    <a class="card" href="03-identity/logo-candidates-meeting.html">
+      <div class="tag">아카이브</div><h2>로고 후보 보드</h2>
+      <p>회의에서 비교한 4개 방향 — 라인 팬 / 원 프로그레션 / 솔리드 팬 / 기울인 프레임.</p>
+      <div class="go">열기 →</div>
+    </a>
+  </div>
+
+  <footer>모드라운지 · 브랜드 시스템 (내부용) · Pretendard · 순수 잉크 모노크롬</footer>
+</div>
+</body>
+</html>
