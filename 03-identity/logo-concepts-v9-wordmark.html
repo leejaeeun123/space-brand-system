@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODE LOUNGE — 워드마크 로고 (v9 · 심볼 없는 겹침 레터링)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&family=Archivo:wght@700;800;900&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16130F; --cream:#F4E9C8; --paper:#FBF6EA; --orange:#E2531E;
+    --line:rgba(22,19,15,.14); --gray:#7E7768;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--cream); color:var(--ink);
+    font-family:"Jost","Futura","Century Gothic",system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+  header{ padding:50px 44px 26px; border-bottom:3px solid var(--ink);}
+  header h1{ margin:0; font-size:30px; font-weight:800; letter-spacing:-.01em;}
+  header h1 .en{ font-weight:600; letter-spacing:.2em; font-size:17px; opacity:.5; margin-left:10px;}
+  header p{ margin:12px 0 0; max-width:880px; line-height:1.7; font-size:14px; opacity:.84;}
+  header .meta{ margin-top:10px; font-size:12.5px; opacity:.6;}
+  section{ padding:0 44px;}
+  .band{ display:flex; align-items:baseline; gap:14px; margin:46px 0 0; padding-bottom:11px; border-bottom:1px solid var(--ink);}
+  .band h2{ margin:0; font-size:19px; font-weight:800; letter-spacing:-.01em;}
+  .band .sub{ font-size:13px; opacity:.6;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:24px; padding:24px 0 6px;}
+  .card{ border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--paper);}
+  .card.dark{ background:var(--ink); border-color:#000;}
+  .card.orange{ background:var(--orange); border-color:#b53e12;}
+  .cap{ padding:14px 20px 0; font-size:12px; font-weight:700; letter-spacing:.03em; opacity:.7;}
+  .card.dark .cap, .card.orange .cap{ color:#fff; opacity:.85;}
+  .desc{ padding:4px 20px 0; font-size:11.5px; line-height:1.5; opacity:.5;}
+  .card.dark .desc, .card.orange .desc{ color:#fff; opacity:.6;}
+  .box{ padding:30px 26px 34px; display:flex; align-items:center; justify-content:center; min-height:190px;}
+  .box svg{ display:block; max-width:100%; height:auto;}
+  footer{ padding:42px 44px 80px; max-width:900px; font-size:13.5px; line-height:1.75; opacity:.85;}
+  footer code{ background:var(--paper); padding:2px 6px; border-radius:5px; border:1px solid var(--line);}
+  footer strong{ color:var(--ink);}
+  footer ol{ padding-left:20px;} footer li{ margin:6px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MODE LOUNGE <span class="en">WORDMARK v9</span></h1>
+  <p>심볼(솔리드 팬)을 걷어내고 <strong>영문 워드마크 단독</strong>으로 재설계. "분위기는 하나, 용도는 여럿"의 <strong>겹침(Overlapping)</strong> 컨셉을 글자 안에서 표현합니다 — 두 단어/면/글자가 겹쳐 만나는 지점이 곧 라운지(공유의 핵). 순수 잉크 모노크롬, 가로·세로 락업 병행.</p>
+  <div class="meta">참고 레퍼런스: NOMAD(겹친 레터), HIDE·ARCHITECH(기하·네거티브), EATON(기하 구성), negative SPACE / 폰트 = Jost(기하 산세, Futura 계열) · 일부 Archivo Black</div>
+</header>
+
+<section>
+
+  <!-- ============ 그룹 1 : 단어 겹침 (멀티플라이) ============ -->
+  <div class="band"><h2>1 · 단어 겹침 (Multiply)</h2><span class="sub">MODE와 LOUNGE 두 단어가 실제로 겹쳐, 겹친 면이 짙어짐 — 가장 직접적인 '겹침'</span></div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="cap">A1 — 세로 적층 · 겹침</div>
+      <div class="desc">MODE 위 LOUNGE, 두 줄이 세로로 맞물려 겹침</div>
+      <div class="box">
+        <svg viewBox="0 0 300 196" width="300" height="196">
+          <g style="mix-blend-mode:multiply">
+            <text x="150" y="116" text-anchor="middle" font-family="Jost" font-weight="700" font-size="62" letter-spacing="2" fill="#16130F" fill-opacity=".82">MODE</text>
+            <text x="150" y="156" text-anchor="middle" font-family="Jost" font-weight="700" font-size="62" letter-spacing="2" fill="#16130F" fill-opacity=".82">LOUNGE</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">A2 — 가로 · 이음새 겹침</div>
+      <div class="desc">한 줄, MODE 끝과 LOUNGE 시작이 겹쳐 만남</div>
+      <div class="box">
+        <svg viewBox="0 0 520 120" width="520" height="120">
+          <g style="mix-blend-mode:multiply">
+            <text x="20" y="84" font-family="Jost" font-weight="700" font-size="58" letter-spacing="1" fill="#16130F" fill-opacity=".82">MODE</text>
+            <text x="222" y="84" font-family="Jost" font-weight="700" font-size="58" letter-spacing="1" fill="#16130F" fill-opacity=".82">LOUNGE</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card dark">
+      <div class="cap">A1 — 다크 반전</div>
+      <div class="desc">잉크 배경 위 크림/화이트</div>
+      <div class="box">
+        <svg viewBox="0 0 300 196" width="300" height="196">
+          <g style="mix-blend-mode:screen">
+            <text x="150" y="116" text-anchor="middle" font-family="Jost" font-weight="700" font-size="62" letter-spacing="2" fill="#F4E9C8" fill-opacity=".82">MODE</text>
+            <text x="150" y="156" text-anchor="middle" font-family="Jost" font-weight="700" font-size="62" letter-spacing="2" fill="#F4E9C8" fill-opacity=".82">LOUNGE</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 그룹 2 : 겹친 O (Venn) ============ -->
+  <div class="band"><h2>2 · 겹친 O (Venn)</h2><span class="sub">두 개의 원이 겹쳐 교집합(라운지)을 만든다 — 가장 단순하고 보편적인 '겹침' 기호</span></div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="cap">B1 — 가로 · 겹친 O 이음</div>
+      <div class="desc">두 단어 사이를 겹친 두 원이 잇는다</div>
+      <div class="box">
+        <svg viewBox="0 0 540 120" width="540" height="120">
+          <text x="0" y="78" font-family="Jost" font-weight="600" font-size="50" letter-spacing="1" fill="#16130F">MODE</text>
+          <g fill="none" stroke="#16130F" stroke-width="5">
+            <circle cx="270" cy="60" r="26"/>
+            <circle cx="300" cy="60" r="26"/>
+          </g>
+          <text x="338" y="78" font-family="Jost" font-weight="600" font-size="50" letter-spacing="1" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">B2 — 세로 · O 정렬 Venn</div>
+      <div class="desc">두 단어의 O를 세로로 정렬해 겹친 원으로</div>
+      <div class="box">
+        <svg viewBox="0 0 300 210" width="300" height="210">
+          <!-- MODE : M + O(ring) + DE -->
+          <text x="58" y="86" text-anchor="end" font-family="Jost" font-weight="600" font-size="52" fill="#16130F">M</text>
+          <text x="104" y="86" font-family="Jost" font-weight="600" font-size="52" fill="#16130F">DE</text>
+          <!-- LOUNGE : L + O(ring) + UNGE -->
+          <text x="58" y="160" text-anchor="end" font-family="Jost" font-weight="600" font-size="52" fill="#16130F">L</text>
+          <text x="104" y="160" font-family="Jost" font-weight="600" font-size="52" fill="#16130F">UNGE</text>
+          <!-- 겹친 두 O (세로) -->
+          <g fill="none" stroke="#16130F" stroke-width="5">
+            <circle cx="81" cy="69" r="22"/>
+            <circle cx="81" cy="143" r="22"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">B1 — 솔리드 변형(엑센트)</div>
+      <div class="desc">교집합만 오렌지로 — 색은 최소 1점</div>
+      <div class="box">
+        <svg viewBox="0 0 540 120" width="540" height="120">
+          <text x="0" y="78" font-family="Jost" font-weight="600" font-size="50" letter-spacing="1" fill="#16130F">MODE</text>
+          <defs>
+            <clipPath id="lensB"><circle cx="270" cy="60" r="26"/></clipPath>
+          </defs>
+          <g fill="none" stroke="#16130F" stroke-width="5">
+            <circle cx="270" cy="60" r="26"/>
+            <circle cx="300" cy="60" r="26"/>
+          </g>
+          <g clip-path="url(#lensB)"><circle cx="300" cy="60" r="26" fill="#E2531E"/></g>
+          <text x="338" y="78" font-family="Jost" font-weight="600" font-size="50" letter-spacing="1" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 그룹 3 : 면·기하 겹침 ============ -->
+  <div class="band"><h2>3 · 면·기하 겹침 (Plane / Geometric)</h2><span class="sub">기하 면이 워드마크를 가로지르거나, 글자가 면으로 구성 — 옛 '팬' 모티프의 잔향</span></div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="cap">C1 — 기울어진 면 스윕</div>
+      <div class="desc">반투명 면이 워드마크를 비스듬히 겹쳐 지난다</div>
+      <div class="box">
+        <svg viewBox="0 0 460 120" width="460" height="120">
+          <text x="14" y="74" font-family="Jost" font-weight="700" font-size="40" letter-spacing="3" fill="#16130F">MODE LOUNGE</text>
+          <polygon points="150,8 250,8 200,112 100,112" fill="#16130F" fill-opacity=".22" style="mix-blend-mode:multiply"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">C2 — 헤비 기하 + 겹친 면 구분자</div>
+      <div class="desc">Archivo Black, 두 단어 사이 겹친 두 사각면</div>
+      <div class="box">
+        <svg viewBox="0 0 560 110" width="560" height="110">
+          <text x="0" y="74" font-family="Archivo" font-weight="900" font-size="50" letter-spacing="-1" fill="#16130F">MODE</text>
+          <g style="mix-blend-mode:multiply">
+            <rect x="234" y="38" width="26" height="26" fill="#16130F" fill-opacity=".55"/>
+            <rect x="250" y="52" width="26" height="26" fill="#16130F" fill-opacity=".55"/>
+          </g>
+          <text x="292" y="74" font-family="Archivo" font-weight="900" font-size="50" letter-spacing="-1" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">C3 — 세로 헤비 + 겹친 면</div>
+      <div class="desc">세로 적층, 줄 사이를 겹친 면이 연결</div>
+      <div class="box">
+        <svg viewBox="0 0 320 200" width="320" height="200">
+          <text x="160" y="84" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="48" letter-spacing="-1" fill="#16130F">MODE</text>
+          <text x="160" y="170" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="48" letter-spacing="-1" fill="#16130F">LOUNGE</text>
+          <g style="mix-blend-mode:multiply">
+            <rect x="142" y="96" width="22" height="22" fill="#16130F" fill-opacity=".55"/>
+            <rect x="156" y="110" width="22" height="22" fill="#16130F" fill-opacity=".55"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 그룹 4 : 미니멀 (겹침 최소 1점) ============ -->
+  <div class="band"><h2>4 · 미니멀</h2><span class="sub">가장 절제된 한 방 — 겹침은 단 하나의 작은 신호로</span></div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="cap">D1 — 트래킹 와이드 + 겹침 점</div>
+      <div class="desc">넓은 자간, 가운뎃점이 겹친 두 원</div>
+      <div class="box">
+        <svg viewBox="0 0 500 90" width="500" height="90">
+          <text x="14" y="58" font-family="Jost" font-weight="500" font-size="34" letter-spacing="6" fill="#16130F">MODE</text>
+          <g fill="none" stroke="#16130F" stroke-width="3.4">
+            <circle cx="232" cy="46" r="11"/>
+            <circle cx="246" cy="46" r="11"/>
+          </g>
+          <text x="270" y="58" font-family="Jost" font-weight="500" font-size="34" letter-spacing="6" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">D2 — 세로 미니멀</div>
+      <div class="desc">MODE / LOUNGE, 사이에 겹친 점</div>
+      <div class="box">
+        <svg viewBox="0 0 300 180" width="300" height="180">
+          <text x="150" y="66" text-anchor="middle" font-family="Jost" font-weight="500" font-size="38" letter-spacing="8" fill="#16130F">MODE</text>
+          <g fill="none" stroke="#16130F" stroke-width="3.4">
+            <circle cx="143" cy="96" r="9"/>
+            <circle cx="157" cy="96" r="9"/>
+          </g>
+          <text x="150" y="146" text-anchor="middle" font-family="Jost" font-weight="500" font-size="38" letter-spacing="8" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card dark">
+      <div class="cap">D1 — 다크</div>
+      <div class="desc">잉크 배경</div>
+      <div class="box">
+        <svg viewBox="0 0 500 90" width="500" height="90">
+          <text x="14" y="58" font-family="Jost" font-weight="500" font-size="34" letter-spacing="6" fill="#F4E9C8">MODE</text>
+          <g fill="none" stroke="#F4E9C8" stroke-width="3.4">
+            <circle cx="232" cy="46" r="11"/>
+            <circle cx="246" cy="46" r="11"/>
+          </g>
+          <text x="270" y="58" font-family="Jost" font-weight="500" font-size="34" letter-spacing="6" fill="#F4E9C8">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 그룹 5 : 타입 보이스 대비 (Serif × Sans) ============ -->
+  <div class="band"><h2>5 · 타입 보이스 대비 (Serif × Sans)</h2><span class="sub">겹침 대신 — 한 워드마크 안에 두 목소리. "하나의 시스템, 여러 용도"를 타입의 다양성으로</span></div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="cap">E1 — MODE(산세) · LOUNGE(세리프)</div>
+      <div class="desc">기하 산세 + 웜 세리프, 가로 한 줄</div>
+      <div class="box">
+        <svg viewBox="0 0 520 100" width="520" height="100">
+          <text x="14" y="66" font-family="Jost" font-weight="600" font-size="48" letter-spacing="2" fill="#16130F">MODE</text>
+          <text x="214" y="66" font-family="Fraunces" font-weight="500" font-size="48" fill="#16130F" font-style="italic">Lounge</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">E2 — MODE(세리프) · LOUNGE(산세)</div>
+      <div class="desc">대비 반전 — 세리프가 앞</div>
+      <div class="box">
+        <svg viewBox="0 0 540 100" width="540" height="100">
+          <text x="14" y="66" font-family="Fraunces" font-weight="600" font-size="48" fill="#16130F">Mode</text>
+          <text x="196" y="66" font-family="Jost" font-weight="600" font-size="48" letter-spacing="3" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">E3 — 세로 적층 대비</div>
+      <div class="desc">산세 위 / 세리프 아래, 가운데 정렬</div>
+      <div class="box">
+        <svg viewBox="0 0 320 180" width="320" height="180">
+          <text x="160" y="76" text-anchor="middle" font-family="Jost" font-weight="600" font-size="44" letter-spacing="6" fill="#16130F">MODE</text>
+          <text x="160" y="138" text-anchor="middle" font-family="Fraunces" font-weight="500" font-size="46" font-style="italic" fill="#16130F">Lounge</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">E4 — 대문자 세리프 + 산세 (한 톤)</div>
+      <div class="desc">둘 다 대문자, 세리프/산세 굵기만 대비</div>
+      <div class="box">
+        <svg viewBox="0 0 540 100" width="540" height="100">
+          <text x="14" y="64" font-family="Jost" font-weight="700" font-size="44" letter-spacing="2" fill="#16130F">MODE</text>
+          <text x="196" y="64" font-family="Fraunces" font-weight="600" font-size="44" letter-spacing="1" fill="#16130F">LOUNGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cap">E5 — 대비 + 겹침 (두 컨셉 결합)</div>
+      <div class="desc">산세 MODE · 세리프 Lounge가 살짝 겹침</div>
+      <div class="box">
+        <svg viewBox="0 0 500 110" width="500" height="110">
+          <g style="mix-blend-mode:multiply">
+            <text x="14" y="72" font-family="Jost" font-weight="700" font-size="50" letter-spacing="1" fill="#16130F" fill-opacity=".85">MODE</text>
+            <text x="196" y="72" font-family="Fraunces" font-weight="500" font-size="50" font-style="italic" fill="#16130F" fill-opacity=".85">Lounge</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="card dark">
+      <div class="cap">E1 — 다크</div>
+      <div class="desc">잉크 배경</div>
+      <div class="box">
+        <svg viewBox="0 0 520 100" width="520" height="100">
+          <text x="14" y="66" font-family="Jost" font-weight="600" font-size="48" letter-spacing="2" fill="#F4E9C8">MODE</text>
+          <text x="214" y="66" font-family="Fraunces" font-weight="500" font-size="48" font-style="italic" fill="#F4E9C8">Lounge</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<footer>
+  <strong>읽는 법 — 두 갈래(겹침 / 타입 대비) × 가로·세로</strong>
+  <ol>
+    <li><strong>1 단어 겹침(멀티플라이)</strong> — 두 단어를 실제로 포개 겹친 면이 짙어짐. 컨셉을 가장 문자 그대로 표현. (A1 세로 / A2 가로)</li>
+    <li><strong>2 겹친 O(Venn)</strong> — 두 원의 교집합 = 공유 라운지. 단순·보편. (B1 가로 이음 / B2 세로 O정렬 / B 오렌지 1점 변형)</li>
+    <li><strong>3 면·기하 겹침</strong> — 폐기한 '팬'의 면 모티프를 워드마크에 잔향으로. 헤비 기하(Archivo). (C1 스윕 / C2·C3 겹친 면 구분자)</li>
+    <li><strong>4 미니멀</strong> — 겹침을 작은 점 하나로 압축, 가장 절제. (D1 가로 / D2 세로)</li>
+    <li><strong>5 타입 보이스 대비(Serif × Sans)</strong> — 겹침 대신, 한 워드마크 안 두 목소리로 '용도의 다양성'. 산세=기능·구조 / 세리프=온기·라운지. (E1·E2 가로 / E3 세로 / E4 대문자 / E5 대비+겹침 결합)</li>
+  </ol>
+  <p>다음 단계: 마음에 드는 <strong>방향 1~2개</strong>를 골라 주세요 → 자간·굵기·겹침 정도·O 비율을 정밀 조정한 v10을 만들고, 확정 1안만 <strong>벡터(SVG, 텍스트 아웃라인)</strong>로 출력합니다. 확인: <code>start logo-concepts-v9-wordmark.html</code></p>
+</footer>
+
+</body>
+</html>
