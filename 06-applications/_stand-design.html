@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:600px;height:785px;overflow:hidden;background:transparent;}
+  .panel{width:600px;height:785px;position:relative;font-family:'Paperlogy';color:#fff;padding:56px 54px 60px;}
+  /* 상단 */
+  .arrow{position:absolute;left:52px;top:60px;width:150px;height:290px;}
+  .arrow path{fill:none;stroke:#fff;stroke-width:17;stroke-linecap:square;stroke-linejoin:miter;}
+  .floor{position:absolute;right:54px;top:72px;font-weight:900;font-size:70px;letter-spacing:-.01em;line-height:1;}
+  /* 중앙 로고 */
+  .center{position:absolute;left:0;right:0;top:355px;text-align:center;}
+  .logo{width:400px;margin:0 auto;color:#fff;}
+  .logo svg{width:100%;height:auto;display:block;}
+  .sub{font-size:27px;font-weight:400;color:#fff;margin-top:22px;letter-spacing:.01em;opacity:.96;}
+  /* 하단 모드 박스 */
+  .modes{position:absolute;left:0;right:0;bottom:64px;display:flex;gap:18px;justify-content:center;}
+  .mode{border:2px solid #fff;border-radius:3px;padding:12px 20px;font-size:23px;font-weight:600;letter-spacing:.02em;color:#fff;}
+</style></head><body>
+<div class="panel">
+  <!-- 계단 화살표: 위 화살촉 → 아래로 → 왼쪽 계단 → 아래 -->
+  <svg class="arrow" viewBox="0 0 170 290" aria-label="위층 화살표">
+    <!-- 촉 왼다리 → 꼭짓점 → 몸통 → 계단 → 아래 (하나의 연속 path로 물림) -->
+    <path d="M85 90 L118 55 L118 150 L58 150 L58 258"/>
+    <!-- 촉 오른다리 (같은 꼭짓점에서 시작) -->
+    <path d="M118 55 L151 90"/>
+  </svg>
+  <div class="floor">3층</div>
+
+  <div class="center">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -40 4072 1674" role="img" aria-label="MODE LOUNGE">
+        <path d="M668 420 472 74H403L208 411V0H64V700H191L440 265L685 700H812L813 0H669Z" transform="translate(517.2,700) scale(1,-1)" fill="currentColor"/>
+        <path d="M22 350Q22 453 69 535.5Q116 618 199 665Q282 712 386 712Q489 712 572 665Q655 618 702.5 535.5Q750 453 750 350Q750 247 702.5 164.5Q655 82 572 35Q489 -12 386 -12Q282 -12 199 35Q116 82 69 164.5Q22 247 22 350ZM594 350Q594 415 567 466Q540 517 492.5 545.5Q445 574 386 574Q327 574 279.5 545.5Q232 517 205 466Q178 415 178 350Q178 285 205 234Q232 183 279.5 154.5Q327 126 386 126Q445 126 492.5 154.5Q540 183 567 234Q594 285 594 350Z" transform="translate(1376.2,700) scale(1,-1)" fill="currentColor"/>
+        <path d="M733 350Q733 245 687 166Q641 87 557.5 43.5Q474 0 366 0H64V700H366Q474 700 557.5 656.5Q641 613 687 534Q733 455 733 350ZM577 350Q577 450 517.5 508.5Q458 567 358 567H218V133H358Q458 133 517.5 191.5Q577 250 577 350Z" transform="translate(2130.2,700) scale(1,-1)" fill="currentColor"/>
+        <rect x="2970.8" y="560" width="504" height="140" fill="currentColor"/>
+        <rect x="2970.8" y="280" width="504" height="140" fill="currentColor"/>
+        <rect x="2970.8" y="0" width="504" height="140" fill="currentColor"/>
+        <path d="M218 700V132H551V0H64V700Z" transform="translate(0,1582) scale(1,-1)" fill="currentColor"/>
+        <path d="M22 350Q22 453 69 535.5Q116 618 199 665Q282 712 386 712Q489 712 572 665Q655 618 702.5 535.5Q750 453 750 350Q750 247 702.5 164.5Q655 82 572 35Q489 -12 386 -12Q282 -12 199 35Q116 82 69 164.5Q22 247 22 350ZM594 350Q594 415 567 466Q540 517 492.5 545.5Q445 574 386 574Q327 574 279.5 545.5Q232 517 205 466Q178 415 178 350Q178 285 205 234Q232 183 279.5 154.5Q327 126 386 126Q445 126 492.5 154.5Q540 183 567 234Q594 285 594 350Z" transform="translate(526,1582) scale(1,-1)" fill="currentColor"/>
+        <path d="M58 308V700H212V314Q212 126 360 126Q433 126 470.5 171.5Q508 217 508 314V700H660V308Q660 154 581 71Q502 -12 359 -12Q216 -12 137 71Q58 154 58 308Z" transform="translate(1280,1582) scale(1,-1)" fill="currentColor"/>
+        <path d="M674 0H547L216 425V0H64V700H191L522 275V700H674Z" transform="translate(1981,1582) scale(1,-1)" fill="currentColor"/>
+        <path d="M654 361V77Q600 34 529 11Q458 -12 385 -12Q282 -12 199 34.5Q116 81 69 163.5Q22 246 22 350Q22 454 69 536.5Q116 619 199.5 665.5Q283 712 388 712Q476 712 547 681Q618 650 666 591L567 495Q497 574 395 574Q331 574 282 546Q233 518 205.5 467Q178 416 178 350Q178 285 205.5 234Q233 183 282 154.5Q331 126 394 126Q460 126 513 156V361Z" transform="translate(2701,1582) scale(1,-1)" fill="currentColor"/>
+        <path d="M579 0H64V700H566V570H217V418H526V292H217V130H579Z" transform="translate(3385,1582) scale(1,-1)" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="sub">멀티유즈 라운지·합정</div>
+  </div>
+
+  <div class="modes">
+    <div class="mode">WORK</div>
+    <div class="mode">CLASS</div>
+    <div class="mode">GATHERING</div>
+  </div>
+</div>
+</body></html>
