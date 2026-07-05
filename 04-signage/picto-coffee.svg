@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="탕비실 PANTRY">
+  <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M26,46 L74,46"/>
+    <path d="M30,46 L34,74 Q35,80 41,80 L59,80 Q65,80 66,74 L70,46"/>
+    <path d="M70,52 Q84,52 84,61 Q84,70 67,70"/>
+    <path d="M42,40 Q47,34 43,28 Q39,22 44,16"/>
+    <path d="M55,40 Q60,34 56,28 Q52,22 57,16"/>
+  </g>
+</svg>

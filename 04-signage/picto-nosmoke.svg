@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="금연 NO SMOKING">
+  <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+    <g transform="rotate(-26 52 56)">
+      <rect x="28" y="51" width="15" height="10"/>
+      <path d="M32,51 L32,61"/>
+      <rect x="52" y="51" width="32" height="10"/>
+      <path d="M73,49 L73,63"/>
+    </g>
+    <path d="M25,73 Q19,67 24,61 Q29,55 23,49"/>
+    <path d="M37.5,36.4 L57.6,77.8"/>
+  </g>
+</svg>

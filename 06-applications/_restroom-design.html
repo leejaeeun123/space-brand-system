@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{--orange:#E2531E;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:920px;height:290px;overflow:hidden;background:transparent;}
+  .plate{width:920px;height:290px;background:rgba(250,250,252,0.52);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;gap:30px;padding:0 28px;}
+  .picto{height:212px;}
+  .picto svg{height:100%;width:auto;display:block;}
+  .divider{width:4px;height:172px;background:#16130F;border-radius:2px;}
+  .label{font-family:'Paperlogy';font-weight:900;font-size:138px;color:#16130F;letter-spacing:-.02em;line-height:1;}
+</style></head><body>
+<div class="plate">
+  <div class="picto">
+    <svg viewBox="0 0 100 100" aria-label="화장실">
+      <g fill="none" stroke="#E2531E" stroke-width="5" stroke-linejoin="miter" stroke-linecap="butt">
+        <!-- 여 -->
+        <rect x="30" y="14" width="9" height="9"/>
+        <path d="M31,30 L39,30 L46,62 L24,62 Z"/>
+        <path d="M32,62 L32,83"/><path d="M38,62 L38,83"/>
+        <!-- 남 -->
+        <rect x="61" y="14" width="9" height="9"/>
+        <path d="M56,83 L62,31 L68,31 L74,83"/>
+      </g>
+    </svg>
+  </div>
+  <div class="divider"></div>
+  <div class="label">화장실</div>
+</div>
+</body></html>
