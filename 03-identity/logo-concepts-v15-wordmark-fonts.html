@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODE LOUNGE — 워드마크 폰트 비교 v15</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- UI chrome -->
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<!-- 후보 폰트 -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/GmarketSans/GmarketSans.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Freesentation/Freesentation.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/KakaoBigSans/KakaoBigSans.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4EFE6; --card:#FBF8F2; --ink:#16130F; --orange:#E2531E;
+    --green:#235C42; --cobalt:#1B4FA0; --gray:#7E7768; --line:#E3DBCB;
+    --acryl:rgba(255,255,255,.42);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--cream);color:var(--ink);font-family:'Pretendard',sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased;padding:56px 28px 120px;}
+  .wrap{max-width:1120px;margin:0 auto;}
+
+  /* header */
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:12px;}
+  h1{font-weight:800;font-size:32px;letter-spacing:-.02em;margin-bottom:14px;}
+  .lede{font-size:15px;color:#3d382f;max-width:760px;}
+  .lede b{color:var(--ink);}
+  hr{border:none;border-top:2px solid var(--ink);margin:30px 0 0;}
+
+  /* criteria */
+  .crit{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 8px;}
+  .crit .c{font-size:12.5px;font-weight:600;color:#4a4438;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:7px 14px;}
+  .crit .c b{color:var(--orange);}
+
+  /* font block */
+  .font{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:22px 26px 0;}
+  .fname{font-size:20px;font-weight:800;letter-spacing:-.01em;}
+  .ftag{font-size:13px;color:var(--gray);font-weight:600;}
+  .fsrc{font-size:11.5px;color:#a49d8f;margin-left:auto;font-weight:600;letter-spacing:.02em;}
+  .badge{font-size:11px;font-weight:800;letter-spacing:.04em;padding:3px 9px;border-radius:100px;vertical-align:middle;}
+  .badge.rec{background:#E7F0E9;color:#2b6b46;}
+  .badge.pick{background:#FBE6DC;color:#B5401A;}
+  .badge.strong{background:#EAE6F3;color:#5a4b8a;}
+
+  .body{display:grid;grid-template-columns:1.15fr .85fr;gap:0;margin-top:18px;border-top:1px solid var(--line);}
+  @media(max-width:820px){.body{grid-template-columns:1fr;}}
+
+  /* specimen (light + dark) */
+  .spec{padding:30px 26px;display:flex;flex-direction:column;gap:22px;border-right:1px solid var(--line);}
+  @media(max-width:820px){.spec{border-right:none;border-bottom:1px solid var(--line);}}
+  .wm{font-size:clamp(30px,4.4vw,50px);font-weight:700;letter-spacing:.02em;line-height:1;color:var(--ink);}
+  .kr{font-size:clamp(22px,3vw,34px);font-weight:800;letter-spacing:-.01em;line-height:1;color:var(--ink);margin-top:12px;}
+  .darkchip{background:var(--ink);border-radius:8px;padding:22px 22px;}
+  .darkchip .wm{color:var(--cream);font-size:clamp(22px,3vw,34px);}
+  .plabel{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:12px;}
+
+  /* signage mock */
+  .sign{padding:30px 26px;display:flex;flex-direction:column;gap:14px;background:
+      linear-gradient(135deg,#efe7d8,#e4d9c4);}
+  .signcard{
+    position:relative;background:var(--acryl);backdrop-filter:blur(2px);
+    border:1px solid rgba(255,255,255,.6);border-radius:4px;
+    box-shadow:0 10px 26px rgba(60,45,25,.18), inset 0 1px 0 rgba(255,255,255,.7);
+    aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:space-between;
+    align-items:center;text-align:center;padding:26px 18px;max-width:300px;margin:0 auto;width:100%;
+  }
+  .signcard::before{content:"";position:absolute;left:50%;top:-9px;width:14px;height:14px;transform:translateX(-50%);
+    border-radius:50%;background:linear-gradient(180deg,#c8a24a,#8a6a28);box-shadow:0 2px 4px rgba(0,0,0,.3);}
+  .s-top{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#5a5347;}
+  .s-mid{font-size:clamp(26px,3.4vw,36px);font-weight:700;letter-spacing:.01em;color:var(--ink);line-height:1;}
+  .s-sub{font-size:12px;font-weight:600;color:#4a4438;margin-top:6px;letter-spacing:.01em;}
+  .s-bot{display:flex;gap:6px;justify-content:center;}
+  .s-bot span{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#5a5347;border:1px solid rgba(90,83,71,.4);border-radius:2px;padding:3px 6px;}
+  .signcap{font-size:11.5px;color:var(--gray);text-align:center;font-weight:600;}
+
+  /* note */
+  .note{padding:0 26px 24px;font-size:13.5px;color:#4a4438;}
+  .note .pro{color:#2b6b46;font-weight:700;}
+  .note .con{color:#9a4a1e;font-weight:700;}
+
+  footer{margin-top:64px;border-top:1px solid var(--line);padding-top:24px;font-size:13px;color:var(--gray);}
+  footer b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">SPACE BRAND SYSTEM · 03 IDENTITY · v15 — 워드마크 폰트 재선정</div>
+  <h1>MODE&nbsp;LOUNGE — 로고 폰트 후보</h1>
+  <p class="lede">
+    로고는 <b>심볼 없는 심플 산세리프 워드마크</b>로 확정. 다만 시스템 폰트 Pretendard는 로고까지 쓰기엔 너무 흔해,
+    <b>“정돈된(각진·기하)”</b>을 살리면서 <b>포인트가 되는</b> 후보를 다시 폭넓게 올렸습니다. 모두 <b>무료 상업 사용 가능</b>.
+    각 폰트를 실제 로고(대·국문 병기)와 <b>반투명 아크릴 사이니지</b> 맥락에서 함께 봅니다.
+  </p>
+  <hr>
+
+  <div class="crit">
+    <span class="c"><b>1</b> 정돈된 · 각진/기하 골격</span>
+    <span class="c"><b>2</b> 포인트 · 개성/신선함</span>
+    <span class="c"><b>3</b> 국·영문 한 가족</span>
+    <span class="c"><b>4</b> 무료 상업 라이선스</span>
+    <span class="c"><b>5</b> 사이니지 가독(중·원거리)</span>
+  </div>
+
+  <!-- ============ 0. Pretendard (현재 기준) ============ -->
+  <section class="font" style="--ff:'Pretendard'">
+    <div class="fhead">
+      <span class="fname">0 · Pretendard</span>
+      <span class="ftag">현재 시스템 폰트 · 비교 기준</span>
+      <span class="fsrc">무료 상업 · OFL</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff)">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff)">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff)">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top">3F · MODE LOUNGE</div>
+          <div><div class="s-mid">LOUNGE</div><div class="s-sub">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="con">유의</span> · 안정적이고 가독 최상이나 <b>너무 흔해 브랜드 개성이 약함</b>. 본문·UI 기본 폰트로는 계속 유지하고, 로고만 아래에서 교체하는 것을 검토.</div>
+  </section>
+
+  <!-- ============ 1. Gmarket Sans (재은 후보) ============ -->
+  <section class="font" style="--ff:'Gmarket Sans'">
+    <div class="fhead">
+      <span class="fname">1 · Gmarket Sans <span class="badge pick">재은 후보</span></span>
+      <span class="ftag">둥근 듯 각진 기하 · 또렷·친근</span>
+      <span class="fsrc">무료 상업 · 지마켓</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:700">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:700">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:700">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · 대문자 영문 “MODE LOUNGE”의 기하학적 또렷함이 사이니지에서 강함. Bold의 임팩트, 대중 인지도. &nbsp;<span class="con">유의</span> · 국문 획이 다소 굵고 캐주얼(친근한 쪽). 웨이트가 3종(300/500/700)뿐이라 본문 확장은 Pretendard 병행 필요.</div>
+  </section>
+
+  <!-- ============ 2. Paperlogy (강력추천) ============ -->
+  <section class="font" style="--ff:'Paperlogy'">
+    <div class="fhead">
+      <span class="fname">2 · Paperlogy <span class="badge rec">추천</span></span>
+      <span class="ftag">에디토리얼 기하 · 각진 골격·안목</span>
+      <span class="fsrc">무료 상업 · fonts-archive</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:800">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:600">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:700">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · <b>“정돈된·각진 형태”와 가장 형태적으로 공명</b>. 편집적·안목있는 인상 + 신선함. 100~900 전체 웨이트라 로고~본문까지 한 가족으로 확장 가능. 미드센추리 MCM 톤과 잘 맞음. &nbsp;<span class="con">유의</span> · 개성이 뚜렷해 라벨 초소형에선 Pretendard보다 가독이 살짝 빡셀 수 있음(대·중형 사이니지엔 유리).</div>
+  </section>
+
+  <!-- ============ 3. IBM Plex Sans KR (강력추천) ============ -->
+  <section class="font" style="--ff:'IBM Plex Sans KR'">
+    <div class="fhead">
+      <span class="fname">3 · IBM Plex Sans KR <span class="badge rec">추천</span></span>
+      <span class="ftag">기계적 기하 · 라틴 완벽 페어·큐레이션 톤</span>
+      <span class="fsrc">무료 상업 · OFL(Google)</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:600">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:700">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:600">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:600">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:600">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · 영문 라틴(IBM Plex Sans)과 <b>디자인상 한 가족</b>이라 “MODE LOUNGE” 워드마크 품질이 최상. 절제된 기계적 기하 = <b>안목·큐레이션·신뢰</b> 톤. &nbsp;<span class="con">유의</span> · 약간 테크/인더스트리얼 인상 → 웜우드·아늑함과 살짝 상충할 수 있음(컬러·소재로 온기 보완 전제).</div>
+  </section>
+
+  <!-- ============ 4. Freesentation ============ -->
+  <section class="font" style="--ff:'Freesentation'">
+    <div class="fhead">
+      <span class="fname">4 · Freesentation</span>
+      <span class="ftag">정제된 모던 산세 · Pretendard 대안</span>
+      <span class="fsrc">무료 상업 · fonts-archive</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:800">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:600">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:700">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · Pretendard의 <b>세련된 대안</b> — 덜 흔하면서 가독·확장(100~900) 안정. 무난함과 개성의 중간, 안전한 선택. &nbsp;<span class="con">유의</span> · 개성(포인트)은 Paperlogy/Gmarket보다 약함. “튀지 않는 업그레이드”가 목표일 때 적합.</div>
+  </section>
+
+  <!-- ============ 5. Wanted Sans ============ -->
+  <section class="font" style="--ff:'Wanted Sans Variable'">
+    <div class="fhead">
+      <span class="fname">5 · Wanted Sans</span>
+      <span class="ftag">또렷한 기하 그로테스크 · 라틴 우수</span>
+      <span class="fsrc">무료 상업 · OFL</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:800">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:600">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:700">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · 또렷·중립적이면서 라틴 품질이 좋아 영문 워드마크에 안정적. Pretendard보다 신선. &nbsp;<span class="con">유의</span> · 방향성이 Pretendard/Freesentation과 유사군 → “개성 포인트” 축에선 중간.</div>
+  </section>
+
+  <!-- ============ 6. NanumSquare ============ -->
+  <section class="font" style="--ff:'NanumSquare'">
+    <div class="fhead">
+      <span class="fname">6 · NanumSquare <span class="badge strong">각진 컨셉 직결</span></span>
+      <span class="ftag">사각(Square) 기하 · “정돈된”과 이름·형태 일치</span>
+      <span class="fsrc">무료 상업 · 네이버</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:800">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:800">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:800">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:700">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:800">LOUNGE</div><div class="s-sub" style="font-weight:700">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · 이름 그대로 <b>각진 사각 골격</b> → 재은님의 “각진 형태·사각형 그래픽” 컨셉과 직접 공명. 두꺼운 웨이트가 간판에서 강함. &nbsp;<span class="con">유의</span> · 다소 익숙한(연식 있는) 인상 → 신선함은 Paperlogy보다 낮음.</div>
+  </section>
+
+  <!-- ============ 7. Kakao Big Sans ============ -->
+  <section class="font" style="--ff:'Kakao Big Sans'">
+    <div class="fhead">
+      <span class="fname">7 · Kakao Big Sans <span class="badge strong">개성 강</span></span>
+      <span class="ftag">브랜드 기하 산세 · 큼직·또렷</span>
+      <span class="fsrc">무료 상업 · 카카오</span>
+    </div>
+    <div class="body">
+      <div class="spec">
+        <div><div class="plabel">Wordmark</div>
+          <div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div>
+          <div class="kr" style="font-family:var(--ff);font-weight:700">모드라운지</div>
+        </div>
+        <div class="darkchip"><div class="plabel">Reversed</div><div class="wm" style="font-family:var(--ff);font-weight:700">MODE LOUNGE</div></div>
+      </div>
+      <div class="sign">
+        <div class="signcard" style="font-family:var(--ff)">
+          <div class="s-top" style="font-weight:600">3F · MODE LOUNGE</div>
+          <div><div class="s-mid" style="font-weight:700">LOUNGE</div><div class="s-sub" style="font-weight:500">합정 · 멀티유즈 라운지</div></div>
+          <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+        </div>
+        <div class="signcap">반투명 아크릴 사이니지 목업</div>
+      </div>
+    </div>
+    <div class="note"><span class="pro">장점</span> · 큼직·또렷한 브랜드 산세, 사이니지에서 존재감 강함. 개성 뚜렷. &nbsp;<span class="con">유의</span> · 카카오 브랜드 연상이 있을 수 있고, 톤이 다소 팝(pop)해 “절제된 안목”과는 결이 다름.</div>
+  </section>
+
+  <footer>
+    <b>내 추천 순위</b> · ① <b>Paperlogy</b>(정돈·각진·신선의 균형, 로고~본문 확장) &nbsp;② <b>IBM Plex Sans KR</b>(영문 워드마크 품질·안목 톤) &nbsp;③ <b>Gmarket Sans</b>(재은님 직감 — 사이니지 임팩트, 대중성).<br>
+    다음 단계 · 1~2개를 고르면 그 폰트로 <b>자간·굵기·락업(국+영)·컬러(잉크/크림/오렌지)</b>를 정밀 조정하고, 사이니지 레이어드(반투명 아크릴+자석) 목업으로 확장합니다. &nbsp;·&nbsp; 파일: <b>03-identity/logo-concepts-v15-wordmark-fonts.html</b>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODE LOUNGE — Paperlogy vs NanumSquare (v16)</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css" rel="stylesheet">
+<style>
+  :root{--cream:#F4EFE6;--card:#FBF8F2;--ink:#16130F;--orange:#E2531E;--gray:#7E7768;--line:#E3DBCB;--acryl:rgba(255,255,255,.42);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--cream);color:var(--ink);font-family:'Pretendard',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;padding:52px 24px 120px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:12px;}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px;}
+  .lede{font-size:14.5px;color:#3d382f;max-width:780px;}
+  .lede b{color:var(--ink);}
+  hr{border:none;border-top:2px solid var(--ink);margin:26px 0 0;}
+
+  /* sticky column header */
+  .cols-head{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;
+    background:var(--cream);padding:18px 0 12px;border-bottom:2px solid var(--ink);margin-top:30px;}
+  .cols-head .h{font-size:17px;font-weight:800;letter-spacing:-.01em;}
+  .cols-head .h span{display:block;font-size:11.5px;font-weight:600;color:var(--gray);letter-spacing:.01em;margin-top:2px;}
+  .cols-head .pa{color:#5a4b8a;} .cols-head .na{color:#2b6b46;}
+  .cols-head .rowlbl{align-self:center;font-size:11px;color:var(--gray);font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+
+  .row{display:grid;grid-template-columns:120px 1fr 1fr;gap:14px;align-items:stretch;margin-top:14px;}
+  .rlbl{align-self:center;font-size:11px;color:var(--gray);font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1.4;}
+  .cell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:26px 24px;display:flex;flex-direction:column;justify-content:center;gap:10px;min-height:96px;overflow:hidden;}
+  .cell.dark{background:var(--ink);border-color:var(--ink);}
+  .cell.orange{background:var(--orange);border-color:var(--orange);}
+  @media(max-width:860px){
+    .cols-head,.row{grid-template-columns:1fr 1fr;}
+    .cols-head .rowlbl,.rlbl{display:none;}
+  }
+
+  .PA{font-family:'Paperlogy';} .NA{font-family:'NanumSquare';}
+  .wm{font-size:clamp(26px,3.8vw,46px);font-weight:700;letter-spacing:.02em;line-height:1;color:var(--ink);}
+  .NA .wm{font-weight:800;}
+  .dark .wm{color:var(--cream);} .orange .wm{color:#fff;}
+  .kr{font-size:clamp(24px,3.4vw,40px);font-weight:800;letter-spacing:-.01em;line-height:1;color:var(--ink);}
+  .dark .kr{color:var(--cream);} .orange .kr{color:#fff;}
+
+  .zoom{font-size:clamp(30px,6vw,72px);font-weight:700;letter-spacing:.01em;line-height:1;color:var(--ink);}
+  .NA .zoom{font-weight:800;}
+  .track-line{font-size:26px;font-weight:700;color:var(--ink);line-height:1.5;}
+  .NA .track-line{font-weight:800;}
+  .wsmall{font-size:13px;color:var(--gray);font-weight:600;margin-top:2px;}
+
+  .ladder{display:flex;flex-direction:column;gap:8px;}
+  .ladder div{font-size:22px;line-height:1;color:var(--ink);}
+
+  .marks{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:.04em;}
+  .NA .marks{font-weight:800;}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.12em;color:#5a5347;border:1px solid rgba(90,83,71,.4);border-radius:2px;padding:3px 7px;display:inline-block;margin-right:5px;}
+
+  /* signage acrylic */
+  .signwrap{background:linear-gradient(135deg,#efe7d8,#e4d9c4);border-radius:10px;padding:28px;display:flex;justify-content:center;}
+  .signcard{position:relative;background:var(--acryl);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,.6);
+    border-radius:4px;box-shadow:0 10px 26px rgba(60,45,25,.18),inset 0 1px 0 rgba(255,255,255,.7);
+    aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;
+    padding:26px 18px;width:100%;max-width:280px;}
+  .signcard::before{content:"";position:absolute;left:50%;top:-9px;width:14px;height:14px;transform:translateX(-50%);
+    border-radius:50%;background:linear-gradient(180deg,#c8a24a,#8a6a28);box-shadow:0 2px 4px rgba(0,0,0,.3);}
+  .s-top{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#5a5347;}
+  .s-mid{font-size:clamp(26px,3.2vw,34px);font-weight:700;color:var(--ink);line-height:1;}
+  .NA .s-mid{font-weight:800;}
+  .s-sub{font-size:12px;font-weight:600;color:#4a4438;margin-top:6px;}
+  .s-bot span{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#5a5347;border:1px solid rgba(90,83,71,.4);border-radius:2px;padding:3px 6px;margin:0 2px;}
+
+  .verdict{margin-top:40px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:26px 28px;}
+  .verdict h3{font-size:15px;font-weight:800;margin-bottom:12px;}
+  .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media(max-width:720px){.vgrid{grid-template-columns:1fr;}}
+  .vcol h4{font-size:14px;font-weight:800;margin-bottom:8px;}
+  .vcol.pa h4{color:#5a4b8a;} .vcol.na h4{color:#2b6b46;}
+  .vcol p{font-size:13.5px;color:#4a4438;margin-bottom:6px;}
+  .vcol .pro{color:#2b6b46;font-weight:700;} .vcol .con{color:#9a4a1e;font-weight:700;}
+  footer{margin-top:40px;border-top:1px solid var(--line);padding-top:22px;font-size:13px;color:var(--gray);}
+  footer b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">SPACE BRAND SYSTEM · 03 IDENTITY · v16 — 최종 2파이널 비교</div>
+  <h1>Paperlogy &nbsp;vs&nbsp; NanumSquare</h1>
+  <p class="lede">
+    두 폰트를 <b>같은 크기·같은 맥락</b>에서 1:1로 비교합니다. 특히 워드마크 핵심인 <b>영문 “MODE LOUNGE” 레터폼</b>과
+    국문 “모드라운지”, 그리고 <b>반투명 아크릴 사이니지</b>에서의 인상을 보세요. 스크롤하며 행별로 대조합니다.
+  </p>
+  <hr>
+
+  <div class="cols-head">
+    <div class="rowlbl">비교 항목</div>
+    <div class="h pa">Paperlogy<span>에디토리얼 기하 · 각지되 세련</span></div>
+    <div class="h na">NanumSquare<span>사각(Square) 골격 · 시스템적·또렷</span></div>
+  </div>
+
+  <!-- wordmark -->
+  <div class="row">
+    <div class="rlbl">워드마크<br>(라이트)</div>
+    <div class="cell PA"><div class="wm">MODE LOUNGE</div></div>
+    <div class="cell NA"><div class="wm">MODE LOUNGE</div></div>
+  </div>
+
+  <!-- korean -->
+  <div class="row">
+    <div class="rlbl">국문</div>
+    <div class="cell PA"><div class="kr">모드라운지</div></div>
+    <div class="cell NA"><div class="kr">모드라운지</div></div>
+  </div>
+
+  <!-- letterform zoom -->
+  <div class="row">
+    <div class="rlbl">레터폼<br>확대<br>(O·G·M·U)</div>
+    <div class="cell PA"><div class="zoom">MODE</div><div class="zoom">LOUNGE</div></div>
+    <div class="cell NA"><div class="zoom">MODE</div><div class="zoom">LOUNGE</div></div>
+  </div>
+
+  <!-- dark reversed -->
+  <div class="row">
+    <div class="rlbl">다크 반전</div>
+    <div class="cell dark PA"><div class="wm">MODE LOUNGE</div><div class="kr">모드라운지</div></div>
+    <div class="cell dark NA"><div class="wm">MODE LOUNGE</div><div class="kr">모드라운지</div></div>
+  </div>
+
+  <!-- orange -->
+  <div class="row">
+    <div class="rlbl">오렌지<br>배경</div>
+    <div class="cell orange PA"><div class="wm">MODE LOUNGE</div></div>
+    <div class="cell orange NA"><div class="wm">MODE LOUNGE</div></div>
+  </div>
+
+  <!-- tracking -->
+  <div class="row">
+    <div class="rlbl">자간<br>테스트</div>
+    <div class="cell PA">
+      <div class="track-line" style="letter-spacing:-.02em">MODE LOUNGE</div>
+      <div class="track-line" style="letter-spacing:.02em">MODE LOUNGE</div>
+      <div class="track-line" style="letter-spacing:.16em">MODE LOUNGE</div>
+      <div class="wsmall">−2% / +2% / +16% 자간</div>
+    </div>
+    <div class="cell NA">
+      <div class="track-line" style="letter-spacing:-.02em">MODE LOUNGE</div>
+      <div class="track-line" style="letter-spacing:.02em">MODE LOUNGE</div>
+      <div class="track-line" style="letter-spacing:.16em">MODE LOUNGE</div>
+      <div class="wsmall">−2% / +2% / +16% 자간</div>
+    </div>
+  </div>
+
+  <!-- weight ladder -->
+  <div class="row">
+    <div class="rlbl">웨이트</div>
+    <div class="cell PA">
+      <div class="ladder">
+        <div style="font-weight:400">MODE LOUNGE · 모드라운지 (400)</div>
+        <div style="font-weight:600">MODE LOUNGE · 모드라운지 (600)</div>
+        <div style="font-weight:700">MODE LOUNGE · 모드라운지 (700)</div>
+        <div style="font-weight:900">MODE LOUNGE · 모드라운지 (900)</div>
+      </div>
+      <div class="wsmall">100~900 전 웨이트 지원</div>
+    </div>
+    <div class="cell NA">
+      <div class="ladder">
+        <div style="font-weight:400">MODE LOUNGE · 모드라운지 (400)</div>
+        <div style="font-weight:700">MODE LOUNGE · 모드라운지 (700)</div>
+        <div style="font-weight:800">MODE LOUNGE · 모드라운지 (800)</div>
+      </div>
+      <div class="wsmall">300/400/700/800 (4종)</div>
+    </div>
+  </div>
+
+  <!-- numerals / marks -->
+  <div class="row">
+    <div class="rlbl">숫자·기호<br>사이니지<br>정보</div>
+    <div class="cell PA">
+      <div class="marks">3F &nbsp; 52.49㎡ &nbsp; 10:00–22:00</div>
+      <div style="margin-top:8px"><span class="tag PA">WORK</span><span class="tag PA">CLASS</span><span class="tag PA">GATHER</span></div>
+    </div>
+    <div class="cell NA">
+      <div class="marks">3F &nbsp; 52.49㎡ &nbsp; 10:00–22:00</div>
+      <div style="margin-top:8px"><span class="tag NA">WORK</span><span class="tag NA">CLASS</span><span class="tag NA">GATHER</span></div>
+    </div>
+  </div>
+
+  <!-- signage mock -->
+  <div class="row">
+    <div class="rlbl">아크릴<br>사이니지</div>
+    <div class="signwrap">
+      <div class="signcard PA">
+        <div class="s-top">3F · MODE LOUNGE</div>
+        <div><div class="s-mid">LOUNGE</div><div class="s-sub">합정 · 멀티유즈 라운지</div></div>
+        <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+      </div>
+    </div>
+    <div class="signwrap">
+      <div class="signcard NA">
+        <div class="s-top">3F · MODE LOUNGE</div>
+        <div><div class="s-mid">LOUNGE</div><div class="s-sub">합정 · 멀티유즈 라운지</div></div>
+        <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- verdict -->
+  <div class="verdict">
+    <h3>결정 포인트</h3>
+    <div class="vgrid">
+      <div class="vcol pa">
+        <h4>Paperlogy 를 고른다면</h4>
+        <p><span class="pro">강점</span> · 각진 골격이지만 <b>세련·에디토리얼</b>. 영문 레터폼이 신선하고 개성. 100~900 전 웨이트라 <b>로고→본문까지 한 폰트</b>로 통일 가능. “안목있는” 톤에 유리.</p>
+        <p><span class="con">유의</span> · 개성이 있어 <b>아주 작은 라벨</b>에선 또렷함이 살짝 덜함.</p>
+        <p style="color:#5a4b8a;font-weight:700">→ “세련된 편집 감성 · 폰트 하나로 시스템 통일”을 원하면.</p>
+      </div>
+      <div class="vcol na">
+        <h4>NanumSquare 를 고른다면</h4>
+        <p><span class="pro">강점</span> · 이름 그대로 <b>사각 골격</b> → “각진 형태·사각형 그래픽” 컨셉과 <b>직접 공명</b>. 굵은 웨이트가 간판·안내에서 <b>또렷·강함</b>. 무료·안정.</p>
+        <p><span class="con">유의</span> · 웨이트 4종뿐 → 본문 확장은 Pretendard 병행. 다소 <b>익숙한(연식) 인상</b>, 신선함은 Paperlogy보다 낮음.</p>
+        <p style="color:#2b6b46;font-weight:700">→ “각진 시스템 · 사이니지 또렷함 · 컨셉 직결”을 원하면.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <b>한 줄 요약</b> · <b>Paperlogy</b>=세련·신선·통일성 / <b>NanumSquare</b>=각진 컨셉 직결·간판 또렷함. &nbsp;둘 다 좋은 선택이라
+    <b>브랜드가 “세련된 편집”쪽이면 Paperlogy, “각진 시스템·간판 강조”쪽이면 NanumSquare</b>를 권합니다.<br>
+    고르시면 그 폰트로 자간·굵기·국영문 락업·컬러를 확정하고 사이니지 레이어드로 넘어갑니다. &nbsp;·&nbsp; 파일: <b>03-identity/logo-concepts-v16-paperlogy-vs-nanumsquare.html</b>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MODE LOUNGE — 워드마크 확정 (Paperlogy · 레이어드 E)</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F4EFE6;--card:#FBF8F2;--ink:#16130F;--orange:#E2531E;--gray:#7E7768;--line:#E3DBCB;--acryl:rgba(255,255,255,.42);
+    --eGap:.115em; /* E(레이어) 광학 여백 — D에서 띄우기 (확정) */
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--cream);color:var(--ink);font-family:'Pretendard',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;padding:52px 24px 120px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:12px;}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px;}
+  .lede{font-size:14.5px;color:#3d382f;max-width:780px;} .lede b{color:var(--ink);}
+  hr{border:none;border-top:2px solid var(--ink);margin:26px 0 0;}
+
+  .spec{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 4px;}
+  .spec .s{font-size:12.5px;font-weight:600;color:#4a4438;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:7px 12px;}
+  .spec .s b{color:var(--orange);font-weight:800;}
+
+  .sec{margin-top:46px;}
+  .sec-h{font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--ink);text-transform:uppercase;margin-bottom:4px;}
+  .sec-d{font-size:13.5px;color:var(--gray);margin-bottom:16px;max-width:760px;} .sec-d b{color:var(--ink);}
+
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:52px 40px;}
+  .stage.dark{background:var(--ink);border-color:var(--ink);}
+  .stage.orange{background:var(--orange);border-color:var(--orange);}
+  .stage.center{display:flex;justify-content:center;align-items:center;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .plabel{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:16px;}
+  .dark .plabel{color:#a49d8f;}
+
+  /* ===== 워드마크 (본체 800) ===== */
+  .wm{font-family:'Paperlogy';font-weight:800;letter-spacing:-.02em;line-height:.98;color:var(--ink);}
+  .dark .wm,.orange .wm{color:#fff;}
+  .wm.two{font-size:clamp(40px,8vw,90px);text-align:center;}   /* 세로 2줄 = 가운데 정렬 */
+  .wm.one{font-size:clamp(26px,5.2vw,58px);}
+  .wm .ln{display:block;}
+  .wm .row2{letter-spacing:-.02em;}
+
+  /* 레이어드 E (B: 3선 동일폭 · 두께 14 · gap 11.5%) */
+  .eL{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:var(--eGap);}
+  .eL rect{fill:currentColor;}
+
+  /* korean (800 · 자간 0) */
+  .kr{font-family:'Paperlogy';font-weight:800;letter-spacing:0;line-height:1;color:var(--ink);font-size:clamp(30px,5vw,56px);}
+  .dark .kr{color:#fff;}
+  .krsub{font-family:'Paperlogy';font-weight:400;letter-spacing:0;color:var(--gray);font-size:15px;margin-top:10px;}
+
+  .bodyspec{font-family:'Paperlogy';color:var(--ink);}
+  .bodyspec .h{font-weight:600;font-size:19px;margin-bottom:6px;}
+  .bodyspec .p{font-weight:400;font-size:15px;line-height:1.7;color:#3d382f;max-width:620px;}
+
+  /* signage */
+  .signwrap{background:linear-gradient(135deg,#efe7d8,#e4d9c4);border-radius:12px;padding:40px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;}
+  .signcard{position:relative;background:var(--acryl);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,.6);
+    border-radius:5px;box-shadow:0 12px 30px rgba(60,45,25,.2),inset 0 1px 0 rgba(255,255,255,.7);
+    width:300px;aspect-ratio:3/4;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;padding:34px 24px;}
+  .signcard.dark{background:#1c1813;border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 30px rgba(0,0,0,.4);}
+  .signcard::before{content:"";position:absolute;left:50%;top:-10px;width:16px;height:16px;transform:translateX(-50%);
+    border-radius:50%;background:linear-gradient(180deg,#c8a24a,#8a6a28);box-shadow:0 2px 5px rgba(0,0,0,.35);}
+  .s-top{font-family:'Paperlogy';font-weight:600;font-size:12px;letter-spacing:.14em;color:#5a5347;}
+  .signcard.dark .s-top{color:#c9c1b3;}
+  .s-bot span{font-family:'Paperlogy';font-weight:600;font-size:10px;letter-spacing:.12em;color:#5a5347;border:1px solid rgba(90,83,71,.4);border-radius:2px;padding:4px 7px;margin:0 2px;}
+  .signcard.dark .s-bot span{color:#c9c1b3;border-color:rgba(255,255,255,.25);}
+  .signcap{width:100%;text-align:center;font-size:12px;color:var(--gray);font-weight:600;margin-top:14px;}
+
+  footer{margin-top:54px;border-top:1px solid var(--line);padding-top:22px;font-size:13px;color:var(--gray);} footer b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">SPACE BRAND SYSTEM · 03 IDENTITY · 워드마크 확정 (FINAL)</div>
+  <h1>MODE&nbsp;LOUNGE — 레이어드 워드마크</h1>
+  <p class="lede">
+    <b>Paperlogy 800</b> · MODE의 E를 <b>세로획 없는 가로 3선(동일폭 · 두께 14)</b>으로 — “넘나드는·레이어드” 컨셉 내장.
+    별도 심볼 없이 이 자체가 로고. 3선은 <b>WORK·CLASS·GATHER</b>가 쌓인 층. E는 D에서 <b>광학 여백(0.115em)</b>으로 띄웠고, 세로 2줄은 <b>가운데 정렬</b>.
+  </p>
+  <hr>
+
+  <div class="spec">
+    <span class="s">폰트 <b>Paperlogy</b></span>
+    <span class="s">영문 자간 <b>−2%</b></span>
+    <span class="s">로고 웨이트 <b>800</b></span>
+    <span class="s">본문 <b>400 · 600</b></span>
+    <span class="s">국문 자간 <b>0%</b></span>
+    <span class="s">E-레이어 <b>3선 · 두께14</b></span>
+    <span class="s">E 여백 <b>0.115em</b></span>
+    <span class="s">세로 <b>가운데 정렬</b></span>
+  </div>
+
+  <!-- 1. PRIMARY 세로 2줄 (가운데) -->
+  <div class="sec">
+    <div class="sec-h">1 · 프라이머리 · 세로 2줄 (가운데 정렬)</div>
+    <div class="stage center">
+      <div class="wm two">
+        <span class="ln">MOD<svg class="eL" viewBox="0 0 56 70" aria-label="E"><rect x="0" y="0" width="56" height="14"/><rect x="0" y="28" width="56" height="14"/><rect x="0" y="56" width="56" height="14"/></svg></span>
+        <span class="ln row2">LOUNGE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 가로형 -->
+  <div class="sec">
+    <div class="sec-h">2 · 베리에이션 · 가로 1줄</div>
+    <div class="stage center">
+      <div class="wm one">MOD<svg class="eL" viewBox="0 0 56 70" aria-label="E"><rect x="0" y="0" width="56" height="14"/><rect x="0" y="28" width="56" height="14"/><rect x="0" y="56" width="56" height="14"/></svg>&nbsp;LOUNGE</div>
+    </div>
+  </div>
+
+  <!-- 3. 컬러 배경 -->
+  <div class="sec">
+    <div class="sec-h">3 · 컬러 배경</div>
+    <div class="grid3">
+      <div class="stage center">
+        <div class="wm two" style="font-size:46px"><span class="ln">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="0" width="56" height="14"/><rect x="0" y="28" width="56" height="14"/><rect x="0" y="56" width="56" height="14"/></svg></span><span class="ln row2">LOUNGE</span></div>
+      </div>
+      <div class="stage dark center">
+        <div class="wm two" style="font-size:46px"><span class="ln">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="0" width="56" height="14" fill="#fff"/><rect x="0" y="28" width="56" height="14" fill="#fff"/><rect x="0" y="56" width="56" height="14" fill="#fff"/></svg></span><span class="ln row2">LOUNGE</span></div>
+      </div>
+      <div class="stage orange center">
+        <div class="wm two" style="font-size:46px"><span class="ln">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="0" width="56" height="14" fill="#fff"/><rect x="0" y="28" width="56" height="14" fill="#fff"/><rect x="0" y="56" width="56" height="14" fill="#fff"/></svg></span><span class="ln row2">LOUNGE</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 국문 + 본문 -->
+  <div class="sec">
+    <div class="sec-h">4 · 국문 락업 · 본문</div>
+    <div class="grid2">
+      <div class="stage">
+        <div class="plabel">국문 (800 · 자간 0%)</div>
+        <div class="kr">모드라운지</div>
+        <div class="krsub">멀티유즈 라운지 · 합정</div>
+      </div>
+      <div class="stage">
+        <div class="plabel">본문 (400 · 600)</div>
+        <div class="bodyspec">
+          <div class="h">일, 학습, 교류가 한 공간에서</div>
+          <div class="p">모드라운지는 합정역 앞 3층, 52.49㎡의 멀티유즈 라운지입니다. 세팅 노동 없이 문을 열면 이미 완성된 무드에 그냥 앉으면 됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 사이니지 -->
+  <div class="sec">
+    <div class="sec-h">5 · 아크릴 사이니지 (확정 사양)</div>
+    <div class="sec-d">상단 <b>3F · 멀티유즈 라운지</b> / 중앙 <b>MODE LOUNGE 두 줄</b> / 하단 모드 태그.</div>
+    <div class="signwrap">
+      <div class="signcard">
+        <div class="s-top">3F · 멀티유즈 라운지</div>
+        <div><div class="wm two" style="font-size:40px"><span class="ln">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="0" width="56" height="14"/><rect x="0" y="28" width="56" height="14"/><rect x="0" y="56" width="56" height="14"/></svg></span><span class="ln row2">LOUNGE</span></div></div>
+        <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+      </div>
+      <div class="signcard dark">
+        <div class="s-top">3F · 멀티유즈 라운지</div>
+        <div><div class="wm two" style="font-size:40px;color:#fff"><span class="ln">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="0" width="56" height="14" fill="#fff"/><rect x="0" y="28" width="56" height="14" fill="#fff"/><rect x="0" y="56" width="56" height="14" fill="#fff"/></svg></span><span class="ln row2">LOUNGE</span></div></div>
+        <div class="s-bot"><span>WORK</span><span>CLASS</span><span>GATHER</span></div>
+      </div>
+    </div>
+    <div class="signcap">※ 실제 각인은 트레이싱지 인쇄 부착 / 투명 스티커 — 반투명 레이어드 질감</div>
+  </div>
+
+  <footer>
+    <b>확정</b> · Paperlogy 800 · E-레이어(3선 동일폭 · 두께 14 · 여백 0.115em) · 세로 가운데 정렬.<br>
+    <b>다음</b> · 커스텀 벡터(SVG) 아웃라인화 → 사이니지 레이어드(아크릴+자석) 실물 목업.
+    &nbsp;·&nbsp; 파일: <b>logo-concepts-v18-final.html</b> · 사양 원천: <b>logo-system.md</b>
+  </footer>
+</div>
+</body>
+</html>
