@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MODE LOUNGE — Brand Book</title>
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{
+    --orange:#E2531E; --cream:#F4E9C8; --ink:#16130F;
+    --green:#235C42; --cobalt:#1B4FA0; --brass:#B0883C; --walnut:#8A5A33;
+    --paper:#faf5e6; --line:rgba(22,19,15,.14);
+    --ff:'Paperlogy','Pretendard',sans-serif;
+    --maxw:920px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--cream);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
+
+  /* ---- top nav ---- */
+  header{position:sticky;top:0;z-index:50;background:rgba(244,233,200,.92);backdrop-filter:blur(8px);border-bottom:1.5px solid var(--ink)}
+  .nav{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .brandmark{display:flex;align-items:center}
+  .brandmark img{height:22px;width:auto;display:block}
+  .tabs{display:flex;gap:6px}
+  .tabs button{font-family:var(--ff);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    background:none;border:1.5px solid transparent;color:var(--ink);padding:7px 14px;cursor:pointer;border-radius:2px;transition:.12s ease-out}
+  .tabs button:hover{border-color:var(--line)}
+  .tabs button.on{background:var(--ink);color:var(--cream)}
+
+  main{max-width:var(--maxw);margin:0 auto;padding:0 24px 140px}
+  .page{display:none;animation:fade .24s cubic-bezier(.16,1,.3,1)}
+  .page.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---- hero per page ---- */
+  .hero{padding:70px 0 40px;border-bottom:1.5px solid var(--ink)}
+  .kicker{font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+  .hero h1{font-weight:600;font-size:clamp(38px,7vw,64px);line-height:1;letter-spacing:-.02em;margin:14px 0 16px}
+  .hero p{max-width:560px;font-size:17px;color:rgba(22,19,15,.72)}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  .snum{font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--orange)}
+  h2{font-weight:600;font-size:28px;letter-spacing:-.01em;margin:6px 0 22px}
+  h3{font-weight:600;font-size:18px;margin:26px 0 12px}
+  p{margin:0 0 12px}
+  ul{margin:0 0 14px;padding-left:20px}li{margin:5px 0}
+  strong{font-weight:600}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;background:rgba(22,19,15,.07);padding:2px 6px;border-radius:3px}
+  .lead{font-size:17px;color:rgba(22,19,15,.75);max-width:620px}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:rgba(22,19,15,.6);border-bottom:1.5px solid var(--ink)}
+  tr:hover td{background:rgba(226,83,30,.04)}
+
+  /* ---- color swatches ---- */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:18px 0}
+  .sw{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+  .sw .chip{height:78px}
+  .sw .meta{padding:10px 12px}
+  .sw .nm{font-weight:600;font-size:14px}
+  .sw .hex{font-family:ui-monospace,monospace;font-size:12.5px;color:rgba(22,19,15,.6);margin-top:2px}
+  .sw .use{font-size:12px;color:rgba(22,19,15,.6);margin-top:6px;line-height:1.4}
+
+  /* ---- logo showcase ---- */
+  .logobox{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
+  .lchip{flex:1;min-width:200px;padding:34px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line)}
+  .lchip.light{background:var(--paper)}
+  .lchip.dark{background:var(--ink);color:var(--cream)}
+  .lchip.orange{background:var(--orange);color:#fff}
+  .wm-img{height:74px;width:auto;display:block}
+  .plabel{font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .dl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:4px 0 8px}
+  .dl-label{font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(22,19,15,.55)}
+  .dl a{font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;border:1.5px solid var(--line);border-radius:3px;padding:5px 11px;transition:.12s ease-out}
+  .dl a:hover{border-color:var(--orange);color:var(--orange)}
+
+  /* ---- cards ---- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:16px 0}
+  .card{border:1.5px solid var(--ink);border-radius:6px;padding:18px 18px 20px;background:var(--paper)}
+  .card .t{font-weight:600;font-size:16px;margin-bottom:2px}
+  .card .anb{font-size:13px;color:var(--orange);font-weight:600;letter-spacing:.02em;margin-bottom:10px}
+  .say{font-size:13.5px;margin-top:8px}.say.no{color:rgba(22,19,15,.5)}
+  .say b{font-weight:600}
+
+  .pill{display:inline-block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:5px 12px;border:1.5px solid var(--ink);border-radius:3px;margin:0 6px 6px 0}
+  .pill.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+  .pictos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin:16px 0}
+  .picto{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);text-decoration:none;color:var(--ink);transition:.12s ease-out}
+  .picto:hover{border-color:var(--orange)}
+  .picto img{width:38px;height:38px;object-fit:contain}
+  .picto span{font-size:11.5px;font-weight:600;color:rgba(22,19,15,.7);text-align:center}
+  .picto small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .picto:hover small{opacity:1}
+
+  .mockups{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:18px 0}
+  .mk{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+  .mk img{width:100%;height:200px;object-fit:cover;display:block}
+  .mk .cap{padding:10px 12px}
+  .mk .cap b{font-weight:600;font-size:14px;display:block}
+  .mk .cap span{font-size:12px;color:rgba(22,19,15,.6);line-height:1.4;display:block;margin-top:3px}
+
+  .note{background:var(--paper);border-left:3px solid var(--orange);padding:12px 16px;border-radius:0 4px 4px 0;font-size:14px;margin:16px 0}
+  .foot{padding:40px 0 0;font-size:13px;color:rgba(22,19,15,.5)}
+  @media(max-width:600px){.hero{padding:48px 0 30px}section{padding:40px 0}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brandmark" href="#top"><img src="../03-identity/logo-wordmark-h-ink.svg" alt="MODE LOUNGE" height="22"></a>
+    <div class="tabs">
+      <button data-tab="brand" class="on">Brand</button>
+      <button data-tab="bx">BX</button>
+      <button data-tab="product">Product</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ==================== BRAND ==================== -->
+<div class="page on" id="brand">
+  <div class="hero">
+    <div class="kicker">Design System · 01</div>
+    <h1>Brand</h1>
+    <p>모드라운지 비주얼 아이덴티티 — 로고 · 색 · 타이포 · 픽토그램 · 이미지 · 모션. 폰트 Paperlogy 단일, 로고는 레이어드 E 워드마크.</p>
+  </div>
+
+  <section>
+    <div class="snum">01 — LOGO</div>
+    <h2>레이어드 E 워드마크</h2>
+    <p class="lead">심볼 없이 워드마크 자체가 로고이며, MODE의 <code>E</code> 세로획을 없애고 남긴 <strong>가로 3선(동일폭)</strong>이 <strong>WORK·CLASS·GATHERING</strong>이 쌓인 층을 뜻한다.</p>
+    <div class="logobox">
+      <div class="lchip light">
+        <div class="plabel">Primary · Ink</div>
+        <img class="wm-img" src="../03-identity/logo-wordmark-v-ink.svg" alt="MODE LOUNGE 세로 잉크">
+      </div>
+      <div class="lchip dark">
+        <div class="plabel">Reversed · White</div>
+        <img class="wm-img" src="../03-identity/logo-wordmark-v-white.svg" alt="MODE LOUNGE 세로 화이트">
+      </div>
+      <div class="lchip orange">
+        <div class="plabel">Accent · White</div>
+        <img class="wm-img" src="../03-identity/logo-wordmark-v-white.svg" alt="MODE LOUNGE 세로 화이트">
+      </div>
+    </div>
+    <div class="dl">
+      <span class="dl-label">Download ↓</span>
+      <a href="../03-identity/logo-wordmark-v-ink.svg" download target="_blank" rel="noopener">세로 · 잉크</a>
+      <a href="../03-identity/logo-wordmark-v-white.svg" download target="_blank" rel="noopener">세로 · 화이트</a>
+      <a href="../03-identity/logo-wordmark-h-ink.svg" download target="_blank" rel="noopener">가로 · 잉크</a>
+      <a href="../03-identity/logo-wordmark-h-white.svg" download target="_blank" rel="noopener">가로 · 화이트</a>
+    </div>
+    <table>
+      <tr><th>파일</th><th>형태</th><th>용도</th></tr>
+      <tr><td><code>logo-wordmark-v-ink.svg</code></td><td>세로 2줄</td><td>프라이머리 · 밝은 배경</td></tr>
+      <tr><td><code>logo-wordmark-h-ink.svg</code></td><td>가로 1줄</td><td>헤더 · 명함</td></tr>
+      <tr><td><code>*-white.svg</code></td><td>반전</td><td>어두운 · 오렌지 배경</td></tr>
+      <tr><td><code>logo-wordmark-{v,h}.svg</code></td><td>currentColor</td><td>웹 · CSS color 제어</td></tr>
+    </table>
+    <div class="note"><strong>Don'ts</strong> · 비율 변형 · 3선 두께/간격/개수 변경 · 서로 다른 폭 · E에 세로획 · 채움색 외 컬러 · 폰트 교체.</div>
+  </section>
+
+  <section>
+    <div class="snum">02 — COLOR</div>
+    <h2>브랜드 식별 3색 + 세컨더리 + 재질</h2>
+    <p class="lead">식별은 <strong>크림 · 잉크 · 오렌지</strong> 3색으로 압축. 컬러블록은 디지털에서 과감, 공간 사이니지는 우드·브라스·블랙 물성 중심(레이어 분리).</p>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#E2531E"></div><div class="meta"><div class="nm">번트 오렌지</div><div class="hex">#E2531E · spine/orange</div><div class="use">엑센트 — 컬러블록·대형 타이포</div></div></div>
+      <div class="sw"><div class="chip" style="background:#F4E9C8"></div><div class="meta"><div class="nm">크림</div><div class="hex">#F4E9C8 · spine/cream</div><div class="use">메인 — 밝은 배경·레터링</div></div></div>
+      <div class="sw"><div class="chip" style="background:#16130F"></div><div class="meta"><div class="nm">잉크 블랙</div><div class="hex">#16130F · spine/ink</div><div class="use">메인 — 본문·블록</div></div></div>
+      <div class="sw"><div class="chip" style="background:#235C42"></div><div class="meta"><div class="nm">포레스트 그린</div><div class="hex">#235C42 · block/green</div><div class="use">세컨더리 블록</div></div></div>
+      <div class="sw"><div class="chip" style="background:#1B4FA0"></div><div class="meta"><div class="nm">코발트 블루</div><div class="hex">#1B4FA0 · block/cobalt</div><div class="use">세컨더리 블록</div></div></div>
+      <div class="sw"><div class="chip" style="background:#B0883C"></div><div class="meta"><div class="nm">브라스</div><div class="hex">#B0883C · material/brass</div><div class="use">재질 — 놋쇠 레터·디테일</div></div></div>
+      <div class="sw"><div class="chip" style="background:#8A5A33"></div><div class="meta"><div class="nm">웜우드(월넛)</div><div class="hex">#8A5A33 · material/walnut</div><div class="use">재질 — 가구·우드 사인</div></div></div>
+    </div>
+    <table>
+      <tr><th>배경</th><th>요소</th><th>대비</th></tr>
+      <tr><td>cream</td><td>ink / orange</td><td>ink on cream ✅ AAA</td></tr>
+      <tr><td>ink</td><td>cream / orange</td><td>cream on ink ✅ AAA</td></tr>
+      <tr><td>orange</td><td>cream / ink</td><td>✅ AA (대형만)</td></tr>
+    </table>
+    <div class="note">오렌지·브라스를 <strong>작은 본문 텍스트 색</strong>으로 쓰지 않는다(대비 부족). 면·블록·대형 타이포·로고에만.</div>
+  </section>
+
+  <section>
+    <div class="snum">03 — TYPOGRAPHY</div>
+    <h2>Paperlogy 단일 · 2-웨이트</h2>
+    <p class="lead">각진 기하 골격이 '정돈된' 키워드를 표현하며, 전 시스템을 <strong>400(본문)·600(로고·디스플레이·헤드라인·라벨)</strong> 2-웨이트로 통일한다.</p>
+    <div style="border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:16px 0">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:56px;letter-spacing:-.02em;line-height:1">display/2xl</span></div>
+      <div style="padding:14px 18px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:40px;letter-spacing:-.01em">display/xl · 간판·히어로</span></div>
+      <div style="padding:14px 18px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:28px">display/lg · 섹션 타이틀</span></div>
+      <div style="padding:14px 18px;border-bottom:1px solid var(--line)"><span style="font-weight:600;font-size:22px">heading/md · 소제목</span></div>
+      <div style="padding:14px 18px;border-bottom:1px solid var(--line)"><span style="font-weight:400;font-size:16px">body/md · 본문. 비어 있어서, 무엇이든 될 수 있어요.</span></div>
+      <div style="padding:14px 18px"><span style="font-weight:600;font-size:14px;letter-spacing:.13em">LABEL/MD · WORK · CLASS · GATHERING</span></div>
+    </div>
+    <table>
+      <tr><th>자간</th><th>값</th></tr>
+      <tr><td>영문 로고·디스플레이</td><td>−2%</td></tr>
+      <tr><td>국문 로고·디스플레이 / 본문</td><td>0%</td></tr>
+      <tr><td>라벨·모드 태그</td><td>+0.12~0.14em</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="snum">04 — ICONOGRAPHY</div>
+    <h2>기하 라인 픽토그램</h2>
+    <p class="lead">그리드 <strong>24×24</strong> · 선 굵기 <strong>1.5px 균일</strong> · 잉크 단색 기본. 픽토그램은 <strong>항상 텍스트 라벨과 병행</strong>. 아이콘을 누르면 SVG가 내려받아진다.</p>
+    <div class="pictos">
+      <a class="picto" href="../04-signage/picto-wifi.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-wifi.svg" alt="와이파이"><span>와이파이</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-coffee.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-coffee.svg" alt="탕비"><span>탕비·커피</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-toilet.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-toilet.svg" alt="화장실"><span>화장실</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-room.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-room.svg" alt="룸"><span>룸·공간</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-stairs.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-stairs.svg" alt="계단"><span>계단</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-umbrella.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-umbrella.svg" alt="우산"><span>우산</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-extinguisher.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-extinguisher.svg" alt="소화기"><span>소화기</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-no.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-no.svg" alt="금지"><span>금지</span><small>SVG ↓</small></a>
+      <a class="picto" href="../04-signage/picto-nosmoke.svg" download target="_blank" rel="noopener"><img src="../04-signage/picto-nosmoke.svg" alt="금연"><span>금연</span><small>SVG ↓</small></a>
+    </div>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6)">세트 9종 (<code>04-signage/picto-*.svg</code>). 모드 3종(WORK·CLASS·GATHERING) 제작 예정 · 방향 = 사각형을 쌓은 도형 조립 화살표.</p>
+  </section>
+
+  <section>
+    <div class="snum">05 — IMAGERY</div>
+    <h2>미드센추리 그래픽 · 레이어드 톤</h2>
+    <div class="cards">
+      <div class="card"><div class="t">Do</div><ul style="margin:0;font-size:13.5px"><li>컷아웃 콜라주(가구를 색면 위에)</li><li>한 겹 쌓인 레이어드 톤·종이 물성</li><li>하이 콘트라스트 + 웜 새추레이션</li><li>문구 오브제(클립·자석·테이프)</li></ul></div>
+      <div class="card"><div class="t" style="color:var(--orange)">Don't</div><ul style="margin:0;font-size:13.5px"><li>차가운 테크 미니멀(SaaS 화이트)</li><li>그루비·사이키델릭 레터링</li><li>소심한 파스텔·그레이지</li><li>납작한 플랫 일러스트 일색</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="snum">06 — MOTION</div>
+    <h2>절제 — 기능 전환만</h2>
+    <table>
+      <tr><th>토큰</th><th>값</th><th>용도</th></tr>
+      <tr><td><code>motion/fast</code></td><td>120ms ease-out</td><td>탭·토글</td></tr>
+      <tr><td><code>motion/base</code></td><td>240ms cubic-bezier(.16,1,.3,1)</td><td>패널 전환</td></tr>
+    </table>
+    <p style="font-size:14px;color:rgba(22,19,15,.6)"><code>prefers-reduced-motion</code> 존중. 공간 사이니지는 정적이 기본. 장식 모션 금지.</p>
+  </section>
+</div>
+
+<!-- ==================== BX ==================== -->
+<div class="page" id="bx">
+  <div class="hero">
+    <div class="kicker">Design System · 02</div>
+    <h1>BX</h1>
+    <p>브랜드 경험·언어 — 퍼소나(형용사 3개), 보이스, Use/Avoid, 샘플 카피,<br>타겟 · 포지셔닝 · 브랜드 스토리.</p>
+  </div>
+
+  <section>
+    <div class="snum">01 — BRAND PLATFORM</div>
+    <h2>하나의 공간, 여럿의 쓰임</h2>
+    <table>
+      <tr><td style="width:130px"><strong>Concept</strong></td><td>멀티유즈 라운지</td></tr>
+      <tr><td><strong>한 문장</strong></td><td>합정역 앞 3층, 미드센추리 가구로 채운 멀티유즈 라운지</td></tr>
+      <tr><td><strong>Vision</strong></td><td>비어 있어서 무엇이든 될 수 있지만, 늘 따뜻한 공간</td></tr>
+      <tr><td><strong>Principle</strong></td><td>분위기는 하나, 용도는 여럿 (One mood, many uses)</td></tr>
+      <tr><td><strong>Slogan</strong></td><td>"가져오기만 하세요"</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="snum">02 — PERSONA</div>
+    <h2>형용사 3개 · "A, not B"</h2>
+    <p class="lead">브랜드가 사람이라면 — <strong>좋은 안목을 가졌지만 으스대지 않는, 편안한 호스트.</strong></p>
+    <div class="cards">
+      <div class="card"><div class="t">따뜻한</div><div class="anb">Warm, not loud</div><div class="say"><b>✓</b> "오셔서 편하게 쓰시면 돼요."</div><div class="say no"><b>✗</b> "잊지 못할 순간을 만들어보세요!!"</div></div>
+      <div class="card"><div class="t">절제된</div><div class="anb">Restrained, not empty</div><div class="say"><b>✓</b> "비어 있어서, 무엇이든 될 수 있어요."</div><div class="say no"><b>✗</b> "프리미엄 럭셔리 무드의 완벽한 공간"</div></div>
+      <div class="card"><div class="t">안목 있는</div><div class="anb">Curated, not showy</div><div class="say"><b>✓</b> "골라 채웠어요. 앉아보시면 알아요."</div><div class="say no"><b>✗</b> "임스·바르셀로나 거장의 명작으로…"</div></div>
+    </div>
+    <div class="note">보조 축 <strong>솔직한</strong>(Honest, not hollow) — 한계도 인정. "넓진 않지만, 그래서 오히려 아늑해요."</div>
+  </section>
+
+  <section>
+    <div class="snum">03 — BRAND LANGUAGE</div>
+    <h2>Use / Avoid</h2>
+    <div class="cards" style="grid-template-columns:1fr 1fr">
+      <div class="card"><div class="t">Use — 쓰는 단어</div><ul style="margin:0;font-size:13.5px"><li>라운지 / 거실</li><li>모드 (WORK·CLASS·GATHERING)</li><li>대여 / 이용</li><li>모임 / 가져오다</li><li>미드센추리 ~풍</li></ul></div>
+      <div class="card"><div class="t" style="color:var(--orange)">Avoid — 잘못 써온 단어</div><ul style="margin:0;font-size:13.5px"><li>프리미엄 / 럭셔리 / 감성 / 완벽</li><li>느낌표 연발 (!!)</li><li>렌탈 / 세팅하다</li><li>옵션 / 패키지</li><li>바르셀로나·임스 명작 나열</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="snum">04 — SAMPLE COPY</div>
+    <h2>맥락별 카피</h2>
+    <table>
+      <tr><th>맥락</th><th>예시</th></tr>
+      <tr><td>Hero · 피드</td><td>"비어 있는 거실. 오늘은 무엇이 되나요."</td></tr>
+      <tr><td>CTA · 예약</td><td>"주말은 빨리 차요. 원하시는 시간 먼저 잡아두세요."</td></tr>
+      <tr><td>사이니지</td><td>"WORK / CLASS / GATHERING — 오늘의 모드를 골라주세요."</td></tr>
+      <tr><td>안내문</td><td>"3층이라 처음엔 헷갈리실 수 있어요. 입구 안내를 따라오시면 돼요."</td></tr>
+      <tr><td>문제 응대</td><td>"불편을 드려 죄송해요. 바로 확인하고 알려드릴게요."</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="snum">05 — TARGET AUDIENCE</div>
+    <h2>3모드 · 3페르소나 (동등 가중)</h2>
+    <table>
+      <tr><th>모드</th><th>페르소나</th><th>Job-to-be-done</th></tr>
+      <tr><td><span class="pill">WORK</span></td><td>1인 워커 (2030)</td><td>카페보다 사적인, 집중되는 작업 공간</td></tr>
+      <tr><td><span class="pill">CLASS</span></td><td>클래스 호스트 (2040)</td><td>가구를 빼면 매트를 깔 수 있는 클래스 공간</td></tr>
+      <tr><td><span class="pill">GATHERING</span></td><td>모임 주최자 (2030)</td><td>우리끼리 편한 거실 같은 모임 공간</td></tr>
+    </table>
+    <p style="font-size:14px;color:rgba(22,19,15,.7)">공통: <strong>"분위기는 이미 완성, 나는 콘텐츠만"</strong>. 셋 다 사진/SNS 의식 → "찍고 싶게" 디자인.</p>
+  </section>
+
+  <section>
+    <div class="snum">06 — BRAND STORY</div>
+    <h2>Premise · Hero · Enemy · Promise</h2>
+    <table>
+      <tr><td style="width:110px"><strong>Premise</strong></td><td>공간을 빌릴 때마다 분위기를 직접 만들어야 했다 — 세팅 노동과 긴장.</td></tr>
+      <tr><td><strong>Hero</strong></td><td>콘텐츠만 가져오고 싶은 합정의 2030.</td></tr>
+      <tr><td><strong>Enemy</strong></td><td>무미건조한 화이트박스, 옆 테이블 신경 쓰이는 카페, 너무 '파티'스러운 파티룸.</td></tr>
+      <tr><td><strong>Promise</strong></td><td>"가져오기만 하세요." 라운지가 분위기를 미리 완성해 둔다.</td></tr>
+    </table>
+  </section>
+</div>
+
+<!-- ==================== PRODUCT ==================== -->
+<div class="page" id="product">
+  <div class="hero">
+    <div class="kicker">Design System · 03</div>
+    <h1>Product</h1>
+    <p>컴포넌트 시스템 — 현재 프로덕트는 공간 사이니지·인쇄물. 예약 웹/앱은 추후 확장. Atom 먼저, Molecule/Organism은 조합으로.</p>
+  </div>
+
+  <section>
+    <div class="snum">01 — PRINCIPLES</div>
+    <h2>사이니지 5원칙</h2>
+    <ul>
+      <li><strong>자가안내 우선</strong> — 무인 운영. 사인이 곧 안내 데스크.</li>
+      <li><strong>도형이 글자보다 먼저</strong> — 도형·컬러블록 직관 길찾기.</li>
+      <li><strong>소수·정밀·절제</strong> — 52.49㎡ 작은 공간, 꼭 필요한 사인만.</li>
+      <li><strong>레이어 분리</strong> — 외부 컬러블록, 실내 물성 중심.</li>
+      <li><strong>낮은 층고(약 2m)</strong> — 시선 1.4~1.6m, 천장 행잉 지양.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="snum">02 — ATOMS</div>
+    <h2>자주 쓰는 컴포넌트 5개</h2>
+    <div class="note">표기 원칙 · "버튼은 파란색" ❌ → "<code>.mode</code> active, <code>var(--spine-orange)</code>" ✅</div>
+    <table>
+      <tr><th>이름</th><th>Element</th><th>Usage</th><th>States</th><th>금지</th></tr>
+      <tr><td><strong>Color Token</strong></td><td><code>var(--spine-orange)</code> 외</td><td>모든 색의 단일 출처</td><td>—</td><td>HEX 하드코딩</td></tr>
+      <tr><td><strong>Wordmark</strong></td><td><code>.logo</code> (SVG)</td><td>로고 배치</td><td>ink / white / current</td><td>비율 변형·3선 변경</td></tr>
+      <tr><td><strong>Mode Tag</strong></td><td><code>.mode</code> / <code>.modes</code></td><td>3모드 표기</td><td>default / active</td><td>소문자·옵션 워딩</td></tr>
+      <tr><td><strong>Pictogram</strong></td><td><code>picto-*.svg</code> 9종</td><td>편의·방향 안내</td><td>단색 / 포인트</td><td>라벨 없이 단독</td></tr>
+      <tr><td><strong>Directional Arrow</strong></td><td><code>.arrow</code> (도형)</td><td>길찾기</td><td>up / down / side</td><td>글자만으로 안내</td></tr>
+    </table>
+    <p style="font-size:13px;color:rgba(22,19,15,.6);margin:14px 0 6px"><strong>Mode Tag</strong> 아톰의 상태 예시 — 버튼 UI가 아니라, 현재 모드를 <code>active</code>(오렌지)로 표시하는 사이니지 태그다.</p>
+    <div style="margin-top:2px">
+      <span class="pill">WORK</span><span class="pill on">CLASS · active</span><span class="pill">GATHERING</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="snum">03 — MOLECULES / ORGANISMS</div>
+    <h2>조합 → 사인 인벤토리</h2>
+    <p><strong>Molecules</strong> · Floor Header(Arrow+층+sub) · Mode Board(Tag×3+픽토) · Guide Row(픽토+라벨) · Business Card(Wordmark+색면).</p>
+    <table>
+      <tr><th>사인</th><th>물성</th><th>내용</th></tr>
+      <tr><td><strong>입간판 · 외부 명판</strong></td><td>실버 알루미늄 프레임 + 반투명 골판 아크릴</td><td>층 화살표 + <code>3층</code> · MODE LOUNGE · 멀티유즈 라운지·합정 · WORK·CLASS·GATHERING</td></tr>
+      <tr><td><strong>자석 안내판</strong><br>(이용 가이드)</td><td>실버 자석보드 + 반투명 트레이싱지 인쇄물을 <strong>자석으로 레이어드 겹침</strong></td><td>간단한 가운데정렬 레이아웃 + 픽토그램 — WIFI(ID/PW), 모드별 안내(WORK MODE 등)</td></tr>
+      <tr><td><strong>아크릴 명패</strong><br>(시설 표기)</td><td>반투명 아크릴 + <strong>투명 스티커 부착</strong></td><td>오렌지 픽토 + 화장실 · 대문 MODE LOUNGE 등 이용시설 표기</td></tr>
+    </table>
+    <div class="mockups">
+      <div class="mk"><img src="../06-applications/stand-signage-mockup.png" alt="입간판 목업"><div class="cap"><b>입간판 · 외부 명판</b><span>실버 프레임 + 반투명 골판 아크릴</span></div></div>
+      <div class="mk"><img src="../06-applications/notice-board-mockup.png" alt="자석 안내판 목업"><div class="cap"><b>자석 안내판</b><span>트레이싱지 인쇄물 자석 레이어드</span></div></div>
+      <div class="mk"><img src="../06-applications/restroom-signage-mockup.png" alt="화장실 명패 목업"><div class="cap"><b>아크릴 명패 · 화장실</b><span>반투명 아크릴 + 오렌지 픽토</span></div></div>
+      <div class="mk"><img src="../06-applications/door-plate-mockup.png" alt="대문 명판 목업"><div class="cap"><b>대문 명판</b><span>외벽 반투명 아크릴 명판</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="snum">04 — SURFACE & MATERIALS</div>
+    <h2>물리 재질 위계</h2>
+    <table>
+      <tr><th>요소</th><th>재질</th><th>비고</th></tr>
+      <tr><td>입간판 · 외부 명판 프레임</td><td>실버 알루미늄 프로파일(철제)</td><td>반투명 골판 아크릴 패널</td></tr>
+      <tr><td>이용 가이드 보드</td><td>실버 자석보드</td><td>반투명 트레이싱지 인쇄물 자석 부착</td></tr>
+      <tr><td>시설 명패</td><td>반투명 아크릴</td><td>투명 스티커 부착(각인 대체)</td></tr>
+      <tr><td>안내물 인쇄</td><td>종이 · 반투명 트레이싱지</td><td>한 겹 쌓인 레이어드 톤</td></tr>
+      <tr><td>포인트</td><td>오렌지 스티커 · 문구 오브제</td><td>클립·자석·마스킹테이프</td></tr>
+    </table>
+    <div class="note"><strong>레이어드 메커니즘</strong> · 반투명 아크릴·트레이싱지에 인쇄해 <strong>자석으로 겹쳐 쌓는</strong> 방식(고가 각인 대체) · 문구 오브제로 레이어를 고정하고 장식 · 포인트 컬러는 스티커로.</div>
+  </section>
+
+  <section>
+    <div class="snum">05 — STATES · A11y</div>
+    <h2>상태 · 접근성 (KWCAG)</h2>
+    <table>
+      <tr><th>상태</th><th>표현</th></tr>
+      <tr><td>default / active</td><td>잉크 단색 / <code>var(--spine-orange)</code> 강조</td></tr>
+      <tr><td>inverted / point</td><td>화이트 / 포인트 1색</td></tr>
+    </table>
+    <ul style="font-size:14px">
+      <li>픽토그램 + 텍스트 라벨 병행(색·기호만 금지)</li>
+      <li>명도 대비 ≥ 4.5:1 (ink on cream 충족)</li>
+      <li>한글 + 필요한 영문 병기, 비상 동선 명확</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="snum">06 — RESERVATION UI</div>
+    <h2>추후 확장 · placeholder</h2>
+    <div class="note">무인 자동화 운영의 예약 웹/앱. <strong>현재 미구현 — 추가될 여지 있음.</strong> 폰트 Paperlogy, 색은 Color Token 재사용. 예상 Atom: Button · Input · Card · Modal · Calendar. 실제 화면·Figma가 생기면 그때 이름을 그대로 채운다(추정 금지).</div>
+  </section>
+</div>
+
+<div class="foot">MODE LOUNGE Brand Book · No More Work Company · 2026-07 · 최종 확정본</div>
+</main>
+
+<script>
+  const tabs=document.querySelectorAll('.tabs button'), pages=document.querySelectorAll('.page');
+  tabs.forEach(b=>b.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    pages.forEach(p=>p.classList.toggle('on', p.id===b.dataset.tab));
+    window.scrollTo({top:0,behavior:'instant'});
+  }));
+</script>
+</body>
+</html>
