@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="소화기 FIRE EXTINGUISHER">
+  <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M43,52 L43,82 L61,82 L61,52 Q61,42 52,42 Q43,42 43,52 Z"/>
+    <path d="M43,74 L61,74"/>
+    <path d="M49,42 L49,36 L55,36 L55,42"/>
+    <path d="M55,38 L64,38 L66,36 L66,41 L64,39"/>
+    <path d="M49,38 Q35,37 33,49 Q32,57 36,60"/>
+  </g>
+</svg>
