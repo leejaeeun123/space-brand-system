@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:480px;height:680px;overflow:hidden;background:transparent;}
+  .notice{width:480px;height:680px;background:#F4E9C8;color:#16130F;
+    font-family:'Paperlogy';display:flex;flex-direction:column;position:relative;}
+
+  /* 즉시 인지용 오렌지 액센트 — 상단 바 1곳만 */
+  .bar{height:12px;background:#E2531E;flex:none;}
+
+  .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:0 48px;}
+
+  /* 안내 라벨 */
+  .kicker{font-weight:600;font-size:15px;letter-spacing:.16em;color:#E2531E;margin-bottom:34px;}
+
+  /* stairs 픽토 (viewBox 0 0 100 100, stroke 3, square cap) */
+  .ico{width:120px;height:120px;color:#16130F;margin-bottom:38px;}
+  .ico svg{width:100%;height:100%;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;display:block;}
+
+  .lead{font-weight:600;font-size:40px;line-height:1.28;letter-spacing:-.01em;}
+  .sub{font-weight:400;font-size:26px;line-height:1.4;margin-top:16px;color:#2c2720;}
+  .en{font-weight:600;font-size:13px;letter-spacing:.18em;opacity:.42;margin-top:30px;}
+
+  /* 하단 브랜드 앵커 — 가로 레이어드 워드마크 */
+  .foot{flex:none;padding:0 48px 42px;display:flex;justify-content:center;}
+  .wm{font-weight:600;font-size:22px;letter-spacing:.02em;color:#16130F;opacity:.85;}
+  .eL{display:inline-block;height:.62em;width:.52em;vertical-align:baseline;margin:0 .10em;}
+</style></head><body>
+<div class="notice">
+  <div class="bar"></div>
+  <div class="body">
+    <div class="kicker">안내 · NOTICE</div>
+    <div class="ico">
+      <svg viewBox="0 0 100 100"><g fill="none" stroke="currentColor">
+        <path d="M18,80 L18,68 L34,68 L34,55 L50,55 L50,42 L66,42 L66,29 L82,29"/>
+      </g></svg>
+    </div>
+    <div class="lead">여기부터 계단이<br>가팔라져요.</div>
+    <div class="sub">천천히 올라오세요.</div>
+    <div class="en">MIND THE STEP</div>
+  </div>
+  <div class="foot">
+    <div class="wm">MOD<svg class="eL" viewBox="0 0 56 70"><rect x="0" y="1.75" width="56" height="10.5"/><rect x="0" y="29.75" width="56" height="10.5"/><rect x="0" y="57.75" width="56" height="10.5"/></svg>E&nbsp;LOUNGE</div>
+  </div>
+</div>
+</body></html>

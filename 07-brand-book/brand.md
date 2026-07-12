@@ -131,10 +131,10 @@
 | 속성 | 값 |
 |---|---|
 | 그리드 | **24×24**, 2px 패딩 |
-| 선 굵기 | **1.5px 균일**(스트로크), 끝단 라운드 최소 |
+| 선 굵기 | **1.5px 균일**(24 그리드 기준) · 끝단 square · 조인 miter |
 | 형태 | 기하 + 약한 곡선(미드센추리), 직각은 `radius/sm`(2px) |
-| 컬러 | `spine/ink` 기본 / 반전 시 `spine/cream` / 컬러블록 위 가능 |
-| 채움 | 라인 위주, 면 채움 최소 |
+| 컬러 | `spine/ink` 기본 / 반전 시 `spine/cream` / 컬러블록 위 가능. 파일은 `currentColor` |
+| 채움 | 라인 위주 인상 유지 — 단 **납품 SVG는 stroke를 아웃라인(면)으로 변환**(스트로크·폰트 의존 0) |
 
 ### 세트 (9종, `04-signage/picto-*.svg`)
 - **편의**: `wifi` · `coffee`(탕비) · `toilet`(화장실) · `room` · `umbrella`
@@ -146,6 +146,19 @@
 ### 규칙
 - **픽토그램은 항상 텍스트 라벨과 병행**(색·기호만으로 정보 전달 금지 — 접근성). 라벨 = Paperlogy `label/md`.
 - 세트 외 아이콘 혼용·입체·장식 금지. 선 굵기 고정.
+
+### 다운로드 — 픽토그램 (아웃라인 SVG, currentColor)
+[wifi](assets/picto/picto-wifi.svg) · [coffee](assets/picto/picto-coffee.svg) · [toilet](assets/picto/picto-toilet.svg) · [room](assets/picto/picto-room.svg) · [stairs](assets/picto/picto-stairs.svg) · [umbrella](assets/picto/picto-umbrella.svg) · [extinguisher](assets/picto/picto-extinguisher.svg) · [no](assets/picto/picto-no.svg) · [nosmoke](assets/picto/picto-nosmoke.svg)
+
+### 다운로드 — 모드 태그 (Paperlogy 400 · 자간 +0.05em · 4pt 프레임 아웃라인)
+
+| 모드 | 잉크(라이트 배경) | 화이트(잉크·오렌지 배경) | currentColor(웹) |
+|---|---|---|---|
+| WORK | [ink](assets/mode/mode-work-ink.svg) | [white](assets/mode/mode-work-white.svg) | [current](assets/mode/mode-work.svg) |
+| CLASS | [ink](assets/mode/mode-class-ink.svg) | [white](assets/mode/mode-class-white.svg) | [current](assets/mode/mode-class.svg) |
+| GATHERING | [ink](assets/mode/mode-gathering-ink.svg) | [white](assets/mode/mode-gathering-white.svg) | [current](assets/mode/mode-gathering.svg) |
+
+> 원본(소스): `04-signage/`. 브랜드북 사본: `07-brand-book/assets/{picto,mode}/`. 재생성 스크립트 `04-signage/outline_picto.py`(픽토)·`gen_modes.py`(모드 태그).
 
 ---
 
@@ -193,7 +206,8 @@
 |---|---|---|
 | `logo-wordmark-{v,h}-{ink,white}.svg` | 워드마크 4종 | 폰트 아웃라인, 무의존 |
 | `logo-wordmark-{v,h}.svg` | 워드마크 currentColor | 웹·CSS |
-| `04-signage/picto-*.svg` (9종) | 픽토그램 세트 | 24×24, 1.5px 스트로크 |
+| `04-signage/picto-*.svg` (9종) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**, `currentColor` |
+| `04-signage/mode-*.svg` (9종) | 모드 태그 WORK·CLASS·GATHERING | Paperlogy 400 아웃라인 · 자간 +0.05em · 4pt 프레임 · ink/white/currentColor |
 | `03-identity/favicon.svg` | 브라우저 탭 | ⚠️ 심볼 기반 — **워드마크(3선) 기반 재제작 필요** |
 
 ### 남은 작업
