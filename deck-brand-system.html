@@ -6,13 +6,13 @@
 <title>MODE LOUNGE — 브랜드 디자인 시스템</title>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <style>
-  :root{--cream:#F4EFE6;--card:#FBF8F2;--ink:#16130F;--orange:#E2531E;--gray:#7E7768;--line:#E3DBCB;}
+  :root{--white:#ffffff;--card:#ffffff;--ink:#16130F;--orange:#E2531E;--gray:#7E7768;--line:#E3DBCB;}
   *{box-sizing:border-box;margin:0;padding:0;}
   html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
-  body{font-family:'Paperlogy',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;counter-reset:slide;}
+  body{font-family:'Paperlogy',sans-serif;background:var(--white);color:var(--ink);-webkit-font-smoothing:antialiased;counter-reset:slide;}
   .slide{height:100vh;overflow:hidden;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;
     padding:6vh 8vw;position:relative;border-bottom:1px solid var(--line);counter-increment:slide;}
-  .slide.dark{background:var(--ink);color:var(--cream);}
+  .slide.dark{background:var(--ink);color:var(--white);}
   .slide.orange{background:var(--orange);color:#fff;}
   .num{position:absolute;top:4vh;right:8vw;font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--gray);}
   .num::before{content:counter(slide,decimal-leading-zero);}
@@ -195,13 +195,11 @@
 <section class="slide">
   <div class="num"></div>
   <div class="eyebrow">Color · Typography</div>
-  <h2>크림 · 잉크 · 오렌지 &nbsp;/&nbsp; Paperlogy</h2>
+  <h2>화이트 · 잉크 · 오렌지 &nbsp;/&nbsp; Paperlogy</h2>
   <div class="cols">
-    <div class="sw"><div class="chip" style="background:#F4E9C8"></div><div class="cap"><b>크림</b><span>#F4E9C8</span></div></div>
+    <div class="sw"><div class="chip" style="background:#ffffff;border-bottom:1px solid var(--line)"></div><div class="cap"><b>화이트</b><span>#ffffff</span></div></div>
     <div class="sw"><div class="chip" style="background:#16130F"></div><div class="cap"><b>잉크</b><span>#16130F</span></div></div>
     <div class="sw"><div class="chip" style="background:#E2531E"></div><div class="cap"><b>번트 오렌지</b><span>#E2531E</span></div></div>
-    <div class="sw"><div class="chip" style="background:#235C42"></div><div class="cap"><b>포레스트 그린</b><span>#235C42</span></div></div>
-    <div class="sw"><div class="chip" style="background:#1B4FA0"></div><div class="cap"><b>코발트</b><span>#1B4FA0</span></div></div>
   </div>
   <p class="lead" style="margin-top:26px">로고·디스플레이·본문 모두 <b>Paperlogy</b> — 각진 기하 골격으로 “정돈된” 키워드를 타이포로 표현. 영문 자간 −2%, 본문 400·600.</p>
 </section>

@@ -7,18 +7,17 @@
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <style>
   :root{
-    --orange:#E2531E; --cream:#F4E9C8; --ink:#16130F;
-    --green:#235C42; --cobalt:#1B4FA0; --brass:#B0883C; --walnut:#8A5A33;
-    --paper:#faf5e6; --line:rgba(22,19,15,.14);
+    --orange:#E2531E; --white:#ffffff; --ink:#16130F;
+    --paper:#ffffff; --line:rgba(22,19,15,.14);
     --ff:'Paperlogy','Pretendard',sans-serif;
     --maxw:920px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
-  body{background:var(--cream);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
+  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
 
   /* ---- top nav ---- */
-  header{position:sticky;top:0;z-index:50;background:rgba(244,233,200,.92);backdrop-filter:blur(8px);border-bottom:1.5px solid var(--ink)}
+  header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1.5px solid var(--ink)}
   .nav{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
   .brandmark{display:flex;align-items:center}
   .brandmark img{height:22px;width:auto;display:block}
@@ -26,7 +25,7 @@
   .tabs button{font-family:var(--ff);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
     background:none;border:1.5px solid transparent;color:var(--ink);padding:7px 14px;cursor:pointer;border-radius:2px;transition:.12s ease-out}
   .tabs button:hover{border-color:var(--line)}
-  .tabs button.on{background:var(--ink);color:var(--cream)}
+  .tabs button.on{background:var(--ink);color:var(--white)}
 
   main{max-width:var(--maxw);margin:0 auto;padding:0 24px 140px}
   .page{display:none;animation:fade .24s cubic-bezier(.16,1,.3,1)}
@@ -67,7 +66,7 @@
   .logobox{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
   .lchip{flex:1;min-width:200px;padding:34px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line)}
   .lchip.light{background:var(--paper)}
-  .lchip.dark{background:var(--ink);color:var(--cream)}
+  .lchip.dark{background:var(--ink);color:var(--white)}
   .lchip.orange{background:var(--orange);color:#fff}
   .wm-img{height:74px;width:auto;display:block}
   .plabel{font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
@@ -174,24 +173,20 @@
 
   <section>
     <div class="snum">02 — COLOR</div>
-    <h2>브랜드 식별 3색 + 세컨더리 + 재질</h2>
-    <p class="lead">식별은 <strong>크림 · 잉크 · 오렌지</strong> 3색으로 압축. 컬러블록은 디지털에서 과감, 공간 사이니지는 우드·브라스·블랙 물성 중심(레이어 분리).</p>
+    <h2>브랜드 식별 3색 · 화이트 · 잉크 · 오렌지</h2>
+    <p class="lead">식별은 <strong>화이트 · 잉크 · 오렌지</strong> 3색으로 압축. 오렌지 컬러블록은 디지털에서 과감, 공간 사이니지는 블랙·화이트 물성 중심(레이어 분리).</p>
     <div class="swatches">
       <div class="sw"><div class="chip" style="background:#E2531E"></div><div class="meta"><div class="nm">번트 오렌지</div><div class="hex">#E2531E · spine/orange</div><div class="use">엑센트 — 컬러블록·대형 타이포</div></div></div>
-      <div class="sw"><div class="chip" style="background:#F4E9C8"></div><div class="meta"><div class="nm">크림</div><div class="hex">#F4E9C8 · spine/cream</div><div class="use">메인 — 밝은 배경·레터링</div></div></div>
+      <div class="sw"><div class="chip" style="background:#ffffff;box-shadow:inset 0 0 0 1px var(--line)"></div><div class="meta"><div class="nm">화이트</div><div class="hex">#ffffff · spine/white</div><div class="use">메인 — 밝은 배경·레터링(흰색 종이)</div></div></div>
       <div class="sw"><div class="chip" style="background:#16130F"></div><div class="meta"><div class="nm">잉크 블랙</div><div class="hex">#16130F · spine/ink</div><div class="use">메인 — 본문·블록</div></div></div>
-      <div class="sw"><div class="chip" style="background:#235C42"></div><div class="meta"><div class="nm">포레스트 그린</div><div class="hex">#235C42 · block/green</div><div class="use">세컨더리 블록</div></div></div>
-      <div class="sw"><div class="chip" style="background:#1B4FA0"></div><div class="meta"><div class="nm">코발트 블루</div><div class="hex">#1B4FA0 · block/cobalt</div><div class="use">세컨더리 블록</div></div></div>
-      <div class="sw"><div class="chip" style="background:#B0883C"></div><div class="meta"><div class="nm">브라스</div><div class="hex">#B0883C · material/brass</div><div class="use">재질 — 놋쇠 레터·디테일</div></div></div>
-      <div class="sw"><div class="chip" style="background:#8A5A33"></div><div class="meta"><div class="nm">웜우드(월넛)</div><div class="hex">#8A5A33 · material/walnut</div><div class="use">재질 — 가구·우드 사인</div></div></div>
     </div>
     <table>
       <tr><th>배경</th><th>요소</th><th>대비</th></tr>
-      <tr><td>cream</td><td>ink / orange</td><td>ink on cream ✅ AAA</td></tr>
-      <tr><td>ink</td><td>cream / orange</td><td>cream on ink ✅ AAA</td></tr>
-      <tr><td>orange</td><td>cream / ink</td><td>✅ AA (대형만)</td></tr>
+      <tr><td>white</td><td>ink / orange</td><td>ink on white ✅ AAA</td></tr>
+      <tr><td>ink</td><td>white / orange</td><td>white on ink ✅ AAA</td></tr>
+      <tr><td>orange</td><td>white / ink</td><td>✅ AA (대형만)</td></tr>
     </table>
-    <div class="note">오렌지·브라스를 <strong>작은 본문 텍스트 색</strong>으로 쓰지 않는다(대비 부족). 면·블록·대형 타이포·로고에만.</div>
+    <div class="note">오렌지를 <strong>작은 본문 텍스트 색</strong>으로 쓰지 않는다(대비 부족). 면·블록·대형 타이포·로고에만.</div>
   </section>
 
   <section>
@@ -262,7 +257,7 @@
 
   <section>
     <div class="snum">05 — IMAGERY</div>
-    <h2>미드센추리 그래픽 · 레이어드 톤</h2>
+    <h2>기하 그래픽 · 레이어드 톤</h2>
     <div class="cards">
       <div class="card"><div class="t">Do</div><ul style="margin:0;font-size:13.5px"><li>컷아웃 콜라주(가구를 색면 위에)</li><li>한 겹 쌓인 레이어드 톤·종이 물성</li><li>하이 콘트라스트 + 웜 새추레이션</li><li>문구 오브제(클립·자석·테이프)</li></ul></div>
       <div class="card"><div class="t" style="color:var(--orange)">Don't</div><ul style="margin:0;font-size:13.5px"><li>차가운 테크 미니멀(SaaS 화이트)</li><li>그루비·사이키델릭 레터링</li><li>소심한 파스텔·그레이지</li><li>납작한 플랫 일러스트 일색</li></ul></div>
@@ -294,10 +289,8 @@
     <h2>하나의 공간, 여럿의 쓰임</h2>
     <table>
       <tr><td style="width:130px"><strong>Concept</strong></td><td>멀티유즈 라운지</td></tr>
-      <tr><td><strong>한 문장</strong></td><td>합정역 앞 3층, 미드센추리 가구로 채운 멀티유즈 라운지</td></tr>
       <tr><td><strong>Vision</strong></td><td>비어 있어서 무엇이든 될 수 있지만, 늘 따뜻한 공간</td></tr>
       <tr><td><strong>Principle</strong></td><td>분위기는 하나, 용도는 여럿 (One mood, many uses)</td></tr>
-      <tr><td><strong>Slogan</strong></td><td>"가져오기만 하세요"</td></tr>
     </table>
   </section>
 
@@ -317,8 +310,8 @@
     <div class="snum">03 — BRAND LANGUAGE</div>
     <h2>Use / Avoid</h2>
     <div class="cards" style="grid-template-columns:1fr 1fr">
-      <div class="card"><div class="t">Use — 쓰는 단어</div><ul style="margin:0;font-size:13.5px"><li>라운지 / 거실</li><li>모드 (WORK·CLASS·GATHERING)</li><li>대여 / 이용</li><li>모임 / 가져오다</li><li>미드센추리 ~풍</li></ul></div>
-      <div class="card"><div class="t" style="color:var(--orange)">Avoid — 잘못 써온 단어</div><ul style="margin:0;font-size:13.5px"><li>프리미엄 / 럭셔리 / 감성 / 완벽</li><li>느낌표 연발 (!!)</li><li>렌탈 / 세팅하다</li><li>옵션 / 패키지</li><li>바르셀로나·임스 명작 나열</li></ul></div>
+      <div class="card"><div class="t">Use — 쓰는 단어</div><ul style="margin:0;font-size:13.5px"><li>라운지 / 거실</li><li>모드 (WORK·CLASS·GATHERING)</li><li>대여 / 이용</li><li>모임 / 가져오다</li></ul></div>
+      <div class="card"><div class="t" style="color:var(--orange)">Avoid — 잘못 써온 단어</div><ul style="margin:0;font-size:13.5px"><li>프리미엄 / 럭셔리 / 감성 / 완벽</li><li>느낌표 연발 (!!)</li><li>렌탈 / 세팅하다</li><li>옵션 / 패키지</li><li>바르셀로나·임스 명작 나열</li><li>미드센추리 ~풍</li></ul></div>
     </div>
   </section>
 
@@ -340,7 +333,7 @@
     <h2>3모드 · 3페르소나 (동등 가중)</h2>
     <table>
       <tr><th>모드</th><th>페르소나</th><th>Job-to-be-done</th></tr>
-      <tr><td><span class="pill">WORK</span></td><td>1인 워커 (2030)</td><td>카페보다 사적인, 집중되는 작업 공간</td></tr>
+      <tr><td><span class="pill">WORK</span></td><td>노마드 워커 (2030)</td><td>카페보다 사적인, 집중되는 작업 공간</td></tr>
       <tr><td><span class="pill">CLASS</span></td><td>클래스 호스트 (2040)</td><td>가구를 빼면 매트를 깔 수 있는 클래스 공간</td></tr>
       <tr><td><span class="pill">GATHERING</span></td><td>모임 주최자 (2030)</td><td>우리끼리 편한 거실 같은 모임 공간</td></tr>
     </table>
@@ -349,12 +342,10 @@
 
   <section>
     <div class="snum">06 — BRAND STORY</div>
-    <h2>Premise · Hero · Enemy · Promise</h2>
+    <h2>Hero · Enemy</h2>
     <table>
-      <tr><td style="width:110px"><strong>Premise</strong></td><td>공간을 빌릴 때마다 분위기를 직접 만들어야 했다 — 세팅 노동과 긴장.</td></tr>
-      <tr><td><strong>Hero</strong></td><td>콘텐츠만 가져오고 싶은 합정의 2030.</td></tr>
+      <tr><td style="width:110px"><strong>Hero</strong></td><td>콘텐츠만 가져오고 싶은 합정의 2030.</td></tr>
       <tr><td><strong>Enemy</strong></td><td>무미건조한 화이트박스, 옆 테이블 신경 쓰이는 카페, 너무 '파티'스러운 파티룸.</td></tr>
-      <tr><td><strong>Promise</strong></td><td>"가져오기만 하세요." 라운지가 분위기를 미리 완성해 둔다.</td></tr>
     </table>
   </section>
 </div>
@@ -439,7 +430,7 @@
     </table>
     <ul style="font-size:14px">
       <li>픽토그램 + 텍스트 라벨 병행(색·기호만 금지)</li>
-      <li>명도 대비 ≥ 4.5:1 (ink on cream 충족)</li>
+      <li>명도 대비 ≥ 4.5:1 (ink on white 충족)</li>
       <li>한글 + 필요한 영문 병기, 비상 동선 명확</li>
     </ul>
   </section>

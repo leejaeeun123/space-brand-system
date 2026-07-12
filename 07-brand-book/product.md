@@ -16,7 +16,7 @@
 1. **자가안내 우선 (Self-guide first)** — 무인 자동화 운영. 사인이 곧 안내 데스크. 입실→이용→퇴실을 사용자가 혼자 완결.
 2. **도형이 글자보다 먼저** — 도형·컬러블록 기반 직관 길찾기. 글자는 보조.
 3. **소수·정밀·절제** — 52.49㎡ 작은 공간. 꼭 필요한 사인 5종만.
-4. **레이어 분리** — 외부·창문은 컬러블록 과감, 실내는 우드·브라스·블랙 물성 중심(가구를 이기지 않게).
+4. **레이어 분리** — 외부·창문은 오렌지 컬러블록 과감, 실내는 블랙·화이트 물성 중심(가구를 이기지 않게).
 5. **낮은 층고(약 2m) 대응** — 시선 높이 사인 1.4~1.6m, 천장 행잉 지양.
 
 ---
@@ -28,10 +28,10 @@
 #### 1. Color Token
 | | |
 |---|---|
-| **Element** | `var(--spine-orange)` `var(--spine-cream)` `var(--spine-ink)` · `var(--block-green)` `var(--block-cobalt)` · `var(--material-brass)` `var(--material-walnut)` |
-| **Usage** | 모든 색 적용의 단일 출처 |
+| **Element** | `var(--spine-orange)` `var(--spine-white)` `var(--spine-ink)` |
+| **Usage** | 모든 색 적용의 단일 출처 (화이트·잉크·오렌지 3색) |
 | **States** | — |
-| **금지** | HEX 하드코딩(`#E2531E` ❌), 오렌지·브라스 소형 본문 텍스트, 한 화면 컬러블록 3개+ |
+| **금지** | HEX 하드코딩(`#E2531E` ❌), 오렌지 소형 본문 텍스트, 한 화면 오렌지 블록 3개+ |
 
 #### 2. Wordmark
 | | |
@@ -45,22 +45,22 @@
 | | |
 |---|---|
 | **Element** | `.mode` (컨테이너 `.modes`) — `WORK` · `CLASS` · `GATHERING` |
-| **Usage** | 3모드 표기. Paperlogy 600 · 대문자 · 자간 +0.12em · 가운뎃점 |
+| **Usage** | 3모드 표기. Paperlogy 400 아웃라인 · 대문자 · 자간 +0.05em · 4pt 프레임 (소형 5~10mm) |
 | **States** | `default` / `active`(현재 모드 = `var(--spine-orange)`) |
-| **금지** | 소문자, "옵션·패키지" 워딩, 3개 외 임의 모드, 자간 좁힘 |
+| **금지** | 소문자, "옵션·패키지" 워딩, 3개 외 임의 모드 |
 
 #### 4. Pictogram
 | | |
 |---|---|
 | **Element** | `picto-*.svg` 9종 (`04-signage/`) — toilet(화장실)·wifi·coffee·stairs·room·umbrella·extinguisher·no·nosmoke |
 | **Usage** | 편의·방향·금지 안내. 24×24 · 1.5px 스트로크 |
-| **States** | 단색(ink / cream) · 포인트(orange) |
+| **States** | 단색(ink / white) · 포인트(orange) |
 | **금지** | 세트 외 아이콘 혼용, 입체·장식, **텍스트 라벨 없이 단독 사용** |
 
 #### 5. Directional Arrow
 | | |
 |---|---|
-| **Element** | `.arrow` (SVG, 사각형 조립형 — 미드센추리 도형 화살표) |
+| **Element** | `.arrow` (SVG, 사각형 조립형 — 기하 도형 화살표) |
 | **Usage** | 층·동선 길찾기. 도형·컬러블록이 먼저 안내 |
 | **States** | `up` / `down` / `side` |
 | **금지** | 글자만으로 길안내, 곡선·화려한·얇은 선 화살표 |
@@ -139,7 +139,7 @@
 ## 06. Accessibility (KWCAG 준용)
 
 - **픽토그램 + 텍스트 라벨 병행** — 색·기호만으로 정보 전달 금지.
-- **명도 대비 ≥ 4.5:1** — `spine/ink` on `spine/cream` 충족. 오렌지·브라스는 대형/면에만.
+- **명도 대비 ≥ 4.5:1** — `spine/ink` on `spine/white` 충족. 오렌지는 대형/면에만.
 - **한글 + 필요한 영문 병기**. 화장실·비상 동선 명확 표기.
 - **낮은 층고 대응** — 시선 높이 사인 1.4~1.6m, 천장 행잉 지양(머리 충돌 방지).
 - **모션** — `prefers-reduced-motion` 존중(예약 UI).
