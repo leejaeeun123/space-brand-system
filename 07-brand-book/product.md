@@ -1,6 +1,6 @@
 # MODE LOUNGE — Product (Component System)
 
-> 모드라운지 컴포넌트 시스템. 참조 구조: 모회사 노모컴퍼니(NMWC) 프로덕트(`nmwc.ai.kr/product`).
+> 모드라운지 컴포넌트 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 프로덕트(`nmwc.ai.kr/product`).
 > **현재 프로덕트 = 공간 사이니지 · 인쇄물.** 예약 웹/앱은 추후 확장(§07).
 > **Atom 먼저, Molecule/Organism은 Atom 조합으로.** 이름은 기존 HTML 실제 클래스(`.panel .mode .floor .logo .arrow`)와 토큰(`--spine-*`)을 그대로 채택.
 > 원본: `06-applications/*.html`, `04-signage/signage-system.md` · `interior-wayfinding.md` · `pictograms.md`, `03-identity/design-tokens.md`.

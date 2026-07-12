@@ -1,6 +1,6 @@
 # MODE LOUNGE — Brand
 
-> 모드라운지 비주얼 아이덴티티 시스템. 참조 구조: 모회사 노모컴퍼니(NMWC) 디자인 시스템(`nmwc.ai.kr/brand`).
+> 모드라운지 비주얼 아이덴티티 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템(`nmwc.ai.kr/brand`).
 > 최종 확정본 (2026-07-06). 폰트=Paperlogy 단일 · 웨이트 400/600 · 로고=레이어드 E 워드마크(심볼 없음).
 > 원본: `03-identity/logo-system.md` · `color-palette.md` · `typography.md`, `04-signage/pictograms.md`, `01-strategy/visual-principles.md`.
 
