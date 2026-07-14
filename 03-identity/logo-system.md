@@ -81,7 +81,7 @@
 | `logo-wordmark-h.svg` · `logo-wordmark-v.svg` | currentColor (웹·CSS `color`로 제어) |
 
 - 좌표계: em **900**, cap **700**. E 3선 = 두께 **105**(cap×0.15) · y **0/297.5/595**(하/중/상, cap기준) · 폭 **504** · E 앞 광학여백 **45**(P의 열린 오른쪽에 맞춰 축소; 구 MODE=103.5) · 자간 **−18**(−2%) · **T-Y 커닝 +65**(겹쳐 붙어보임 보정) · E→다음단어 갭 **666**.
-- 재현: `gen_wordmark.py`(입력 `Paperlogy-6SemiBold.ttf`) — MODE 위치 재현 self-test 내장, 수정 시 재생성 가능. (2026-07-14 `TYPE LOUNGE`로 리네이밍하며 재생성: T·Y·P 글리프 교체, 레이어드 E는 TYPE의 마지막 글자로 동일 유지.)
+- 재현: `gen_wordmark.py`(입력 `Paperlogy-6SemiBold.ttf`) — TYPE LOUNGE 레이아웃 self-test 내장, 자간·여백은 `KERN`·`EMARGIN` 상수로 조정 후 재생성. (2026-07 `TYPE LOUNGE` 리네이밍: T·Y·P 글리프 교체, 레이어드 E는 TYPE의 마지막 글자로 동일 유지. T-Y 커닝·P-E 여백 튜닝.)
 - 오렌지 배경에는 `-white`(화이트) 사용.
 
 ## 9. 남은 작업
