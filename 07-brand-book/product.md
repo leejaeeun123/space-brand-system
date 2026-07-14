@@ -1,6 +1,6 @@
-# MODE LOUNGE — Product (Component System)
+# TYPE LOUNGE — Product (Component System)
 
-> 모드라운지 컴포넌트 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 프로덕트(`nmwc.ai.kr/product`).
+> 타입라운지 컴포넌트 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 프로덕트(`nmwc.ai.kr/product`).
 > **현재 프로덕트 = 공간 사이니지 · 인쇄물.** 예약 웹/앱은 추후 확장(§07).
 > **Atom 먼저, Molecule/Organism은 Atom 조합으로.** 이름은 기존 HTML 실제 클래스(`.panel .mode .floor .logo .arrow`)와 토큰(`--spine-*`)을 그대로 채택.
 > 원본: `06-applications/*.html`, `04-signage/signage-system.md` · `interior-wayfinding.md` · `pictograms.md`, `03-identity/design-tokens.md`.
@@ -41,13 +41,13 @@
 | **States** | `ink` / `white` / `current` (배경 따라 채움색 반전, 형태 동일) |
 | **금지** | 비율 변형·기울임, 3선 두께·간격·개수 변경, 폰트 텍스트 대체, 클리어스페이스 침범 |
 
-#### 3. Mode Tag
+#### 3. Type Tag
 | | |
 |---|---|
 | **Element** | `.mode` (컨테이너 `.modes`) — `WORK` · `CLASS` · `GATHERING` |
-| **Usage** | 3모드 표기. Paperlogy 400 아웃라인 · 대문자 · 자간 +0.05em · 4pt 프레임 (소형 5~10mm) |
-| **States** | `default` / `active`(현재 모드 = `var(--spine-orange)`) |
-| **금지** | 소문자, "옵션·패키지" 워딩, 3개 외 임의 모드 |
+| **Usage** | 3타입 표기. Paperlogy 400 아웃라인 · 대문자 · 자간 +0.05em · 4pt 프레임 (소형 5~10mm) |
+| **States** | `default` / `active`(현재 타입 = `var(--spine-orange)`) |
+| **금지** | 소문자, "옵션·패키지" 워딩, 3개 외 임의 타입 |
 
 #### 4. Pictogram
 | | |
@@ -68,7 +68,7 @@
 ### 02b. Molecules — Atom 2~3개 조합
 
 - **Floor Header** = `Directional Arrow` + `.floor`(층) + `.sub`(멀티유즈 라운지·합정). 층 안내 상단부.
-- **Mode Board** = `Mode Tag` × 3 + `Pictogram`(모드 3종) + 한 줄 카피. 교체형 카드.
+- **Type Board** = `Type Tag` × 3 + `Pictogram`(타입 3종) + 한 줄 카피. 교체형 카드.
 - **Guide Row** = `Pictogram` + `label/md` 텍스트(예: `[wifi] 와이파이`). 이용 가이드·웨이파인딩 한 줄.
 - **Business Card** = `Wordmark`(가로) + `Color Token` 면. 앞/뒤 2면.
 
@@ -78,9 +78,9 @@
 
 | 사인 | 조합 | 물성 | 내용 |
 |---|---|---|---|
-| **입간판 · 외부 명판** | Floor Header + Wordmark + Mode Board | 실버 알루미늄 프레임 + 반투명 골판 아크릴 | 화살표 + `3층` · MODE LOUNGE · 멀티유즈 라운지·합정 · WORK·CLASS·GATHERING |
-| **자석 안내판**(이용 가이드) | Guide Row × N + Wordmark | 실버 자석보드 + 반투명 트레이싱지 인쇄물을 **자석으로 레이어드 겹침** | 간단한 가운데정렬 + 픽토그램 — WIFI(ID/PW), 모드별 안내(WORK MODE 등) |
-| **아크릴 명패**(시설 표기) | Pictogram + `label` | 반투명 아크릴 + **투명 스티커 부착** | 오렌지 픽토 + 화장실 · 대문 MODE LOUNGE 등 이용시설 표기 |
+| **입간판 · 외부 명판** | Floor Header + Wordmark + Type Board | 실버 알루미늄 프레임 + 반투명 골판 아크릴 | 화살표 + `3층` · TYPE LOUNGE · 멀티유즈 라운지·합정 · WORK·CLASS·GATHERING |
+| **자석 안내판**(이용 가이드) | Guide Row × N + Wordmark | 실버 자석보드 + 반투명 트레이싱지 인쇄물을 **자석으로 레이어드 겹침** | 간단한 가운데정렬 + 픽토그램 — WIFI(ID/PW), 타입별 안내(WORK TYPE 등) |
+| **아크릴 명패**(시설 표기) | Pictogram + `label` | 반투명 아크릴 + **투명 스티커 부착** | 오렌지 픽토 + 화장실 · 대문 TYPE LOUNGE 등 이용시설 표기 |
 
 - 목업: `06-applications/{stand,notice-board,restroom-signage,door-plate}-*.png`.
 - **레이어드 메커니즘** = 반투명 아크릴·트레이싱지에 인쇄해 **자석으로 겹쳐 쌓기**(고가 각인 대체). 문구 오브제(클립·자석·마스킹테이프)로 고정·장식, 포인트는 스티커로.
@@ -108,7 +108,7 @@
 
 ### 레이어드 메커니즘 (시그니처)
 - **반투명 아크릴 + 트레이싱지 인쇄** 부착(각인 대체) — "레이어드" 질감이 브랜드 컨셉과 일치.
-- 모드 안내판(I-2)은 **자석/카드 슬롯 교체형** — 모드 전환 시 카드만 교체.
+- 타입 안내판(I-2)은 **자석/카드 슬롯 교체형** — 타입 전환 시 카드만 교체.
 - 문구 오브제(클립·자석·마스킹테이프)로 레이어를 쌓고 고정 + 장식.
 
 ---
@@ -127,8 +127,8 @@
 
 | 상태 | 적용 | 표현 |
 |---|---|---|
-| `default` | Mode Tag, 픽토 | 잉크 단색 |
-| `active` | Mode Tag(현재 모드) | `var(--spine-orange)` 강조 |
+| `default` | Type Tag, 픽토 | 잉크 단색 |
+| `active` | Type Tag(현재 타입) | `var(--spine-orange)` 강조 |
 | `inverted` | Wordmark, 픽토 | 어두운/오렌지 배경 → 화이트 |
 | `point` | 픽토 | 포인트 1색(orange) |
 
@@ -154,5 +154,5 @@
 - 폰트 = **Paperlogy**(400/600), 색 = 위 Color Token 재사용.
 - 예: `btn-primary` = `var(--spine-orange)` 배경 · 화이트 텍스트 / `:hover` = `motion/fast` 120ms.
 - 예상 Atom: Button · Input · Card · Modal · Badge · Calendar(예약 슬롯).
-- 예상 Organism: 예약 캘린더 · 모드 선택 · 결제 · 입퇴실 QR.
+- 예상 Organism: 예약 캘린더 · 타입 선택 · 결제 · 입퇴실 QR.
 - 실제 화면·Figma가 생기면 그때의 컴포넌트 이름을 **그대로** 채운다(추정 금지).

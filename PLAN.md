@@ -76,7 +76,7 @@
 | **1.5 무드보드 검증 게이트** | 가구 무드 키워드 ↔ 비주얼 원칙(형용사/회피방향) **1:1 매핑표**. **충돌 셀 0개 = 통과**. *충돌 = 가구 무드가 회피방향과 직접 모순되는 경우.* 판정자 = 별도 verifier(자기판정 금지) | `moodboard.md` |
 | **2 네이밍**(병렬) | 기준 → 후보 ≥5 → 검증(상표·도메인·인스타). 전량 탈락 시 기준 1축 완화 재생성 최대 3R, 이후 사용자 재협의 | `naming-criteria.md` `candidates.md` `validation.md` |
 | **3 비주얼 아이덴티티** | 로고 방향(네이밍 미확정 시 심볼/추상 우선), 컬러(허니오크·블랙·크롬실버·웜화이트·그레이지), 타이포, **이원 토큰**(RGB/HEX + CMYK/Pantone·소재). 아이콘은 "클래식 ~풍"으로만 표기(제품명 직접 차용 금지) | `logo-guidelines.md` `color-palette.md` `typography.md` `design-tokens.md` |
-| **4 사이니지** | 외부 간판·실내 안내판/웨이파인딩·사인 종류/소재/규격·픽토그램·멀티유즈 모드 표시. 평수/층고 미확정 시 상대 규격만, 절대치 placeholder | `signage-system.md` `exterior-signage.md` `interior-wayfinding.md` `pictograms.md` |
+| **4 사이니지** | 외부 간판·실내 안내판/웨이파인딩·사인 종류/소재/규격·픽토그램·멀티유즈 타입 표시. 평수/층고 미확정 시 상대 규격만, 절대치 placeholder | `signage-system.md` `exterior-signage.md` `interior-wayfinding.md` `pictograms.md` |
 | **5 디자인 시스템 문서화** | 우산 README + 폴더 구조 확정 | `05-design-system/README.md`, 루트 `README.md` |
 
 ---
@@ -103,7 +103,7 @@ assets/        ← 무드보드·레퍼런스 이미지·가구 캡처 보관
 3. 게이트 통과 전 Phase 3 컬러/소재에 확정값 없음(placeholder만). **게이트는 Phase 3에만 적용 — Phase 2는 병렬 허용**
 4. 네이밍 후보 ≥5 + 상표/도메인/SNS 검증표
 5. `design-tokens.md`에 RGB + CMYK/Pantone 두 컬럼
-6. 사이니지에 멀티유즈 모드 ≥3개 시나리오(페르소나 3종 대응)
+6. 사이니지에 멀티유즈 타입 ≥3개 시나리오(페르소나 3종 대응)
 7. 컬러/소재 팔레트가 확정 가구 무드와 일치
 8. 확정대기 입력에 `[확정]/[추정]/[대기]` 플래그
 
@@ -146,8 +146,8 @@ assets/        ← 무드보드·레퍼런스 이미지·가구 캡처 보관
 
 Phase 0~5 산출물(`.md`)은 작성 완료. 이후 실행 로드맵:
 
-1. **네이밍 확정** — ✅ **모드라운지 (MODE LOUNGE)** 확정(2026-06-25). 잔여: 상표(KIPRIS 43·41류)·도메인(`modelounge.kr`)·SNS 핸들 라이브 확인.
-2. **+1주차: 로고 · 픽토그램 · 사이니지 디자인** — 모드라운지 기준으로 로고 벡터(**겹침 Overlapping Planes 모티프** — 컨셉 시안 `03-identity/logo-concepts.html`), 픽토 세트, 사이니지(층고 약 2m·무인 자가안내) 실 디자인.
+1. **네이밍 확정** — ✅ **타입라운지 (TYPE LOUNGE)** 확정(2026-06-25). 잔여: 상표(KIPRIS 43·41류)·도메인(`modelounge.kr`)·SNS 핸들 라이브 확인.
+2. **+1주차: 로고 · 픽토그램 · 사이니지 디자인** — 타입라운지 기준으로 로고 벡터(**겹침 Overlapping Planes 모티프** — 컨셉 시안 `03-identity/logo-concepts.html`), 픽토 세트, 사이니지(층고 약 2m·무인 자가안내) 실 디자인.
 3. **+2주차: 후속 문서 작성·배포** — `brand.md`(브랜드 정의) / `bx.md`(브랜드 경험) / `product.md`(상품·운영) / `ux.md`(앱·무인 자동화 UX) 작성·배포.
 
 > 남은 확정대기 입력은 **가격대** 하나 — 확정 시 포지셔닝 톤 재조정.

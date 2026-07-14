@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""MODE LOUNGE 모드 태그(WORK/CLASS/GATHERING) 아웃라인 SVG 생성.
+"""TYPE LOUNGE 타입 태그(WORK/CLASS/GATHERING) 아웃라인 SVG 생성.
 브랜드 라벨 사양: 대문자 · Paperlogy 600 · 자간 +0.12em · 직각 모서리 · 잉크 테두리+텍스트."""
 import os
 from fontTools.ttLib import TTFont
@@ -82,7 +82,7 @@ def svg(word, color_mode):
     # 물리 크기 pt 명시 (1 unit = 1pt) → 테두리가 실제 4pt
     return ('<svg xmlns="http://www.w3.org/2000/svg" '
             'width="{w:.2f}pt" height="{h:.2f}pt" viewBox="0 0 {w:.2f} {h:.2f}" '
-            'role="img" aria-label="{word} 모드">\n  {body}\n</svg>\n').format(
+            'role="img" aria-label="{word} 타입">\n  {body}\n</svg>\n').format(
         w=box_w, h=box_h, word=word, body=body)
 
 

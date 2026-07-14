@@ -1,7 +1,7 @@
 # 디자인 시스템 — 우산 문서 (v2)
 
 > 2026-06-21 개정. 층고(약 2m)·운영(무인 자동화) 확정 반영, 컬러 메인+엑센트(레드 삭제)·폰트 Pretendard 통일, 로고 겹침 모티프·name-agnostic 반영, 네이밍 신규 후보(무드룸 등).
-> 2026-06-25 개정. **네이밍 확정 = 모드라운지 (MODE LOUNGE)** / 로고 심볼 = **모드의 겹침(Overlapping Planes)** — 태양·원 폐기, 겹침이 주인공.
+> 2026-06-25 개정. **네이밍 확정 = 타입라운지 (TYPE LOUNGE)** / 로고 심볼 = **타입의 겹침(Overlapping Planes)** — 태양·원 폐기, 겹침이 주인공.
 > 공간 브랜드 디자인 시스템 단일 진입점. 시스템은 name-agnostic하게 설계됨(이름이 바뀌어도 유효).
 > 토큰 원본은 `03-identity/design-tokens.md`.
 
@@ -13,12 +13,12 @@
 | 코어 무드 | **정제된 모던 + 블랙·화이트** (2개로 압축) | `01-strategy/discovery.md` |
 | 비주얼 | **기하 그래픽** — 바우하우스·스위스·기하, 볼드 웜 컬러 (그루비 배제) | `01-strategy/visual-principles.md`, `moodboard.md` |
 | 보이스 | 따뜻·안목·솔직 (격식체 존댓말) | `01-strategy/brand-voice.md` |
-| 네이밍 | 🟢 **모드라운지 (MODE LOUNGE)** 확정 | `02-naming/` |
+| 네이밍 | 🟢 **타입라운지 (TYPE LOUNGE)** 확정 | `02-naming/` |
 | 로고 | **겹침(Overlapping Planes)** 모티프 + 기하 산세 워드마크 | `03-identity/logo-guidelines.md` |
 | 컬러 | **메인**(화이트·잉크) + **엑센트**(오렌지) (레드 삭제) | `03-identity/color-palette.md` |
 | 타이포 | League Spartan(기하 산세) + **Pretendard 통일**(국·영문) | `03-identity/typography.md` |
 | 토큰 | 디지털(RGB) + 물리(CMYK/Pantone) 이원 | `03-identity/design-tokens.md` |
-| 사이니지 | 외부 유도 + 실내 모드 안내 + 픽토 | `04-signage/` |
+| 사이니지 | 외부 유도 + 실내 타입 안내 + 픽토 | `04-signage/` |
 
 ## 핵심 원칙 (5)
 
@@ -30,7 +30,7 @@
 
 ## 시그니처 요소
 
-- **모드 태그**: `WORK · CLASS · GATHER` — 멀티유즈를 한 줄로.
+- **타입 태그**: `WORK · CLASS · GATHER` — 멀티유즈를 한 줄로.
 - **겹침(Overlapping Planes) 모티프**: 여러 쓰임(WORK·CLASS·GATHER)을 나타내는 기하 면이 겹치고, 멀티플라이 교집합 = 라운지(공유의 핵). "용도는 여럿, 무드는 하나"를 한 도형에. (원은 주인공 아님, 겹침이 주인공.)
 - **컬러블록 + 블롭**: 색면 분할 + 유기적 셰이프(furn. 방식).
 
@@ -41,7 +41,7 @@
 | Phase 0 디스커버리 | ✅ (합정 3층·52.49㎡, 무드 2개, **층고 약 2m·무인 자동화 운영 확정**) |
 | Phase 1 전략·보이스 | ✅ (컨셉 어휘 '거실'→'멀티유즈 라운지'/'라운지') |
 | Phase 1.5 무드보드 게이트 | 🟡 v2(기하 그래픽) 충돌 0 / verifier 재검증 권장 |
-| Phase 2 네이밍 | 🟢 모드라운지 (MODE LOUNGE) 확정 (상표·도메인 라이브 확인 잔여) |
+| Phase 2 네이밍 | 🟢 타입라운지 (TYPE LOUNGE) 확정 (상표·도메인 라이브 확인 잔여) |
 | Phase 3 아이덴티티 | ✅ 방향·토큰 (컬러 메인+엑센트·레드 삭제 / 폰트 Pretendard 통일 / 로고 겹침) / 벡터 제작은 승인 후 |
 | Phase 4 사이니지 | ✅ 체계·시나리오 (층고 약 2m 규격·무인 자가안내 반영) / 측정 절대치수 `[[placeholder]]` |
 | Phase 5 문서화 | ✅ |
