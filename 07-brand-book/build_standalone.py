@@ -18,17 +18,25 @@ html = open(SRC, encoding="utf-8").read()
 html = re.sub(r'(href="assets/[^"]*/([^"/]+\.svg)")(\s+)download\b(?!=)',
               r'\1\3download="\2"', html)
 
-# ---------- 2) 에셋 → data URI ----------
+# ---------- 2) 에셋 → data URI (SVG 원본, PNG 사진은 JPEG 압축) ----------
+from PIL import Image
 MIME = {".svg": "image/svg+xml", ".png": "image/png"}
 asset_paths = sorted(set(re.findall(r'(assets/[^"]+\.(?:svg|png))', html)))
 for rel in asset_paths:
     fp = os.path.join(BOOK, rel)
-    data = open(fp, "rb").read()
     ext = os.path.splitext(rel)[1].lower()
-    b64 = base64.b64encode(data).decode()
-    uri = f"data:{MIME[ext]};base64,{b64}"
+    if ext == ".png":  # 목업 사진 → JPEG(용량 대폭 축소; 업로드 크기 제한 대응)
+        im = Image.open(fp).convert("RGB")
+        if im.width > 1400:
+            im = im.resize((1400, round(im.height * 1400 / im.width)), Image.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=82, optimize=True)
+        uri = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+    else:
+        data = open(fp, "rb").read()
+        uri = f"data:{MIME[ext]};base64," + base64.b64encode(data).decode()
     html = html.replace(rel, uri)
-print(f"에셋 {len(asset_paths)}개 인라인")
+print(f"에셋 {len(asset_paths)}개 인라인 (PNG→JPEG 압축)")
 
 # ---------- 3) 폰트 subset (사용 글자만) → woff base64 ----------
 # 문자셋: 원본 HTML 전체 문자 (data URI 주입 전 텍스트에서 뽑아야 하므로 원본 재로드)
