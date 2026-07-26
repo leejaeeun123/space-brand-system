@@ -3,19 +3,28 @@
 outline_picto.py와 동일한 사양(stroke-width 3, cap=square, join=miter, viewBox 100)이되
 M/L/H/V/Q/C/A/Z(절대·상대) 전 커맨드와 rect를 지원한다."""
 import os, re, math
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, Point
 from shapely.ops import unary_union
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-W = 3.0; R = W / 2.0
+INK = "#16130F"           # 잉크색 기본값 (currentColor는 유지 — CSS로 반전 가능)
+W = 2.7; R = W / 2.0      # 기존 3.0 → 2.7 (살짝 얇게)
 
 # ---------- flatten helpers ----------
-def flatten_q(p0, p1, p2, n=18):
+QN = 18; CN = 24          # 곡선 flatten 세그먼트 수 (픽토별 조절 — 낮추면 각짐)
+ADAPT = False             # 적응형: 짧은 곡선(코너)=각지게, 긴 곡선(샤프트)=부드럽게
+def _adapt_n(p0, p3):
+    ch = math.hypot(p3[0]-p0[0], p3[1]-p0[1])
+    return 1 if ch < 12 else 3       # 짧은 코너=직선(r 제거) · 그 외=coarse3 수준
+
+def flatten_q(p0, p1, p2, n=None):
+    n = _adapt_n(p0, p2) if ADAPT else (n or QN)
     return [((1-t)**2*p0[0]+2*(1-t)*t*p1[0]+t*t*p2[0],
              (1-t)**2*p0[1]+2*(1-t)*t*p1[1]+t*t*p2[1])
             for t in [i/n for i in range(1, n+1)]]
 
-def flatten_c(p0, p1, p2, p3, n=24):
+def flatten_c(p0, p1, p2, p3, n=None):
+    n = _adapt_n(p0, p3) if ADAPT else (n or CN)
     out = []
     for i in range(1, n+1):
         t = i/n; u = 1-t
@@ -154,13 +163,19 @@ PICTOS = {
              "Q79,54 79,60 Q79,62 77,62 Z"),
     ("path", "M40,55 Q44,58 50,56"),
     ("path", "M18,68 L82,68")]},
- "phone": {"label": "전화기 TELEPHONE", "els": [
+ "phone": {"label": "전화기 TELEPHONE", "adapt": True, "squash": 0.9, "els": [
+    # 샤프트=coarse3 수준(부드럽게), 코너=직선(r 제거), 컵은 수직 0.9로 압축(작게)
     ("path", "M39.79 23.79c-0.87 -2.11 -3.17 -3.23 -5.37 -2.63l-9.97 2.72"
              "C22.48 24.42 21.11 26.21 21.11 28.25C21.11 56.28 43.84 79.00 71.86 79.00"
              "c2.04 0.00 3.83 -1.37 4.37 -3.34l2.72 -9.97c0.60 -2.20 -0.52 -4.50 -2.63 -5.37"
              "l-10.88 -4.53c-1.85 -0.77 -3.99 -0.24 -5.24 1.31L55.63 62.69"
              "C47.66 58.92 41.20 52.46 37.43 44.48L43.01 39.92"
              "c1.55 -1.26 2.08 -3.40 1.31 -5.24l-4.53 -10.88Z")]},
+ "speaker": {"label": "스피커 SPEAKER", "els": [
+    ("rect", 35, 20, 30, 60),           # 스피커 박스
+    ("ring", 50, 57, 11),               # 우퍼 외곽
+    ("dot", 50, 57, 3.4),               # 우퍼 중심
+    ("dot", 50, 33, 3.0)]},             # 트위터
  "trash": {"label": "쓰레기통 TRASH", "els": [
     ("path", "M30,33 L70,33"),
     ("path", "M44,33 L44,28 L56,28 L56,33"),
@@ -180,17 +195,39 @@ PICTOS = {
 }
 
 for name, spec in PICTOS.items():
+    c = spec.get('coarse')                      # 저해상도 flatten(각짐) 옵션
+    globals()['QN'] = c if c else 18
+    globals()['CN'] = c if c else 24
+    globals()['ADAPT'] = bool(spec.get('adapt'))  # 적응형(코너만 각짐)
+    sq = spec.get('squash')                        # 대각선 수직 압축(컵 축소)
+    def _sq(pts):
+        if not sq: return pts
+        cx, cy, ux, uy = 50, 50, 0.7071, 0.7071
+        out = []
+        for x, y in pts:
+            dx, dy = x-cx, y-cy; du = dx*ux+dy*uy
+            vx, vy = dx-du*ux, dy-du*uy
+            out.append((cx+du*ux+sq*vx, cy+du*uy+sq*vy))
+        return out
     geoms = []
     for el in spec["els"]:
         if el[0] == "path":
             for pts, closed in parse_d(el[1]):
-                geoms.append(buf(pts, closed))
+                geoms.append(buf(_sq(pts), closed))
         elif el[0] == "rect":
             geoms.append(buf(rect_ring(*el[1:]), True))
+        elif el[0] == "ring":                       # 원 외곽선(스트로크)
+            cx, cy, r = el[1:]
+            ring = [(cx+r*math.cos(2*math.pi*k/96), cy+r*math.sin(2*math.pi*k/96))
+                    for k in range(96)]; ring.append(ring[0])
+            geoms.append(buf(ring, True))
+        elif el[0] == "dot":                         # 채운 점
+            cx, cy, r = el[1:]
+            geoms.append(Point(cx, cy).buffer(r))
     merged = unary_union(geoms)
     d = geom_to_path(merged)
     out = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
-           f'width="100" height="100" role="img" aria-label="{spec["label"]}">\n'
+           f'width="100" height="100" color="{INK}" role="img" aria-label="{spec["label"]}">\n'
            f'  <path fill="currentColor" fill-rule="evenodd" d="{d}"/>\n</svg>\n')
     with open(os.path.join(OUT, f"picto-{name}.svg"), "w", encoding="utf-8") as f:
         f.write(out)
