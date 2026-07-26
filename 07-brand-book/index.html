@@ -64,10 +64,14 @@
 
   /* ---- logo showcase ---- */
   .logobox{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
-  .lchip{flex:1;min-width:200px;padding:34px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line)}
+  .lchip{flex:1;min-width:200px;padding:34px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line);text-decoration:none;color:inherit;cursor:pointer;transition:.12s ease-out}
+  .lchip:hover{border-color:var(--orange)}
   .lchip.light{background:var(--paper)}
   .lchip.dark{background:var(--ink);color:var(--white)}
   .lchip.orange{background:var(--orange);color:#fff}
+  .lchip .dlhint{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s;margin-top:2px}
+  .lchip:hover .dlhint{opacity:1}
+  .lchip.dark .dlhint,.lchip.orange .dlhint{color:#fff}
   .wm-img{height:74px;width:auto;display:block}
   .plabel{font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
   .dl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:4px 0 8px}
@@ -140,26 +144,35 @@
     <div class="snum">01 — LOGO</div>
     <h2>레이어드 E 워드마크</h2>
     <p class="lead">심볼 없이 워드마크 자체가 로고이며, TYPE의 <code>E</code> 세로획을 없애고 남긴 <strong>가로 3선(동일폭)</strong>이 <strong>WORK·CLASS·GATHERING</strong>이 쌓인 층을 뜻한다.</p>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6);margin-bottom:4px">로고를 클릭하면 해당 SVG가 바로 내려받아집니다.</p>
     <div class="logobox">
-      <div class="lchip light">
+      <a class="lchip light" href="assets/logo/logo-wordmark-v-ink.svg" download>
         <div class="plabel">Primary · Ink</div>
         <img class="wm-img" src="assets/logo/logo-wordmark-v-ink.svg" alt="TYPE LOUNGE 세로 잉크">
-      </div>
-      <div class="lchip dark">
+        <div class="dlhint">세로 · 잉크 SVG ↓</div>
+      </a>
+      <a class="lchip dark" href="assets/logo/logo-wordmark-v-white.svg" download>
         <div class="plabel">Reversed · White</div>
         <img class="wm-img" src="assets/logo/logo-wordmark-v-white.svg" alt="TYPE LOUNGE 세로 화이트">
-      </div>
-      <div class="lchip orange">
+        <div class="dlhint">세로 · 화이트 SVG ↓</div>
+      </a>
+      <a class="lchip orange" href="assets/logo/logo-wordmark-v-white.svg" download>
         <div class="plabel">Accent · White</div>
         <img class="wm-img" src="assets/logo/logo-wordmark-v-white.svg" alt="TYPE LOUNGE 세로 화이트">
-      </div>
+        <div class="dlhint">세로 · 화이트 SVG ↓</div>
+      </a>
     </div>
-    <div class="dl">
-      <span class="dl-label">Download ↓</span>
-      <a href="assets/logo/logo-wordmark-v-ink.svg" download>세로 · 잉크</a>
-      <a href="assets/logo/logo-wordmark-v-white.svg" download>세로 · 화이트</a>
-      <a href="assets/logo/logo-wordmark-h-ink.svg" download>가로 · 잉크</a>
-      <a href="assets/logo/logo-wordmark-h-white.svg" download>가로 · 화이트</a>
+    <div class="logobox">
+      <a class="lchip light" href="assets/logo/logo-wordmark-h-ink.svg" download style="padding:24px">
+        <div class="plabel">Horizontal · Ink</div>
+        <img class="wm-img" style="height:36px" src="assets/logo/logo-wordmark-h-ink.svg" alt="TYPE LOUNGE 가로 잉크">
+        <div class="dlhint">가로 · 잉크 SVG ↓</div>
+      </a>
+      <a class="lchip dark" href="assets/logo/logo-wordmark-h-white.svg" download style="padding:24px">
+        <div class="plabel">Horizontal · White</div>
+        <img class="wm-img" style="height:36px" src="assets/logo/logo-wordmark-h-white.svg" alt="TYPE LOUNGE 가로 화이트">
+        <div class="dlhint">가로 · 화이트 SVG ↓</div>
+      </a>
     </div>
     <table>
       <tr><th>파일</th><th>형태</th><th>용도</th></tr>
