@@ -67,12 +67,15 @@
 > 인쇄·소형 사이니지(세로 5~10mm)를 위해 **모든 stroke를 채운 아웃라인(면) 패스로 변환**.
 > stroke 렌더링·폰트 의존이 없어 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.
 
-### 편의·방향·안전 픽토 (9종, `picto-*.svg`)
-`coffee · extinguisher · no · nosmoke · room · stairs · toilet · umbrella · wifi`
+### 편의·방향·안전 픽토 (17종, `picto-*.svg`)
+1차 9종 — `coffee · extinguisher · no · nosmoke · room · stairs · toilet · umbrella · wifi`
+2차 8종 (2026-07-26) — `bluetooth · tv · notouch(손대지 마세요) · shoe(신발장) · phone(전화기) · trash(쓰레기통) · aircon(냉난방) · power(전원)`
 - viewBox 100×100, `fill="currentColor"` 단일 패스, `fill-rule="evenodd"`(닫힌 링은 자동으로 구멍).
 - 원본 stroke 사양(굵기 3·square 캡·miter 조인·중앙정렬)을 형태 손실 없이 재현.
 - 색은 CSS `color`/`fill`로 제어 — 잉크·화이트·컬러블록 위 모두 사용.
-- 재현 스크립트: `outline_picto.py` (shapely 버퍼).
+- 재현 스크립트: 1차 `outline_picto.py`, 2차 `gen_new_pictos.py` (둘 다 shapely 버퍼).
+  - `gen_new_pictos.py`는 M/L/H/V/**Q/C/A**/rect 전 커맨드를 지원 — 전화기(cubic)·전원(arc)·TV/에어컨(rect)까지 flatten.
+- 시안(stroke, 라이트/잉크/오렌지 3배경): `pictograms-add.html`.
 
 ### 타입 태그 (9종, `mode-{work,class,gathering}[-ink|-white].svg`)
 네모 박스 + 타입명 라벨. **큐레이션 교체 카드·창문 태그·안내판**용.
