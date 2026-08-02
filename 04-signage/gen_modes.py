@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# ⚠️ 재생성 주의: Paperlogy TTF 빌드가 다르면 글리프 좌표가 미세하게 달라져
+# 커밋된 아웃라인과 어긋난다. 색상만 바꿀 때는 recolor_assets.py를 쓸 것.
 """TYPE LOUNGE 타입 태그(WORK/CLASS/GATHERING) 아웃라인 SVG 생성.
 브랜드 라벨 사양: 대문자 · Paperlogy 600 · 자간 +0.12em · 직각 모서리 · 잉크 테두리+텍스트."""
 import os
@@ -87,15 +89,18 @@ def svg(word, color_mode):
 
 
 WORDS = ["WORK", "CLASS", "GATHERING"]
+# 픽토그램과 동일한 규칙 — 기본 파일은 리터럴 잉크.
+# currentColor는 디자인 툴(Illustrator·Figma)에서 검정으로 떨어지므로 기본값이 될 수 없다.
 targets = {
-    "current": "mode-{}.svg",
-    "ink": "mode-{}-ink.svg",
-    "white": "mode-{}-white.svg",
+    "ink": ["mode-{}.svg", "mode-{}-ink.svg"],   # 기본 = 잉크 (-ink는 기존 참조 호환)
+    "white": ["mode-{}-white.svg"],
+    "current": ["mode-{}-current.svg"],          # 웹 인라인 CSS 제어용
 }
 for w in WORDS:
-    for mode, tmpl in targets.items():
-        fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), tmpl.format(w.lower()))
-        with open(fn, "w", encoding="utf-8") as f:
-            f.write(svg(w, mode))
-        print("wrote", os.path.basename(fn))
+    for mode, tmpls in targets.items():
+        for tmpl in tmpls:
+            fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), tmpl.format(w.lower()))
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(svg(w, mode))
+            print("wrote", os.path.basename(fn))
 print("capH px=%.1f  box_h px=%.1f" % (capH, capH + 2 * PAD_Y))

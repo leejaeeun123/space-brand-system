@@ -79,18 +79,19 @@
   | `picto-X-white.svg` | `#ffffff` | 잉크·오렌지 배경 반전 |
   | `picto-X-current.svg` | `currentColor` | 웹 인라인 — CSS `color`로 제어 |
   - 이전 방식(`<svg color="#16130F">` + `fill="currentColor"`)은 **Illustrator·Figma가 `color` 표현 속성을 무시**해 검정(#000)으로 떨어졌다. 디자인 툴에서 열면 브랜드 잉크가 아니었음 — 그래서 리터럴로 전환.
-  - 색만 다시 뽑을 때는 `recolor_pictos.py`(기하 불변, 3종 재생성).
+  - 색만 다시 뽑을 때는 `recolor_assets.py`(기하 불변, 3종 재생성). 타입 태그(`mode-*.svg`)도 동일 규칙으로 처리된다.
 - 선 굵기 **2.7**(2차, 1차 3.0보다 살짝 얇게) · square 캡 · miter 조인 · 중앙정렬.
 - **전화기**: 핸드셋 형태를 저해상도 flatten(3세그)해 각진(facet) 기하 스타일로 통일.
 - 재현 스크립트: 1차 `outline_picto.py`(⚠️ **제자리 변환 1회성 — 재실행 금지**, 이미 아웃라인된 패스를 다시 버퍼링함), 2차·3차 `gen_new_pictos.py` (둘 다 shapely 버퍼). 색상 변형은 `recolor_pictos.py`.
   - `gen_new_pictos.py`는 M/L/H/V/**Q/C/A**/rect/ring/dot·`coarse` flatten 지원 — 전화기(cubic)·전원(arc)·TV/에어컨(rect)·스피커(원·점)까지.
 - 시안(stroke, 라이트/잉크/오렌지 3배경): `pictograms-add.html`.
 
-### 타입 태그 (9종, `mode-{work,class,gathering}[-ink|-white].svg`)
+### 타입 태그 (12종, `mode-{work,class,gathering}[-ink|-white|-current].svg`)
 네모 박스 + 타입명 라벨. **큐레이션 교체 카드·창문 태그·안내판**용.
 - 서체 **Paperlogy 400(Regular)** 아웃라인 — 소형(5~10mm)에서 600·500은 두꺼워 본문과 같은 400로. (400은 브랜드 2-웨이트 내)
 - 대문자 · 자간 **+0.05em** · 직각 모서리 · **테두리 4pt 아웃라인**(stroke 아님, 프레임 패스).
   - 라벨 스펙(+0.12em)보다 좁힘 — 박스 안 소형 라벨에선 넓은 자간이 성겨 보여 조정. 자간은 `gen_modes.py`의 `TRACK_EM` 환경변수로 재조정 가능.
 - 박스 높이 3종 동일 → 나란히 배치 시 baseline·라인 정렬.
+- **색**: 픽토와 같은 규칙 — 기본 `mode-X.svg` = 리터럴 잉크(`-ink`와 동일 내용, 기존 참조 호환용으로 둘 다 유지) · `-white` 반전 · `-current` 웹 인라인.
 - 색 3종: `currentColor`(웹) / `-ink`(#16130F, 라이트 배경) / `-white`(#ffffff, 잉크·오렌지 배경).
 - 재현 스크립트: `gen_modes.py` (fontTools 글리프 → 패스).

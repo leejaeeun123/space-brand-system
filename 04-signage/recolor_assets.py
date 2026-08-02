@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""픽토그램 색상 변형 3종 생성 (기하 정보는 건드리지 않음).
+"""픽토그램·타입 태그 색상 변형 3종 생성 (기하 정보는 건드리지 않음).
 
 배경: 아웃라인 픽토는 `fill="currentColor"` + `<svg color="#16130F">` 조합이었다.
 브라우저에서는 잉크로 보이지만 **Illustrator·Figma 등은 `color` 표현 속성을 무시**해
@@ -52,3 +52,23 @@ for stem, path in base_files():
     print(f"recolored {stem}  → ink · white · current")
 
 print(f"\n{count} files written")
+
+
+# ---------- 타입 태그(mode-*.svg) ----------
+# 기존 mode-X-ink.svg(잉크)를 원본으로 삼아 색만 바꾼다.
+# gen_modes.py로 재생성하지 않는 이유: Paperlogy TTF 빌드가 다르면 글리프 좌표가
+# 미세하게 달라져 커밋된 아웃라인과 어긋난다. 색만 바꿀 때는 기하를 건드리지 않는다.
+MODES = ["work", "class", "gathering"]
+for m in MODES:
+    src_path = os.path.join(HERE, f"mode-{m}-ink.svg")
+    if not os.path.exists(src_path):
+        print(f"skip mode-{m} (원본 없음)")
+        continue
+    with open(src_path, encoding="utf-8") as f:
+        src = f.read()
+    for suffix, fill in (("", INK), ("-ink", INK), ("-white", "#ffffff"),
+                         ("-current", "currentColor")):
+        out = src.replace('<g fill="#16130F"', f'<g fill="{fill}"')
+        with open(os.path.join(HERE, f"mode-{m}{suffix}.svg"), "w", encoding="utf-8") as f:
+            f.write(out)
+    print(f"recolored mode-{m}  → ink(기본) · white · current")
