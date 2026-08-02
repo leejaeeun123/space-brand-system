@@ -17,6 +17,7 @@
   button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   button:active{opacity:.7;}
   input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  html, body{overflow-x:hidden;max-width:100%;}
   body{
     font-family:'Paperlogy', sans-serif;
     background:var(--white);
@@ -125,8 +126,14 @@
   .row3{display:grid;grid-template-columns:1fr;gap:10px;}
   label{font-size:12px;color:#6b665c;display:block;margin-bottom:4px;}
   input, textarea, select{
-    font-family:inherit;font-size:16px;width:100%;
+    font-family:inherit;font-size:16px;width:100%;max-width:100%;
     border:1px solid var(--hair);border-radius:6px;padding:12px 12px;min-height:44px;
+    -webkit-appearance:none;appearance:none;background-color:var(--white);color:var(--ink);
+  }
+  select{
+    padding-right:36px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2316130F' stroke-width='2'><path d='M5 8l5 5 5-5'/></svg>");
+    background-repeat:no-repeat;background-position:right 12px center;background-size:14px;
   }
   fieldset{border:0;padding:0;margin:0;}
   legend{font-size:12px;font-weight:600;color:var(--ink);margin:10px 0 2px;padding:0;}
