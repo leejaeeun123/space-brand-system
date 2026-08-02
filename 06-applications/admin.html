@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>TYPE LOUNGE — 어드민</title>
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16130F;
+    --white:#ffffff;
+    --orange:#E2531E;
+    --hair: rgba(22,19,15,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Paperlogy', sans-serif;
+    background:var(--white);
+    color:var(--ink);
+    line-height:1.6;
+  }
+
+  /* Gate */
+  #gate{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:20px;padding:24px;text-align:center;
+  }
+  #gate .wordmark{font-weight:600;font-size:32px;letter-spacing:-.02em;}
+  #gate input{
+    font-family:inherit;font-size:16px;text-align:center;letter-spacing:.1em;
+    border:1px solid var(--ink);border-radius:8px;padding:12px 16px;width:200px;
+  }
+  #gate button{
+    font-family:inherit;font-weight:600;font-size:15px;
+    background:var(--ink);color:var(--white);border:0;border-radius:8px;
+    padding:12px 24px;cursor:pointer;
+  }
+  #gate .error{color:var(--orange);font-size:13px;height:16px;}
+
+  /* App */
+  #app{display:none;max-width:640px;margin:0 auto;padding:24px 20px 80px;}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  header .wordmark{font-weight:600;font-size:22px;letter-spacing:-.02em;}
+  header button{
+    font-family:inherit;font-size:13px;color:#6b665c;background:none;border:1px solid var(--hair);
+    border-radius:8px;padding:6px 12px;cursor:pointer;
+  }
+
+  h2{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:32px 0 14px;}
+  h2:first-of-type{margin-top:0;}
+
+  /* Calendar */
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .cal-nav button{
+    font-family:inherit;font-size:16px;background:none;border:1px solid var(--hair);border-radius:6px;
+    width:32px;height:32px;cursor:pointer;color:var(--ink);
+  }
+  .cal-nav .label{font-weight:600;font-size:16px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-dow{font-size:11px;color:#8a8478;text-align:center;padding:4px 0;font-weight:600;}
+  .cal-cell{
+    aspect-ratio:1/1;border:1px solid var(--hair);border-radius:6px;padding:4px;
+    font-size:12px;cursor:pointer;overflow:hidden;position:relative;
+  }
+  .cal-cell.empty{border-color:transparent;cursor:default;}
+  .cal-cell.today{border-color:var(--ink);}
+  .cal-cell.selected{background:var(--ink);color:var(--white);}
+  .cal-cell .num{font-weight:600;}
+  .cal-cell .chip{font-size:9px;line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cal-cell .more{font-size:9px;color:var(--orange);}
+  .cal-cell.selected .more{color:#ffb199;}
+
+  /* Day list */
+  .day-label{font-weight:600;font-size:15px;margin-bottom:10px;}
+  .res-item{
+    border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;
+  }
+  .res-item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .res-item .time{font-weight:600;font-size:15px;}
+  .res-item .no{color:#8a8478;font-size:11px;margin-top:2px;}
+  .res-item button{
+    font-family:inherit;font-size:12px;color:var(--orange);background:none;border:0;cursor:pointer;
+    flex:0 0 auto;
+  }
+  .res-item dl{
+    display:grid;grid-template-columns:64px 1fr;gap:4px 8px;margin-top:10px;font-size:13px;
+  }
+  .res-item dt{color:#8a8478;}
+  .res-item dd{word-break:break-all;}
+  .empty-note{color:#8a8478;font-size:13px;padding:8px 0;}
+
+  /* Form */
+  form{display:grid;gap:10px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  label{font-size:12px;color:#6b665c;display:block;margin-bottom:4px;}
+  input, textarea{
+    font-family:inherit;font-size:14px;width:100%;
+    border:1px solid var(--hair);border-radius:6px;padding:9px 10px;
+  }
+  fieldset{border:0;padding:0;margin:0;}
+  legend{font-size:12px;font-weight:600;color:var(--ink);margin:10px 0 2px;padding:0;}
+  form button{
+    font-family:inherit;font-weight:600;font-size:14px;
+    background:var(--ink);color:var(--white);border:0;border-radius:8px;
+    padding:11px;cursor:pointer;margin-top:4px;
+  }
+
+  .warn{
+    margin-top:32px;padding:12px 14px;border:1px solid var(--hair);border-radius:8px;
+    font-size:12px;color:#6b665c;
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="wordmark">TYPE LOUNGE</div>
+  <div>
+    <input type="password" id="pw" inputmode="numeric" placeholder="비밀번호" maxlength="12">
+  </div>
+  <button onclick="tryUnlock()">입장</button>
+  <div class="error" id="pwError"></div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="wordmark">TYPE LOUNGE 어드민</div>
+    <button onclick="lock()">로그아웃</button>
+  </header>
+
+  <h2>예약 캘린더</h2>
+  <div class="cal-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <div class="label" id="calLabel"></div>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <h2>선택한 날짜</h2>
+  <div class="day-label" id="dayLabel"></div>
+  <div id="dayList"></div>
+
+  <h2>새 예약 추가</h2>
+  <form onsubmit="addReservation(event)">
+    <fieldset>
+      <legend>예약 내용</legend>
+      <div class="row2">
+        <div>
+          <label>예약번호</label>
+          <input type="text" id="fBookingNo" placeholder="예: 10385020">
+        </div>
+        <div>
+          <label>신청일</label>
+          <input type="date" id="fApplied">
+        </div>
+      </div>
+      <div class="row3">
+        <div>
+          <label>이용 날짜</label>
+          <input type="date" id="fDate" required>
+        </div>
+        <div>
+          <label>시작 시간</label>
+          <input type="time" id="fStart" required>
+        </div>
+        <div>
+          <label>종료 시간</label>
+          <input type="time" id="fEnd" required>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>인원수</label>
+          <input type="number" id="fGuests" min="1" placeholder="예: 5">
+        </div>
+        <div>
+          <label>사용목적</label>
+          <input type="text" id="fPurpose" placeholder="예: 비즈니스 미팅">
+        </div>
+      </div>
+      <div>
+        <label>추가옵션</label>
+        <input type="text" id="fOption" placeholder="예: 팟캐스트 장비 대여">
+      </div>
+      <div>
+        <label>요청사항</label>
+        <input type="text" id="fRequest" placeholder="예약자가 남긴 요청사항">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>예약자 정보</legend>
+      <div>
+        <label>예약자명</label>
+        <input type="text" id="fName" required placeholder="예: 김민수">
+      </div>
+      <div class="row2">
+        <div>
+          <label>연락처</label>
+          <input type="tel" id="fPhone" placeholder="선택">
+        </div>
+        <div>
+          <label>이메일</label>
+          <input type="email" id="fEmail" placeholder="선택">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>결제 정보</legend>
+      <div class="row2">
+        <div>
+          <label>결제금액</label>
+          <input type="number" id="fAmount" min="0" placeholder="예: 16000">
+        </div>
+        <div>
+          <label>결제수단</label>
+          <input type="text" id="fPayment" placeholder="예: 네이버페이">
+        </div>
+      </div>
+    </fieldset>
+
+    <div>
+      <label>메모 (내부용)</label>
+      <input type="text" id="fMemo" placeholder="선택">
+    </div>
+
+    <button type="submit">예약 추가</button>
+  </form>
+
+  <div class="warn">
+    이 예약 데이터는 지금 사용 중인 브라우저에만 저장돼요(다른 기기·브라우저에서는 보이지 않아요). 비밀번호 입력도 화면 잠금용이라 실제 보안 기능은 아니니, 이 페이지 링크는 형운님만 보관해주세요.
+  </div>
+</div>
+
+<script>
+  var PASSWORD = "123100";
+  var STORAGE_KEY = "typelounge_reservations";
+  var UNLOCK_KEY = "typelounge_admin_unlocked";
+
+  var today = new Date();
+  var viewYear = today.getFullYear();
+  var viewMonth = today.getMonth(); // 0-11
+  var selectedDate = fmtDate(today);
+
+  function fmtDate(d){
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+
+  function loadReservations(){
+    try{
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    }catch(e){ return []; }
+  }
+  function saveReservations(list){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+
+  function tryUnlock(){
+    var val = document.getElementById('pw').value;
+    if(val === PASSWORD){
+      sessionStorage.setItem(UNLOCK_KEY, '1');
+      showApp();
+    }else{
+      document.getElementById('pwError').textContent = '비밀번호가 맞지 않아요.';
+    }
+  }
+  function lock(){
+    sessionStorage.removeItem(UNLOCK_KEY);
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('pw').value = '';
+  }
+  function showApp(){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('fDate').value = selectedDate;
+    renderCalendar();
+    renderDayList();
+  }
+
+  document.getElementById('pw').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryUnlock();
+  });
+
+  function changeMonth(delta){
+    viewMonth += delta;
+    if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+    if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+    renderCalendar();
+  }
+
+  function renderCalendar(){
+    var label = viewYear + '년 ' + (viewMonth+1) + '월';
+    document.getElementById('calLabel').textContent = label;
+
+    var grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    var dows = ['일','월','화','수','목','금','토'];
+    dows.forEach(function(d){
+      var el = document.createElement('div');
+      el.className = 'cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    var firstDay = new Date(viewYear, viewMonth, 1);
+    var startWeekday = firstDay.getDay();
+    var daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+    var reservations = loadReservations();
+    var todayStr = fmtDate(new Date());
+
+    for(var i=0;i<startWeekday;i++){
+      var blank = document.createElement('div');
+      blank.className = 'cal-cell empty';
+      grid.appendChild(blank);
+    }
+
+    for(var day=1; day<=daysInMonth; day++){
+      var dateStr = viewYear + '-' + String(viewMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+      var cell = document.createElement('div');
+      cell.className = 'cal-cell';
+      if(dateStr === todayStr) cell.className += ' today';
+      if(dateStr === selectedDate) cell.className += ' selected';
+      cell.onclick = (function(ds){ return function(){ selectDate(ds); }; })(dateStr);
+
+      var dayRes = reservations.filter(function(r){ return r.date === dateStr; })
+        .sort(function(a,b){ return a.start.localeCompare(b.start); });
+
+      var html = '<div class="num">' + day + '</div>';
+      dayRes.slice(0,2).forEach(function(r){
+        html += '<div class="chip">' + r.start + ' ' + escapeHtml(r.name) + '</div>';
+      });
+      if(dayRes.length > 2){
+        html += '<div class="more">+' + (dayRes.length - 2) + '</div>';
+      }
+      cell.innerHTML = html;
+      grid.appendChild(cell);
+    }
+  }
+
+  function selectDate(dateStr){
+    selectedDate = dateStr;
+    document.getElementById('fDate').value = dateStr;
+    renderCalendar();
+    renderDayList();
+  }
+
+  function renderDayList(){
+    var d = new Date(selectedDate + 'T00:00:00');
+    var dows = ['일','월','화','수','목','금','토'];
+    var label = selectedDate.replace(/-/g,'.') + '(' + dows[d.getDay()] + ')';
+    document.getElementById('dayLabel').textContent = label;
+
+    var reservations = loadReservations().filter(function(r){ return r.date === selectedDate; })
+      .sort(function(a,b){ return a.start.localeCompare(b.start); });
+
+    var list = document.getElementById('dayList');
+    if(reservations.length === 0){
+      list.innerHTML = '<div class="empty-note">이 날짜엔 예약이 없어요.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    reservations.forEach(function(r){
+      var item = document.createElement('div');
+      item.className = 'res-item';
+
+      var rows = [];
+      if(r.guests) rows.push(['인원', r.guests + '명']);
+      if(r.purpose) rows.push(['목적', r.purpose]);
+      if(r.option) rows.push(['옵션', r.option]);
+      if(r.request) rows.push(['요청사항', r.request]);
+      if(r.phone) rows.push(['연락처', r.phone]);
+      if(r.email) rows.push(['이메일', r.email]);
+      if(r.amount) rows.push(['결제금액', Number(r.amount).toLocaleString() + '원']);
+      if(r.payment) rows.push(['결제수단', r.payment]);
+      if(r.memo) rows.push(['메모', r.memo]);
+
+      var dlHtml = rows.map(function(row){
+        return '<dt>' + row[0] + '</dt><dd>' + escapeHtml(String(row[1])) + '</dd>';
+      }).join('');
+
+      item.innerHTML =
+        '<div class="top">' +
+          '<div>' +
+            '<div class="time">' + r.start + ' – ' + r.end + ' · ' + escapeHtml(r.name) + '</div>' +
+            (r.bookingNo ? '<div class="no">예약번호 ' + escapeHtml(r.bookingNo) + '</div>' : '') +
+          '</div>' +
+          '<button data-id="' + r.id + '">삭제</button>' +
+        '</div>' +
+        (rows.length ? '<dl>' + dlHtml + '</dl>' : '');
+      item.querySelector('button').onclick = function(){ deleteReservation(r.id); };
+      list.appendChild(item);
+    });
+  }
+
+  function addReservation(e){
+    e.preventDefault();
+    var r = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      bookingNo: document.getElementById('fBookingNo').value.trim(),
+      applied: document.getElementById('fApplied').value,
+      date: document.getElementById('fDate').value,
+      start: document.getElementById('fStart').value,
+      end: document.getElementById('fEnd').value,
+      guests: document.getElementById('fGuests').value ? Number(document.getElementById('fGuests').value) : null,
+      purpose: document.getElementById('fPurpose').value.trim(),
+      option: document.getElementById('fOption').value.trim(),
+      request: document.getElementById('fRequest').value.trim(),
+      name: document.getElementById('fName').value.trim(),
+      phone: document.getElementById('fPhone').value.trim(),
+      email: document.getElementById('fEmail').value.trim(),
+      amount: document.getElementById('fAmount').value ? Number(document.getElementById('fAmount').value) : null,
+      payment: document.getElementById('fPayment').value.trim(),
+      memo: document.getElementById('fMemo').value.trim()
+    };
+    if(!r.date || !r.start || !r.end || !r.name) return;
+
+    var list = loadReservations();
+    list.push(r);
+    saveReservations(list);
+
+    selectedDate = r.date;
+    var parts = r.date.split('-');
+    viewYear = Number(parts[0]);
+    viewMonth = Number(parts[1]) - 1;
+
+    e.target.reset();
+    document.getElementById('fDate').value = selectedDate;
+    renderCalendar();
+    renderDayList();
+  }
+
+  function deleteReservation(id){
+    var list = loadReservations().filter(function(r){ return r.id !== id; });
+    saveReservations(list);
+    renderCalendar();
+    renderDayList();
+  }
+
+  function escapeHtml(s){
+    var div = document.createElement('div');
+    div.textContent = s || '';
+    return div.innerHTML;
+  }
+
+  if(sessionStorage.getItem(UNLOCK_KEY) === '1'){
+    showApp();
+  }
+</script>
+
+</body>
+</html>
