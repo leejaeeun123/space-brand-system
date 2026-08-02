@@ -78,6 +78,7 @@
   .res-item .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .res-item .time{font-weight:600;font-size:15px;}
   .res-item .no{color:#8a8478;font-size:11px;margin-top:2px;}
+  .res-item .src{display:inline-block;font-size:10px;color:#6b665c;border:1px solid var(--hair);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
   .res-item button{
     font-family:inherit;font-size:12px;color:var(--orange);background:none;border:0;cursor:pointer;
     flex:0 0 auto;
@@ -94,7 +95,7 @@
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
   label{font-size:12px;color:#6b665c;display:block;margin-bottom:4px;}
-  input, textarea{
+  input, textarea, select{
     font-family:inherit;font-size:14px;width:100%;
     border:1px solid var(--hair);border-radius:6px;padding:9px 10px;
   }
@@ -147,13 +148,24 @@
       <legend>예약 내용</legend>
       <div class="row2">
         <div>
+          <label>예약 구분</label>
+          <select id="fSource" required>
+            <option value="" disabled selected>선택</option>
+            <option value="스클">스클</option>
+            <option value="네이버">네이버</option>
+          </select>
+        </div>
+        <div>
           <label>예약번호</label>
           <input type="text" id="fBookingNo" placeholder="예: 10385020">
         </div>
+      </div>
+      <div class="row2">
         <div>
           <label>신청일</label>
           <input type="date" id="fApplied">
         </div>
+        <div></div>
       </div>
       <div class="row3">
         <div>
@@ -229,13 +241,18 @@
     <button type="submit">예약 추가</button>
   </form>
 
+  <h2>여러 건 한번에 가져오기</h2>
+  <textarea id="importJson" rows="4" placeholder='[{"date":"2026-08-05","start":"20:00","end":"22:00","name":"예약자명","source":"네이버"}]' style="font-family:monospace;font-size:12px;resize:vertical;"></textarea>
+  <button type="button" onclick="importReservations()" style="font-family:inherit;font-weight:600;font-size:14px;background:var(--ink);color:var(--white);border:0;border-radius:8px;padding:11px;cursor:pointer;margin-top:8px;width:100%;">가져오기</button>
+  <div id="importMsg" style="font-size:12px;color:#6b665c;margin-top:6px;"></div>
+
   <div class="warn">
     이 예약 데이터는 지금 사용 중인 브라우저에만 저장돼요(다른 기기·브라우저에서는 보이지 않아요). 비밀번호 입력도 화면 잠금용이라 실제 보안 기능은 아니니, 이 페이지 링크는 형운님만 보관해주세요.
   </div>
 </div>
 
 <script>
-  var PASSWORD = "123100";
+  var PASSWORD = "1231001010";
   var STORAGE_KEY = "typelounge_reservations";
   var UNLOCK_KEY = "typelounge_admin_unlocked";
 
@@ -370,6 +387,7 @@
       item.className = 'res-item';
 
       var rows = [];
+      if(r.applied) rows.push(['신청일', r.applied]);
       if(r.guests) rows.push(['인원', r.guests + '명']);
       if(r.purpose) rows.push(['목적', r.purpose]);
       if(r.option) rows.push(['옵션', r.option]);
@@ -387,7 +405,7 @@
       item.innerHTML =
         '<div class="top">' +
           '<div>' +
-            '<div class="time">' + r.start + ' – ' + r.end + ' · ' + escapeHtml(r.name) + '</div>' +
+            '<div class="time">' + r.start + ' – ' + r.end + ' · ' + escapeHtml(r.name) + (r.source ? ' <span class="src">' + escapeHtml(r.source) + '</span>' : '') + '</div>' +
             (r.bookingNo ? '<div class="no">예약번호 ' + escapeHtml(r.bookingNo) + '</div>' : '') +
           '</div>' +
           '<button data-id="' + r.id + '">삭제</button>' +
@@ -402,6 +420,7 @@
     e.preventDefault();
     var r = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      source: document.getElementById('fSource').value,
       bookingNo: document.getElementById('fBookingNo').value.trim(),
       applied: document.getElementById('fApplied').value,
       date: document.getElementById('fDate').value,
@@ -438,6 +457,68 @@
   function deleteReservation(id){
     var list = loadReservations().filter(function(r){ return r.id !== id; });
     saveReservations(list);
+    renderCalendar();
+    renderDayList();
+  }
+
+  function importReservations(){
+    var msg = document.getElementById('importMsg');
+    var raw = document.getElementById('importJson').value.trim();
+    if(!raw){ msg.textContent = '붙여넣을 JSON을 입력해주세요.'; return; }
+    var incoming;
+    try{
+      incoming = JSON.parse(raw);
+      if(!Array.isArray(incoming)) throw new Error('array required');
+    }catch(e){
+      msg.textContent = 'JSON 형식이 잘못됐어요. 배열([...]) 형태인지 확인해주세요.';
+      return;
+    }
+
+    var list = loadReservations();
+    var existingNos = {};
+    list.forEach(function(r){ if(r.bookingNo) existingNos[r.bookingNo] = true; });
+
+    var added = 0, skipped = 0;
+    incoming.forEach(function(item){
+      if(!item || !item.date || !item.start || !item.end || !item.name){ skipped++; return; }
+      if(item.bookingNo && existingNos[item.bookingNo]){ skipped++; return; }
+      var r = {
+        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+        source: item.source || '',
+        bookingNo: item.bookingNo || '',
+        applied: item.applied || '',
+        date: item.date,
+        start: item.start,
+        end: item.end,
+        guests: item.guests || null,
+        purpose: item.purpose || '',
+        option: item.option || '',
+        request: item.request || '',
+        name: item.name,
+        phone: item.phone || '',
+        email: item.email || '',
+        amount: item.amount || null,
+        payment: item.payment || '',
+        memo: item.memo || ''
+      };
+      list.push(r);
+      if(r.bookingNo) existingNos[r.bookingNo] = true;
+      added++;
+    });
+
+    saveReservations(list);
+    document.getElementById('importJson').value = '';
+    msg.textContent = added + '건 추가했어요' + (skipped ? ' (' + skipped + '건은 건너뛰었어요)' : '') + '.';
+
+    if(added > 0){
+      var last = incoming[incoming.length - 1];
+      if(last && last.date){
+        selectedDate = last.date;
+        var parts = last.date.split('-');
+        viewYear = Number(parts[0]);
+        viewMonth = Number(parts[1]) - 1;
+      }
+    }
     renderCalendar();
     renderDayList();
   }
