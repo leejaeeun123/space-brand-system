@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>TYPE LOUNGE — 어드민</title>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --ink:#16130F;
@@ -247,14 +248,18 @@
   <div id="importMsg" style="font-size:12px;color:#6b665c;margin-top:6px;"></div>
 
   <div class="warn">
-    이 예약 데이터는 지금 사용 중인 브라우저에만 저장돼요(다른 기기·브라우저에서는 보이지 않아요). 비밀번호 입력도 화면 잠금용이라 실제 보안 기능은 아니니, 이 페이지 링크는 형운님만 보관해주세요.
+    이 예약 데이터는 Supabase DB에 저장돼서 어느 기기에서 열어도 같은 내역이 보여요. 비밀번호는 서버(DB)에서 직접 확인하지만, 그래도 이 페이지 링크와 비밀번호는 형운님만 알고 계셔야 해요.
   </div>
 </div>
 
 <script>
-  var PASSWORD = "1231001010";
-  var STORAGE_KEY = "typelounge_reservations";
-  var UNLOCK_KEY = "typelounge_admin_unlocked";
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var UNLOCK_KEY = "typelounge_admin_password";
+  var currentPassword = '';
+  var reservationsCache = [];
 
   var today = new Date();
   var viewYear = today.getFullYear();
@@ -268,26 +273,51 @@
     return y+'-'+m+'-'+day;
   }
 
-  function loadReservations(){
-    try{
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    }catch(e){ return []; }
+  function mapRow(row){
+    return {
+      id: row.id,
+      source: row.source || '',
+      bookingNo: row.booking_no || '',
+      applied: row.applied || '',
+      date: row.date,
+      start: (row.start_time || '').slice(0,5),
+      end: (row.end_time || '').slice(0,5),
+      guests: row.guests,
+      purpose: row.purpose || '',
+      option: row.option_text || '',
+      request: row.request || '',
+      name: row.name,
+      phone: row.phone || '',
+      email: row.email || '',
+      amount: row.amount,
+      payment: row.payment || '',
+      memo: row.memo || ''
+    };
   }
-  function saveReservations(list){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+
+  function fetchReservations(password){
+    return sb.rpc('admin_list_reservations', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return (res.data || []).map(mapRow);
+    });
   }
 
   function tryUnlock(){
     var val = document.getElementById('pw').value;
-    if(val === PASSWORD){
-      sessionStorage.setItem(UNLOCK_KEY, '1');
+    document.getElementById('pwError').textContent = '확인 중...';
+    fetchReservations(val).then(function(list){
+      currentPassword = val;
+      reservationsCache = list;
+      sessionStorage.setItem(UNLOCK_KEY, val);
+      document.getElementById('pwError').textContent = '';
       showApp();
-    }else{
+    }).catch(function(){
       document.getElementById('pwError').textContent = '비밀번호가 맞지 않아요.';
-    }
+    });
   }
   function lock(){
     sessionStorage.removeItem(UNLOCK_KEY);
+    currentPassword = '';
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('pw').value = '';
@@ -303,6 +333,14 @@
   document.getElementById('pw').addEventListener('keydown', function(e){
     if(e.key === 'Enter') tryUnlock();
   });
+
+  function refresh(){
+    return fetchReservations(currentPassword).then(function(list){
+      reservationsCache = list;
+      renderCalendar();
+      renderDayList();
+    });
+  }
 
   function changeMonth(delta){
     viewMonth += delta;
@@ -328,7 +366,7 @@
     var firstDay = new Date(viewYear, viewMonth, 1);
     var startWeekday = firstDay.getDay();
     var daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
-    var reservations = loadReservations();
+    var reservations = reservationsCache;
     var todayStr = fmtDate(new Date());
 
     for(var i=0;i<startWeekday;i++){
@@ -373,7 +411,7 @@
     var label = selectedDate.replace(/-/g,'.') + '(' + dows[d.getDay()] + ')';
     document.getElementById('dayLabel').textContent = label;
 
-    var reservations = loadReservations().filter(function(r){ return r.date === selectedDate; })
+    var reservations = reservationsCache.filter(function(r){ return r.date === selectedDate; })
       .sort(function(a,b){ return a.start.localeCompare(b.start); });
 
     var list = document.getElementById('dayList');
@@ -418,47 +456,49 @@
 
   function addReservation(e){
     e.preventDefault();
-    var r = {
-      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
-      source: document.getElementById('fSource').value,
-      bookingNo: document.getElementById('fBookingNo').value.trim(),
-      applied: document.getElementById('fApplied').value,
-      date: document.getElementById('fDate').value,
-      start: document.getElementById('fStart').value,
-      end: document.getElementById('fEnd').value,
-      guests: document.getElementById('fGuests').value ? Number(document.getElementById('fGuests').value) : null,
-      purpose: document.getElementById('fPurpose').value.trim(),
-      option: document.getElementById('fOption').value.trim(),
-      request: document.getElementById('fRequest').value.trim(),
-      name: document.getElementById('fName').value.trim(),
-      phone: document.getElementById('fPhone').value.trim(),
-      email: document.getElementById('fEmail').value.trim(),
-      amount: document.getElementById('fAmount').value ? Number(document.getElementById('fAmount').value) : null,
-      payment: document.getElementById('fPayment').value.trim(),
-      memo: document.getElementById('fMemo').value.trim()
+    var payload = {
+      p_password: currentPassword,
+      p_source: document.getElementById('fSource').value || null,
+      p_booking_no: document.getElementById('fBookingNo').value.trim() || null,
+      p_applied: document.getElementById('fApplied').value || null,
+      p_date: document.getElementById('fDate').value,
+      p_start: document.getElementById('fStart').value,
+      p_end: document.getElementById('fEnd').value,
+      p_guests: document.getElementById('fGuests').value ? Number(document.getElementById('fGuests').value) : null,
+      p_purpose: document.getElementById('fPurpose').value.trim() || null,
+      p_option: document.getElementById('fOption').value.trim() || null,
+      p_request: document.getElementById('fRequest').value.trim() || null,
+      p_name: document.getElementById('fName').value.trim(),
+      p_phone: document.getElementById('fPhone').value.trim() || null,
+      p_email: document.getElementById('fEmail').value.trim() || null,
+      p_amount: document.getElementById('fAmount').value ? Number(document.getElementById('fAmount').value) : null,
+      p_payment: document.getElementById('fPayment').value.trim() || null,
+      p_memo: document.getElementById('fMemo').value.trim() || null
     };
-    if(!r.date || !r.start || !r.end || !r.name) return;
+    if(!payload.p_date || !payload.p_start || !payload.p_end || !payload.p_name) return;
 
-    var list = loadReservations();
-    list.push(r);
-    saveReservations(list);
-
-    selectedDate = r.date;
-    var parts = r.date.split('-');
-    viewYear = Number(parts[0]);
-    viewMonth = Number(parts[1]) - 1;
-
-    e.target.reset();
-    document.getElementById('fDate').value = selectedDate;
-    renderCalendar();
-    renderDayList();
+    sb.rpc('admin_add_reservation', payload).then(function(res){
+      if(res.error) throw res.error;
+      selectedDate = payload.p_date;
+      var parts = payload.p_date.split('-');
+      viewYear = Number(parts[0]);
+      viewMonth = Number(parts[1]) - 1;
+      e.target.reset();
+      document.getElementById('fDate').value = selectedDate;
+      return refresh();
+    }).catch(function(err){
+      alert('추가하지 못했어요: ' + (err && err.message ? err.message : err));
+    });
   }
 
   function deleteReservation(id){
-    var list = loadReservations().filter(function(r){ return r.id !== id; });
-    saveReservations(list);
-    renderCalendar();
-    renderDayList();
+    if(!confirm('이 예약을 삭제할까요?')) return;
+    sb.rpc('admin_delete_reservation', { p_password: currentPassword, p_id: id }).then(function(res){
+      if(res.error) throw res.error;
+      return refresh();
+    }).catch(function(err){
+      alert('삭제하지 못했어요: ' + (err && err.message ? err.message : err));
+    });
   }
 
   function importReservations(){
@@ -474,53 +514,58 @@
       return;
     }
 
-    var list = loadReservations();
     var existingNos = {};
-    list.forEach(function(r){ if(r.bookingNo) existingNos[r.bookingNo] = true; });
+    reservationsCache.forEach(function(r){ if(r.bookingNo) existingNos[r.bookingNo] = true; });
 
-    var added = 0, skipped = 0;
+    var valid = [], skipped = 0;
     incoming.forEach(function(item){
       if(!item || !item.date || !item.start || !item.end || !item.name){ skipped++; return; }
       if(item.bookingNo && existingNos[item.bookingNo]){ skipped++; return; }
-      var r = {
-        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
-        source: item.source || '',
-        bookingNo: item.bookingNo || '',
-        applied: item.applied || '',
-        date: item.date,
-        start: item.start,
-        end: item.end,
-        guests: item.guests || null,
-        purpose: item.purpose || '',
-        option: item.option || '',
-        request: item.request || '',
-        name: item.name,
-        phone: item.phone || '',
-        email: item.email || '',
-        amount: item.amount || null,
-        payment: item.payment || '',
-        memo: item.memo || ''
-      };
-      list.push(r);
-      if(r.bookingNo) existingNos[r.bookingNo] = true;
-      added++;
+      if(item.bookingNo) existingNos[item.bookingNo] = true;
+      valid.push(item);
     });
 
-    saveReservations(list);
-    document.getElementById('importJson').value = '';
-    msg.textContent = added + '건 추가했어요' + (skipped ? ' (' + skipped + '건은 건너뛰었어요)' : '') + '.';
+    msg.textContent = '가져오는 중...';
+    var added = 0;
+    var chain = Promise.resolve();
+    valid.forEach(function(item){
+      chain = chain.then(function(){
+        return sb.rpc('admin_add_reservation', {
+          p_password: currentPassword,
+          p_source: item.source || null,
+          p_booking_no: item.bookingNo || null,
+          p_applied: item.applied || null,
+          p_date: item.date,
+          p_start: item.start,
+          p_end: item.end,
+          p_guests: item.guests || null,
+          p_purpose: item.purpose || null,
+          p_option: item.option || null,
+          p_request: item.request || null,
+          p_name: item.name,
+          p_phone: item.phone || null,
+          p_email: item.email || null,
+          p_amount: item.amount || null,
+          p_payment: item.payment || null,
+          p_memo: item.memo || null
+        }).then(function(res){
+          if(!res.error) added++;
+        });
+      });
+    });
 
-    if(added > 0){
-      var last = incoming[incoming.length - 1];
-      if(last && last.date){
+    chain.then(function(){
+      document.getElementById('importJson').value = '';
+      msg.textContent = added + '건 추가했어요' + (skipped ? ' (' + skipped + '건은 건너뛰었어요)' : '') + '.';
+      if(valid.length){
+        var last = valid[valid.length-1];
         selectedDate = last.date;
         var parts = last.date.split('-');
         viewYear = Number(parts[0]);
         viewMonth = Number(parts[1]) - 1;
       }
-    }
-    renderCalendar();
-    renderDayList();
+      return refresh();
+    });
   }
 
   function escapeHtml(s){
@@ -529,9 +574,18 @@
     return div.innerHTML;
   }
 
-  if(sessionStorage.getItem(UNLOCK_KEY) === '1'){
-    showApp();
-  }
+  (function(){
+    var savedPw = sessionStorage.getItem(UNLOCK_KEY);
+    if(savedPw){
+      fetchReservations(savedPw).then(function(list){
+        currentPassword = savedPw;
+        reservationsCache = list;
+        showApp();
+      }).catch(function(){
+        sessionStorage.removeItem(UNLOCK_KEY);
+      });
+    }
+  })();
 </script>
 
 </body>
