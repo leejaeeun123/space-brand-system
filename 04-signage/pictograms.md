@@ -67,9 +67,10 @@
 > 인쇄·소형 사이니지(세로 5~10mm)를 위해 **모든 stroke를 채운 아웃라인(면) 패스로 변환**.
 > stroke 렌더링·폰트 의존이 없어 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.
 
-### 편의·방향·안전 픽토 (18종, `picto-*.svg`)
+### 편의·방향·안전 픽토 (19종, `picto-*.svg`)
 1차 9종 — `coffee · extinguisher · no · nosmoke · room · stairs · toilet · umbrella · wifi`
 2차 9종 (2026-07-26) — `bluetooth · speaker(스피커) · tv · notouch(손대지 마세요) · shoe(신발장) · phone(전화기) · trash(쓰레기통) · aircon(냉난방) · power(전원)`
+3차 1종 (2026-08-02) — `bbq(바베큐)` — 연기 3줄 + 석쇠 + 사다리꼴 화로 + **숯 3점** + 벌어진 다리. 숯 점이 없으면 탁자로 읽혀 필수.
 - viewBox 100×100, `fill="currentColor"` 단일 패스, `fill-rule="evenodd"`(닫힌 링은 자동으로 구멍).
 - **색**: `<svg color="#16130F">` 잉크 기본값 + `fill="currentColor"` — `<img>`로도 잉크로 보이고, 인라인+CSS `color`로 화이트 반전도 가능(양립).
 - 선 굵기 **2.7**(2차, 1차 3.0보다 살짝 얇게) · square 캡 · miter 조인 · 중앙정렬.

@@ -23,11 +23,11 @@
   .ico .ko{margin-top:18px;font-size:14px;font-weight:700;}
   .ico .en{font-size:10.5px;letter-spacing:.12em;opacity:.5;margin-top:3px;}
 
-  .darkgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:13px;padding:22px;background:var(--ink);border-radius:16px;margin:8px 0 30px;}
+  .darkgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:13px;padding:22px;background:var(--ink);border-radius:16px;margin:8px 0 30px;}
   .darkgrid .d{display:flex;align-items:center;justify-content:center;aspect-ratio:1;}
   .darkgrid svg{width:56px;height:56px;color:#fff;stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;}
 
-  .orangegrid{display:grid;grid-template-columns:repeat(9,1fr);gap:13px;padding:22px;background:var(--orange);border-radius:16px;margin:8px 0 30px;}
+  .orangegrid{display:grid;grid-template-columns:repeat(10,1fr);gap:13px;padding:22px;background:var(--orange);border-radius:16px;margin:8px 0 30px;}
   .orangegrid .d{display:flex;align-items:center;justify-content:center;aspect-ratio:1;}
   .orangegrid svg{width:56px;height:56px;color:#fff;stroke-width:3;stroke-linecap:square;stroke-linejoin:miter;overflow:visible;}
 
@@ -130,12 +130,30 @@
     </g>
   </symbol>
 
+  <!-- 바베큐 (연기 3줄 + 석쇠 + 사다리꼴 화로 + 숯 3점 + 다리) -->
+  <symbol id="p-bbq" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor">
+      <path d="M38,36 Q34,30 38,24 Q42,18 38,12"/>
+      <path d="M50,36 Q46,30 50,24 Q54,18 50,12"/>
+      <path d="M62,36 Q58,30 62,24 Q66,18 62,12"/>
+      <path d="M20,46 L80,46"/>
+      <path d="M27,46 L36,66 L64,66 L73,46"/>
+      <path d="M36,66 L31,80"/>
+      <path d="M64,66 L69,80"/>
+    </g>
+    <g fill="currentColor" stroke="none">
+      <circle cx="42" cy="57" r="2.4"/>
+      <circle cx="50" cy="57" r="2.4"/>
+      <circle cx="58" cy="57" r="2.4"/>
+    </g>
+  </symbol>
+
 </svg>
 
 <header>
-  <h1>타입라운지 — 픽토그램 추가<span class="en">PICTOGRAMS · +7</span></h1>
-  <p>기존 <strong>각진 모노라인</strong> 시스템(선 두께 3 · square 캡 · miter 조인 · viewBox 100)에 맞춰 신규 7종 제작. 잉크 on 화이트(라이트) / 화이트 on 잉크·오렌지(사이니지 적용감). 라벨은 Paperlogy 병행.</p>
-  <span class="tag">블루투스 · TV · 손대지마세요 · 신발장 · 전화기 · 소화기 · 쓰레기통 · 냉난방 · 전원</span>
+  <h1>타입라운지 — 픽토그램 추가<span class="en">PICTOGRAMS · +10</span></h1>
+  <p>기존 <strong>각진 모노라인</strong> 시스템(선 두께 3 · square 캡 · miter 조인 · viewBox 100)에 맞춰 신규 10종 제작. 잉크 on 화이트(라이트) / 화이트 on 잉크·오렌지(사이니지 적용감). 라벨은 Paperlogy 병행.</p>
+  <span class="tag">블루투스 · TV · 손대지마세요 · 신발장 · 전화기 · 소화기 · 쓰레기통 · 냉난방 · 전원 · 바베큐</span>
 </header>
 
 <section>
@@ -150,6 +168,7 @@
     <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-trash"/></svg><div class="ko">쓰레기통</div><div class="en">TRASH</div></div>
     <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-aircon"/></svg><div class="ko">냉난방</div><div class="en">AIR CONDITIONER</div></div>
     <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-power"/></svg><div class="ko">전원</div><div class="en">POWER</div></div>
+    <div class="ico"><svg viewBox="0 0 100 100"><use href="#p-bbq"/></svg><div class="ko">바베큐</div><div class="en">BARBECUE</div></div>
   </div>
 </section>
 
@@ -165,6 +184,7 @@
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-trash"/></svg></div>
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-aircon"/></svg></div>
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-power"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-bbq"/></svg></div>
   </div>
 </section>
 
@@ -180,6 +200,7 @@
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-trash"/></svg></div>
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-aircon"/></svg></div>
     <div class="d"><svg viewBox="0 0 100 100"><use href="#p-power"/></svg></div>
+    <div class="d"><svg viewBox="0 0 100 100"><use href="#p-bbq"/></svg></div>
   </div>
 </section>
 

@@ -130,7 +130,7 @@
 | 컬러 | `spine/ink` 기본 / 반전 시 `spine/white` / 컬러블록 위 가능. 파일은 `currentColor` |
 | 채움 | 라인 위주 인상 유지 — 단 **납품 SVG는 stroke를 아웃라인(면)으로 변환**(스트로크·폰트 의존 0) |
 
-### 세트 (9종, `04-signage/picto-*.svg`)
+### 세트 (19종, `04-signage/picto-*.svg`)
 - **편의**: `wifi` · `coffee`(탕비) · `toilet`(화장실) · `room` · `umbrella`
 - **방향/안전**: `stairs` · `extinguisher`
 - **금지**: `no` · `nosmoke`
@@ -142,7 +142,7 @@
 - 세트 외 아이콘 혼용·입체·장식 금지. 선 굵기 고정.
 
 ### 다운로드 — 픽토그램 (아웃라인 SVG, currentColor)
-[wifi](assets/picto/picto-wifi.svg) · [coffee](assets/picto/picto-coffee.svg) · [toilet](assets/picto/picto-toilet.svg) · [room](assets/picto/picto-room.svg) · [stairs](assets/picto/picto-stairs.svg) · [umbrella](assets/picto/picto-umbrella.svg) · [extinguisher](assets/picto/picto-extinguisher.svg) · [no](assets/picto/picto-no.svg) · [nosmoke](assets/picto/picto-nosmoke.svg)
+[wifi](assets/picto/picto-wifi.svg) · [coffee](assets/picto/picto-coffee.svg) · [toilet](assets/picto/picto-toilet.svg) · [room](assets/picto/picto-room.svg) · [stairs](assets/picto/picto-stairs.svg) · [umbrella](assets/picto/picto-umbrella.svg) · [extinguisher](assets/picto/picto-extinguisher.svg) · [no](assets/picto/picto-no.svg) · [nosmoke](assets/picto/picto-nosmoke.svg) · [bluetooth](assets/picto/picto-bluetooth.svg) · [speaker](assets/picto/picto-speaker.svg) · [tv](assets/picto/picto-tv.svg) · [notouch](assets/picto/picto-notouch.svg) · [shoe](assets/picto/picto-shoe.svg) · [phone](assets/picto/picto-phone.svg) · [trash](assets/picto/picto-trash.svg) · [aircon](assets/picto/picto-aircon.svg) · [power](assets/picto/picto-power.svg) · [bbq](assets/picto/picto-bbq.svg)
 
 ### 다운로드 — 타입 태그 (Paperlogy 400 · 자간 +0.05em · 4pt 프레임 아웃라인)
 
@@ -200,7 +200,7 @@
 |---|---|---|
 | `logo-wordmark-{v,h}-{ink,white}.svg` | 워드마크 4종 | 폰트 아웃라인, 무의존 |
 | `logo-wordmark-{v,h}.svg` | 워드마크 currentColor | 웹·CSS |
-| `04-signage/picto-*.svg` (9종) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**, `currentColor` |
+| `04-signage/picto-*.svg` (19종) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**, `currentColor` |
 | `04-signage/mode-*.svg` (9종) | 타입 태그 WORK·CLASS·GATHERING | Paperlogy 400 아웃라인 · 자간 +0.05em · 4pt 프레임 · ink/white/currentColor |
 | `03-identity/favicon.svg` | 브라우저 탭 | ⚠️ 심볼 기반 — **워드마크(3선) 기반 재제작 필요** |
 
