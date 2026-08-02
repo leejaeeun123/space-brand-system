@@ -200,7 +200,7 @@
 |---|---|---|
 | `logo-wordmark-{v,h}-{ink,white}.svg` | 워드마크 4종 | 폰트 아웃라인, 무의존 |
 | `logo-wordmark-{v,h}.svg` | 워드마크 currentColor | 웹·CSS |
-| `04-signage/picto-*.svg` (19종) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**, `currentColor` |
+| `04-signage/picto-*.svg` (19종 × 3색) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**. 기본 `#16130F` · `-white` · `-current`(CSS 제어) |
 | `04-signage/mode-*.svg` (9종) | 타입 태그 WORK·CLASS·GATHERING | Paperlogy 400 아웃라인 · 자간 +0.05em · 4pt 프레임 · ink/white/currentColor |
 | `03-identity/favicon.svg` | 브라우저 탭 | ⚠️ 심볼 기반 — **워드마크(3선) 기반 재제작 필요** |
 

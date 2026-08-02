@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""⚠️ 1회성 제자리 변환 스크립트 — 재실행 금지.
+같은 폴더의 picto-*.svg를 읽어 덮어쓰므로, 이미 아웃라인된 패스를 다시 버퍼링한다.
+색상만 바꾸려면 recolor_pictos.py를 쓸 것."""
 """픽토그램 SVG의 stroke를 채운 아웃라인(패스)으로 변환.
 원본 사양 재현: stroke-width 3 (중앙정렬 → 버퍼 1.5), cap=square, join=miter."""
 import os, re, math, xml.etree.ElementTree as ET

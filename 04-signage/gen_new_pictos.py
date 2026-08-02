@@ -7,7 +7,7 @@ from shapely.geometry import LineString, Polygon, Point
 from shapely.ops import unary_union
 
 OUT = os.path.dirname(os.path.abspath(__file__))
-INK = "#16130F"           # 잉크색 기본값 (currentColor는 유지 — CSS로 반전 가능)
+INK = "#16130F"           # 기본 fill(리터럴) — -white/-current 변형을 함께 출력
 W = 2.7; R = W / 2.0      # 기존 3.0 → 2.7 (살짝 얇게)
 
 # ---------- flatten helpers ----------
@@ -236,9 +236,11 @@ for name, spec in PICTOS.items():
             geoms.append(Point(cx, cy).buffer(r))
     merged = unary_union(geoms)
     d = geom_to_path(merged)
-    out = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
-           f'width="100" height="100" color="{INK}" role="img" aria-label="{spec["label"]}">\n'
-           f'  <path fill="currentColor" fill-rule="evenodd" d="{d}"/>\n</svg>\n')
-    with open(os.path.join(OUT, f"picto-{name}.svg"), "w", encoding="utf-8") as f:
-        f.write(out)
-    print(f"outlined picto-{name}.svg  ({len(d)} chars)")
+    # 색상 3종 — 기본은 리터럴 잉크(디자인 툴이 currentColor를 검정으로 떨구는 문제 회피).
+    for suffix, fill in (("", INK), ("-white", "#ffffff"), ("-current", "currentColor")):
+        out = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
+               f'width="100" height="100" role="img" aria-label="{spec["label"]}">\n'
+               f'  <path fill="{fill}" fill-rule="evenodd" d="{d}"/>\n</svg>\n')
+        with open(os.path.join(OUT, f"picto-{name}{suffix}.svg"), "w", encoding="utf-8") as f:
+            f.write(out)
+    print(f"outlined picto-{name}.svg (+white/current)  ({len(d)} chars)")

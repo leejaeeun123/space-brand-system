@@ -72,10 +72,17 @@
 2차 9종 (2026-07-26) — `bluetooth · speaker(스피커) · tv · notouch(손대지 마세요) · shoe(신발장) · phone(전화기) · trash(쓰레기통) · aircon(냉난방) · power(전원)`
 3차 1종 (2026-08-02) — `bbq(바베큐)` — 연기 3줄 + 석쇠 + 사다리꼴 화로 + **숯 3점** + 벌어진 다리. 숯 점이 없으면 탁자로 읽혀 필수.
 - viewBox 100×100, `fill="currentColor"` 단일 패스, `fill-rule="evenodd"`(닫힌 링은 자동으로 구멍).
-- **색**: `<svg color="#16130F">` 잉크 기본값 + `fill="currentColor"` — `<img>`로도 잉크로 보이고, 인라인+CSS `color`로 화이트 반전도 가능(양립).
+- **색 3종**(2026-08-02 개정) — 파일마다 리터럴 색을 박는다.
+  | 파일 | fill | 용도 |
+  |---|---|---|
+  | `picto-X.svg` | `#16130F` | **기본** — 인쇄·사이니지 발주·`<img>`. 어떤 툴에서도 잉크 |
+  | `picto-X-white.svg` | `#ffffff` | 잉크·오렌지 배경 반전 |
+  | `picto-X-current.svg` | `currentColor` | 웹 인라인 — CSS `color`로 제어 |
+  - 이전 방식(`<svg color="#16130F">` + `fill="currentColor"`)은 **Illustrator·Figma가 `color` 표현 속성을 무시**해 검정(#000)으로 떨어졌다. 디자인 툴에서 열면 브랜드 잉크가 아니었음 — 그래서 리터럴로 전환.
+  - 색만 다시 뽑을 때는 `recolor_pictos.py`(기하 불변, 3종 재생성).
 - 선 굵기 **2.7**(2차, 1차 3.0보다 살짝 얇게) · square 캡 · miter 조인 · 중앙정렬.
 - **전화기**: 핸드셋 형태를 저해상도 flatten(3세그)해 각진(facet) 기하 스타일로 통일.
-- 재현 스크립트: 1차 `outline_picto.py`, 2차 `gen_new_pictos.py` (둘 다 shapely 버퍼).
+- 재현 스크립트: 1차 `outline_picto.py`(⚠️ **제자리 변환 1회성 — 재실행 금지**, 이미 아웃라인된 패스를 다시 버퍼링함), 2차·3차 `gen_new_pictos.py` (둘 다 shapely 버퍼). 색상 변형은 `recolor_pictos.py`.
   - `gen_new_pictos.py`는 M/L/H/V/**Q/C/A**/rect/ring/dot·`coarse` flatten 지원 — 전화기(cubic)·전원(arc)·TV/에어컨(rect)·스피커(원·점)까지.
 - 시안(stroke, 라이트/잉크/오렌지 3배경): `pictograms-add.html`.
 
