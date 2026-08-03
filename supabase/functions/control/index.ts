@@ -16,6 +16,12 @@ import { HandlerError } from "./handlers/shared.ts";
 import { list } from "./handlers/list.ts";
 import { command } from "./handlers/command.ts";
 import { registerLight, registerThinq, remove, thinqDevices } from "./handlers/registry.ts";
+import {
+  cameraCredentials,
+  cameras,
+  registerCamera,
+  removeCamera,
+} from "./handlers/cameras.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +60,8 @@ Deno.serve(async (req) => {
   const sb = dbClient();
   try {
     switch (String(body.action ?? "")) {
+      // ── 기기 제어 ──
+
       case "list":
         return json(await list(sb));
       case "thinq_devices":
@@ -66,6 +74,17 @@ Deno.serve(async (req) => {
         return json(await command(sb, body));
       case "delete":
         return json(await remove(sb, body));
+
+      // ── CCTV. 영상은 여기를 지나가지 않는다 — 목록·자격증명만 다룬다. ──
+      case "cameras":
+        return json(await cameras(sb));
+      case "camera_credentials":
+        return json(cameraCredentials());
+      case "camera_register":
+        return json(await registerCamera(sb, body));
+      case "camera_delete":
+        return json(await removeCamera(sb, body));
+
       default:
         return json({ error: `알 수 없는 action: ${body.action}` }, 400);
     }

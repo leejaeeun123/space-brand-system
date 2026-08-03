@@ -6,6 +6,9 @@
 <title>TYPE LOUNGE — 어드민</title>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- HLS 재생. 크롬·파이어폭스는 HLS를 native로 못 재생한다(사파리만 된다).
+     자격증명을 세그먼트 요청마다 붙이려면 요청을 가로챌 수 있어야 해서, 사파리에서도 이걸 쓴다. -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <style>
   :root{
     --ink:#16130F;
@@ -152,7 +155,7 @@
     background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
     padding:14px;cursor:pointer;width:100%;min-height:48px;margin-top:14px;
   }
-  #addModal .modal-box, #hvacModal .modal-box, #lightModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
+  #addModal .modal-box, #hvacModal .modal-box, #lightModal .modal-box, #cameraModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
   .modal-box-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .modal-box-header h2{margin:0;}
   .modal-close{
@@ -210,6 +213,13 @@
   .dev-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
   .dev-row > .dev-row-label{font-size:12px;color:#6b665c;width:100%;margin-bottom:2px;}
   .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;color:#6b665c;line-height:1.6;}
+  /* CCTV */
+  .cam-video{width:100%;aspect-ratio:16/9;background:#111;border-radius:6px;margin-top:10px;display:block;}
+  .cam-span{
+    display:block;width:100%;text-align:left;background:none;cursor:pointer;font:inherit;font-size:13px;
+    border:1px solid var(--hair);border-radius:8px;padding:9px 11px;margin-bottom:6px;min-height:0;
+  }
+  .cam-span.on{border-color:var(--ink);}
 </style>
 </head>
 <body>
@@ -229,6 +239,7 @@
     <nav class="side-nav">
       <button type="button" class="side-link" data-view="reservations">예약관리</button>
       <button type="button" class="side-link" data-view="control">공간 제어</button>
+      <button type="button" class="side-link" data-view="cctv">CCTV</button>
     </nav>
     <button type="button" class="side-logout" onclick="lock()">로그아웃</button>
   </aside>
@@ -267,6 +278,46 @@
 
       <button type="button" class="add-btn" onclick="openHvacModal()">+ 냉난방 기기 추가</button>
       <button type="button" class="add-btn" onclick="openLightModal()">+ 조명 추가</button>
+    </section>
+
+    <section class="view" id="view-cctv">
+      <h2>실시간</h2>
+      <div id="camNotice" class="ctl-notice" style="display:none;"></div>
+      <div id="camList"></div>
+      <button type="button" class="add-btn" onclick="openCameraModal()">+ 카메라 추가</button>
+
+      <h2>녹화 되감기</h2>
+      <div class="row2">
+        <div>
+          <label>카메라</label>
+          <select id="camPlayTarget"></select>
+        </div>
+        <div>
+          <label>길이</label>
+          <!-- 30분에서 끊는다: 재생이 blob이라 통째로 받아야 하고, 고화질 1분이 20~40MB다.
+               그 이상은 브라우저 메모리를 넘본다(admin.html의 playRecording 주석 참조). -->
+          <select id="camPlayDur">
+            <option value="60">1분</option>
+            <option value="300" selected>5분</option>
+            <option value="900">15분</option>
+            <option value="1800">30분</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>시작 시각</label>
+        <input type="datetime-local" id="camPlayStart">
+      </div>
+      <button type="button" onclick="loadRecordingSpans()">이 시각 주변 녹화 찾기</button>
+      <div id="camPlayMsg" class="dev-meta"></div>
+      <div id="camSpans"></div>
+      <video id="camPlayer" class="cam-video" controls playsinline style="display:none;"></video>
+
+      <div class="warn">
+        영상은 합정 맥에 저장되고 이 페이지로 직접 흘러옵니다 — 서버(Supabase)에는 카메라 목록과
+        상태만 있습니다. 녹화는 보관기간이 지나면 자동으로 지워지고, 그 일수는 현장 안내판에
+        적은 값과 같아야 합니다.
+      </div>
     </section>
   </div>
 </div>
@@ -416,6 +467,31 @@
   </div>
 </div>
 
+<div id="cameraModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box-header">
+      <h2>카메라 추가</h2>
+      <button type="button" class="modal-close" onclick="closeCameraModal()">✕</button>
+    </div>
+    <form onsubmit="registerCamera(event)">
+      <div>
+        <label>이름</label>
+        <input type="text" id="fCamName" required placeholder="예: 현관">
+      </div>
+      <div>
+        <label>스트림 이름</label>
+        <input type="text" id="fCamPath" required placeholder="예: entrance">
+      </div>
+      <div class="ctl-notice">
+        합정 맥의 <code>mediamtx.yml</code> 에 선언한 <code>paths</code> 이름과 <strong>글자까지 같아야</strong>
+        합니다(영소문자·숫자·<code>_</code>·<code>-</code>, 32자 이내). 다르면 카드는 뜨는데 영상만 안 나옵니다.
+      </div>
+      <div id="camModalMsg" class="dev-meta"></div>
+      <button type="submit">카메라 추가</button>
+    </form>
+  </div>
+</div>
+
 <div id="statusModal" class="modal-overlay">
   <div class="modal-box">
     <p id="statusModalText"></p>
@@ -500,6 +576,10 @@
   function lock(){
     sessionStorage.removeItem(UNLOCK_KEY);
     currentPassword = '';
+    // 잠그면 영상도 끊고 자격증명도 버린다. 화면만 가리고 스트림이 계속 흐르면
+    // '로그아웃했다'는 말이 거짓이 된다.
+    leaveCctv();
+    CAM.creds = null;
     closeSidebar();
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
@@ -515,7 +595,7 @@
   }
 
   /* 메뉴 — 추가하려면 VIEWS에 한 줄, 사이드바에 data-view 버튼, 본문에 <section id="view-이름"> 하나 */
-  var VIEWS = { reservations: '예약관리', control: '공간 제어' };
+  var VIEWS = { reservations: '예약관리', control: '공간 제어', cctv: 'CCTV' };
   var currentView = 'reservations';
 
   function showView(name){
@@ -530,6 +610,9 @@
     });
     document.getElementById('pageTitle').textContent = VIEWS[name];
     if(name === 'control') refreshDevices();
+    // CCTV를 떠나면 재생을 반드시 끊는다. 안 끊으면 다른 화면을 보는 내내 스트림이 계속
+    // 흐르고, 그건 합정 맥 업링크와 이 기기 데이터를 조용히 태운다.
+    if(name === 'cctv') enterCctv(); else leaveCctv();
     closeSidebar();
   }
 
@@ -1052,10 +1135,390 @@
     }).catch(function(err){ msg.textContent = err.message; });
   }
 
+  /* ── CCTV ───────────────────────────────────────────────────────────────────
+     기기 제어와 결정적으로 다른 점: **영상은 서버를 지나가지 않는다.** 이 페이지가 합정 맥의
+     MediaMTX에 직접 붙는다. Edge Function은 '어디로 붙어라'(주소)와 '이 계정으로 붙어라'
+     (자격증명)만 알려준다 — 영상을 Supabase로 중계하면 초당 수 Mbps가 Edge Function을
+     지나가게 되고, 그건 기술적으로도 비용상으로도 성립하지 않는다.
+
+     자격증명이 브라우저에 내려오는 것을 감수하는 이유: 그 계정은 read/playback 권한만 갖고,
+     받으려면 이미 admin 비밀번호를 통과해야 한다. 즉 admin 비밀번호와 같은 등급이지 새로
+     생긴 약점이 아니다. (ThinQ PAT·service_role 키는 여전히 절대 안 내려온다.) */
+  var CAM = {
+    cfg: null, creds: null,
+    players: {},          // hls.js 인스턴스 (재생 불가 브라우저에서는 비어 있다)
+    attached: {},         // 붙이기를 시도한 카메라. players와 달리 실패한 것도 포함한다
+    errors: {}, ids: '', spans: [], spanPath: '',
+    objectUrl: null,      // 되감기 blob. 새로 받을 때마다 이전 것을 반드시 해제한다
+  };
+
+  function camNotice(msg, isError){
+    var el = document.getElementById('camNotice');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+    el.classList.toggle('dev-warn', !!isError);
+  }
+
+  /**
+   * MediaMTX 자격증명은 **Authorization 헤더로만** 전달된다.
+   *
+   * 쿼리스트링(`?user=&pass=`)은 v1.18.0에서 "long standing security flaw"로 규정돼 막혔고,
+   * `authMethod: internal`은 애초에 토큰을 보지 않고 user/pass만 비교한다
+   * (`auth/manager.go`). 즉 쿼리로는 어떤 형태로도 통과할 수 없다.
+   *
+   * 헤더로 가면 부수 이득이 하나 더 있다 — 비밀이 URL에 안 실려서 cloudflared·MediaMTX
+   * 접근 로그에 찍히지 않는다. HLS·playback 서버 모두 `Access-Control-Allow-Headers`에
+   * Authorization을 넣고 OPTIONS 프리플라이트를 처리하므로 교차 출처에서도 통과한다.
+   */
+  function camAuthHeader(){
+    if(!CAM.creds) return null;
+    // btoa는 바이트 단위라 비ASCII가 섞이면 던진다. 자격증명은 우리가 만드는 값이지만,
+    // 한글이 섞인 순간 '재생이 안 되는데 왜인지 모르는' 상태가 되므로 UTF-8을 먼저 편다.
+    var raw = CAM.creds.user + ':' + CAM.creds.pass;
+    var bytes = new TextEncoder().encode(raw);
+    var bin = '';
+    bytes.forEach(function(b){ bin += String.fromCharCode(b); });
+    return 'Basic ' + btoa(bin);
+  }
+
+  function enterCctv(){
+    if(!currentPassword) return;
+    var start = document.getElementById('camPlayStart');
+    // 되감기 기본값은 10분 전. 대개 "방금 뭐였지"를 확인하러 오기 때문이다.
+    if(!start.value){
+      var t = new Date(Date.now() - 10*60000 - new Date().getTimezoneOffset()*60000);
+      start.value = t.toISOString().slice(0, 16);
+    }
+    refreshCameras();
+  }
+
+  /* 화면을 떠나면 재생을 끊는다. 안 끊으면 다른 화면을 보는 내내 스트림이 흘러
+     합정 맥 업링크와 이 기기 데이터를 조용히 태운다. */
+  function leaveCctv(){
+    destroyCamPlayers();
+    var v = document.getElementById('camPlayer');
+    v.pause(); v.removeAttribute('src'); v.load(); v.style.display = 'none';
+    // 받아둔 녹화는 메모리에 그대로 있다 — 화면을 떠나면 해제한다.
+    if(CAM.objectUrl){ URL.revokeObjectURL(CAM.objectUrl); CAM.objectUrl = null; }
+  }
+
+  function destroyCamPlayers(){
+    Object.keys(CAM.players).forEach(function(id){
+      try { CAM.players[id].destroy(); } catch(e){ /* 이미 정리됨 */ }
+    });
+    CAM.players = {};
+    CAM.attached = {};
+    CAM.errors = {};
+    document.querySelectorAll('#camList video').forEach(function(v){
+      v.pause(); v.removeAttribute('src'); v.load();
+    });
+    CAM.ids = '';
+  }
+
+  function refreshCameras(){
+    return controlCall('cameras').then(function(data){
+      CAM.cfg = data;
+      // 자격증명은 화면당 한 번만 받는다 — 이 목록은 15초마다 다시 받으므로,
+      // 여기에 같이 실으면 비밀이 필요 이상으로 자주 돌아다닌다.
+      if(data.cameras_configured && !CAM.creds){
+        return controlCall('camera_credentials').then(function(c){
+          CAM.creds = c;
+          renderCameras(data);
+        }).catch(function(err){
+          renderCameras(data);
+          camNotice('스트림 계정을 못 받았어요: ' + err.message, true);
+        });
+      }
+      renderCameras(data);
+    }).catch(function(err){
+      document.getElementById('camList').innerHTML = '';
+      camNotice('카메라 목록을 불러오지 못했어요: ' + err.message, true);
+    });
+  }
+
+  /* ⚠ '보고를 못 받음'과 '녹화가 멈춤'은 다르다. 합치면 카메라를 막 등록한 상태가
+     녹화 장애처럼 보이고, 반대로 진짜 장애가 왔을 때 아무도 그 경고를 믿지 않게 된다. */
+  function cameraMetaText(c, data){
+    var s = c.state || {};
+    var parts = [];
+    // ⚠ 녹음은 위법이다(개인정보 보호법 §25⑤). 다른 어떤 상태보다 먼저 보여야 한다.
+    if(s.has_audio) parts.push('⚠ 오디오 트랙 감지 — 카메라 마이크를 끄세요');
+    // 재생 실패는 서버가 모르는 사실이다(서버는 '녹화가 도나'만 안다). 여기서 합쳐 두지 않으면
+    // 15초 뒤 갱신이 오류 문구를 덮어써서, 계속 실패 중인 화면이 멀쩡해 보인다.
+    if(CAM.errors[c.id]) parts.push('영상 연결 실패 (' + CAM.errors[c.id] + ')');
+    if(s.never_seen){
+      parts.push('아직 보고를 받은 적 없음');
+    } else {
+      parts.push(s.recording ? '녹화 중' : '녹화 안 됨');
+      parts.push(s.online ? '연결됨' : '연결 끊김');
+      if(s.is_stale) parts.push('보고 끊김');
+      if(s.updated_at) parts.push(timeAgo(s.updated_at));
+      if(s.disk_free_gb !== null && s.disk_free_gb !== undefined){
+        parts.push('남은 용량 ' + s.disk_free_gb + 'GB');
+      }
+    }
+    parts.push('보관 ' + data.retention_days + '일');
+    return parts.join(' · ');
+  }
+
+  function cameraBad(c){
+    var s = c.state || {};
+    return !!(s.has_audio || CAM.errors[c.id] || s.never_seen || s.is_stale || !s.online || !s.recording);
+  }
+
+  /* 카드 한 장의 상태 줄을 다시 칠한다. 주기 갱신과 재생 오류 두 경로가 같은 함수를 써야
+     한쪽이 다른 쪽을 덮어쓰지 않는다. */
+  function paintCameraMeta(c){
+    var el = document.querySelector('[data-cammeta="' + c.id + '"]');
+    if(!el || !CAM.cfg) return;
+    el.textContent = cameraMetaText(c, CAM.cfg);
+    el.classList.toggle('dev-warn', cameraBad(c));
+  }
+
+  function cameraById(id){
+    return ((CAM.cfg && CAM.cfg.cameras) || []).filter(function(c){ return c.id === id; })[0];
+  }
+
+  function cameraCardHtml(c){
+    return '<div class="dev-card">' +
+      '<div class="dev-head"><span class="dev-name">' + escapeHtml(c.name) + '</span>' +
+      '<button type="button" class="del-btn" data-camremove="' + c.id + '">등록 해제</button></div>' +
+      '<div class="dev-meta" data-cammeta="' + c.id + '"></div>' +
+      '<video class="cam-video" data-camid="' + c.id + '" muted playsinline autoplay></video>' +
+      '</div>';
+  }
+
+  function renderCameras(data){
+    var list = document.getElementById('camList');
+    var cams = data.cameras || [];
+    syncPlaybackTargets(cams);
+
+    if(!cams.length){
+      destroyCamPlayers();
+      list.innerHTML = '';
+      camNotice(data.cameras_configured
+        ? '등록된 카메라가 없어요. 합정 맥의 mediamtx.yml 에 선언한 이름 그대로 추가하세요.'
+        : 'CCTV가 아직 설정되지 않았어요. 서버에 스트림 주소와 계정을 넣어야 영상이 나와요.');
+      return;
+    }
+    camNotice(data.cameras_configured ? ''
+      : '스트림 주소·계정이 서버에 없어서 영상은 안 나와요. 목록과 상태만 보여요.', true);
+
+    // 카드를 매번 다시 그리면 <video>가 새로 만들어져 15초마다 화면이 깜빡이고 연결도
+    // 매번 새로 맺는다. 그래서 목록 구성이 바뀔 때만 다시 그리고, 평소엔 글자만 갈아낀다.
+    var ids = cams.map(function(c){ return c.id; }).join(',');
+    if(ids !== CAM.ids){
+      destroyCamPlayers();
+      list.innerHTML = cams.map(cameraCardHtml).join('');
+      CAM.ids = ids;
+    }
+
+    // 아직 안 붙은 카메라만 붙인다. 목록이 바뀔 때만 붙이면, 첫 자격증명 요청이 실패하고
+    // 15초 뒤 재시도가 성공한 경우 목록이 그대로라 재생이 영영 안 붙는다(검은 화면).
+    if(data.cameras_configured && CAM.creds){
+      cams.forEach(function(c){ if(!CAM.attached[c.id]) attachLive(c); });
+    }
+    cams.forEach(paintCameraMeta);
+  }
+
+  function attachLive(c){
+    var video = document.querySelector('video[data-camid="' + c.id + '"]');
+    if(!video || !CAM.cfg.live_base || !CAM.creds) return;
+    var url = CAM.cfg.live_base + '/' + encodeURIComponent(c.path) + '/index.m3u8';
+
+    if(window.Hls && Hls.isSupported()){
+      /* MediaMTX는 플레이리스트와 세그먼트 **매 요청마다** 인증을 건다. 재생목록 안의
+         세그먼트 주소는 상대경로라 그대로는 자격증명이 안 붙는다 — 요청마다 여기서 다시 붙인다.
+
+         `open()`을 직접 부르는 이유: hls.js는 xhrSetup을 open 전에 부르고, 열리지 않은
+         XHR에 setRequestHeader를 하면 던진다. hls.js가 그 예외를 받아 open 후 재호출하긴
+         하지만, 예외 경로에 기대지 않고 우리가 먼저 여는 편이 결과가 한가지다.
+         (이후 hls.js의 openAndSendXhr는 readyState를 보고 다시 열지 않는다.) */
+      var auth = camAuthHeader();
+      var hls = new Hls({
+        xhrSetup: function(xhr, u){
+          xhr.open('GET', u, true);
+          xhr.setRequestHeader('Authorization', auth);
+        },
+      });
+      hls.on(Hls.Events.ERROR, function(_evt, d){
+        if(!d.fatal) return;
+        CAM.errors[c.id] = d.details || d.type;
+        paintCameraMeta(cameraById(c.id) || c);
+      });
+      // 실제로 화면이 들어오면 실패 표시를 지운다. 안 지우면 잠깐 끊겼다 붙은 카메라가
+      // 영영 '실패'로 남아, 진짜 실패와 구분되지 않는다.
+      hls.on(Hls.Events.FRAG_BUFFERED, function(){
+        if(!CAM.errors[c.id]) return;
+        delete CAM.errors[c.id];
+        paintCameraMeta(cameraById(c.id) || c);
+      });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      CAM.players[c.id] = hls;
+      CAM.attached[c.id] = true;
+    } else {
+      /* hls.js가 못 도는 환경(구형 iOS 사파리 등). native 재생은 요청을 가로채 헤더를
+         붙일 수 없고, MediaMTX는 헤더 외에 자격증명을 받는 경로가 없다. 즉 방법이 없다 —
+         검은 화면을 보여주고 이유를 숨기지 않는다. */
+      CAM.errors[c.id] = '이 브라우저로는 실시간 재생 불가';
+      CAM.attached[c.id] = true;
+    }
+  }
+
+  document.getElementById('camList').addEventListener('click', function(e){
+    var el = e.target.closest('button[data-camremove]');
+    if(!el) return;
+    if(!confirm('이 카메라의 등록을 해제할까요? 녹화 파일은 그대로 남아요.')) return;
+    controlCall('camera_delete', { camera_id: el.dataset.camremove })
+      .then(refreshCameras)
+      .catch(function(err){ camNotice(err.message, true); });
+  });
+
+  /* ── 되감기 ── */
+
+  function syncPlaybackTargets(cams){
+    var sel = document.getElementById('camPlayTarget');
+    var keep = sel.value;
+    var next = cams.map(function(c){ return c.path + '|' + c.name; }).join(',');
+    if(sel.dataset.sig === next) return;   // 바뀐 게 없으면 손대지 않는다(선택이 풀린다)
+    sel.dataset.sig = next;
+    sel.innerHTML = cams.map(function(c){
+      return '<option value="' + escapeHtml(c.path) + '">' + escapeHtml(c.name) + '</option>';
+    }).join('');
+    if(keep) sel.value = keep;
+  }
+
+  /**
+   * 녹화 구간을 받아서 재생한다.
+   *
+   * `<video src="...">`로 바로 못 거는 이유: MediaMTX는 자격증명을 Authorization 헤더로만
+   * 받는데, 미디어 엘리먼트 요청에는 헤더를 붙일 방법이 없다. 그래서 fetch로 받아 blob으로
+   * 물린다 — 요청은 fetch가 하니 헤더를 붙일 수 있고, 재생은 로컬 blob이라 인증이 필요 없다.
+   *
+   * **대가는 통째로 받은 뒤에 재생이 시작된다는 것**이다. 고화질 기준 1분이 20~40MB라
+   * 30분이면 0.6~1.2GB고, 그 이상은 브라우저 메모리를 넘본다. 그래서 길이 선택지를 30분에서
+   * 끊었다. 더 긴 구간이 상시로 필요해지면 그때 합정 맥에 쿼리→헤더 변환 프록시를 두고
+   * 이 함수를 `<video src>` 한 줄로 되돌리는 게 맞다 — 지금 짓는 건 아직 이르다.
+   */
+  function playRecording(path, startIso, durationSec){
+    var v = document.getElementById('camPlayer');
+    var msg = document.getElementById('camPlayMsg');
+    var url = CAM.cfg.playback_base + '/get?path=' + encodeURIComponent(path) +
+      '&start=' + encodeURIComponent(startIso) + '&duration=' + durationSec;
+
+    msg.textContent = '녹화를 받는 중... (다 받아야 재생이 시작돼요)';
+    fetch(url, { headers: { 'Authorization': camAuthHeader() } }).then(function(res){
+      if(!res.ok) throw new Error(res.status === 401 ? '인증 실패' : ('HTTP ' + res.status));
+      return res.blob();
+    }).then(function(blob){
+      if(blob.size === 0) throw new Error('그 구간에 녹화가 없어요');
+      // 이전 blob을 해제하지 않으면 되감기를 반복할수록 메모리가 그대로 쌓인다.
+      if(CAM.objectUrl) URL.revokeObjectURL(CAM.objectUrl);
+      CAM.objectUrl = URL.createObjectURL(blob);
+      v.style.display = 'block';
+      v.src = CAM.objectUrl;
+      msg.textContent = '재생 중 · ' + Math.round(blob.size / 1e6) + 'MB';
+      v.play().catch(function(){ /* 자동재생이 막히면 사용자가 누르면 된다 */ });
+    }).catch(function(err){
+      v.style.display = 'none';
+      msg.textContent = '녹화를 불러오지 못했어요: ' + err.message;
+    });
+  }
+
+  function loadRecordingSpans(){
+    var msg = document.getElementById('camPlayMsg');
+    var box = document.getElementById('camSpans');
+    var path = document.getElementById('camPlayTarget').value;
+    var raw = document.getElementById('camPlayStart').value;
+    var duration = Number(document.getElementById('camPlayDur').value);
+    box.innerHTML = '';
+
+    if(!CAM.cfg || !CAM.cfg.playback_base || !CAM.creds){
+      msg.textContent = 'CCTV가 아직 설정되지 않아 되감기를 쓸 수 없어요.';
+      return;
+    }
+    if(!path){ msg.textContent = '카메라를 먼저 등록하세요.'; return; }
+    if(!raw){ msg.textContent = '시작 시각을 골라주세요.'; return; }
+
+    var start = new Date(raw);
+    if(isNaN(start.getTime())){ msg.textContent = '시작 시각을 읽지 못했어요.'; return; }
+
+    msg.textContent = '녹화를 찾는 중...';
+    var from = new Date(start.getTime() - 6*3600*1000).toISOString();
+    var to = new Date(start.getTime() + 6*3600*1000).toISOString();
+    var listUrl = CAM.cfg.playback_base + '/list?path=' + encodeURIComponent(path) +
+      '&start=' + encodeURIComponent(from) + '&end=' + encodeURIComponent(to);
+
+    fetch(listUrl, { headers: { 'Authorization': camAuthHeader() } }).then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function(spans){
+      CAM.spans = spans || [];
+      CAM.spanPath = path;
+      if(!CAM.spans.length){
+        msg.textContent = '그 시각 앞뒤 6시간에는 녹화가 없어요.';
+        return;
+      }
+      msg.textContent = '구간을 고르면 그 지점부터 재생해요.';
+      box.innerHTML = CAM.spans.map(function(s, i){
+        var st = new Date(s.start);
+        return '<button type="button" class="cam-span" data-spanidx="' + i + '">' +
+          escapeHtml(st.toLocaleString('ko-KR') + ' 부터 ' + Math.round((s.duration||0)/60) + '분') +
+          '</button>';
+      }).join('');
+      // 고른 시각이 녹화 구간 안에 있으면 굳이 고르게 하지 않고 바로 튼다.
+      playRecording(path, start.toISOString(), duration);
+    }).catch(function(){
+      /* 목록을 못 받아도 재생은 별개 요청이라 될 수 있다 — 고른 시각으로 바로 틀어본다.
+         목록이 없으면 '어디에 녹화가 있는지'만 못 보는 것이지 재생 경로가 막힌 게 아니다. */
+      msg.textContent = '녹화 목록은 못 불러왔어요. 고른 시각으로 바로 재생해볼게요.';
+      playRecording(path, start.toISOString(), duration);
+    });
+  }
+
+  document.getElementById('camSpans').addEventListener('click', function(e){
+    var el = e.target.closest('button[data-spanidx]');
+    if(!el) return;
+    var span = CAM.spans[Number(el.dataset.spanidx)];
+    if(!span) return;
+    document.querySelectorAll('#camSpans .cam-span').forEach(function(b){ b.classList.remove('on'); });
+    el.classList.add('on');
+    playRecording(CAM.spanPath, span.start, Number(document.getElementById('camPlayDur').value));
+  });
+
+  /* ── 등록 ── */
+
+  function openCameraModal(){
+    document.getElementById('fCamName').value = '';
+    document.getElementById('fCamPath').value = '';
+    document.getElementById('camModalMsg').textContent = '';
+    document.getElementById('cameraModal').style.display = 'flex';
+  }
+  function closeCameraModal(){
+    document.getElementById('cameraModal').style.display = 'none';
+  }
+
+  function registerCamera(e){
+    e.preventDefault();
+    var msg = document.getElementById('camModalMsg');
+    var name = document.getElementById('fCamName').value.trim();
+    var path = document.getElementById('fCamPath').value.trim();
+    msg.textContent = '등록 중...';
+    // 조명 등록과 같다 — 성공하면 닫고, 실패하면 열어둔 채 이유를 남긴다.
+    controlCall('camera_register', { name: name, path: path }).then(function(){
+      closeCameraModal();
+      return refreshCameras();
+    }).catch(function(err){ msg.textContent = err.message; });
+  }
+
   /* 제어 화면을 보고 있을 때만 주기적으로 갱신한다. ThinQ는 TTL(30초) 안이면
      서버가 캐시로 답하므로 실제 벤더 호출은 드물다. */
   setInterval(function(){
     if(currentView === 'control' && currentPassword) refreshDevices();
+    // CCTV는 카드(상태)만 갱신한다. 영상은 이미 흐르고 있으므로 다시 붙이지 않는다 —
+    // 15초마다 플레이어를 재생성하면 화면이 계속 깜빡이고 연결도 매번 새로 맺는다.
+    if(currentView === 'cctv' && currentPassword) refreshCameras();
   }, 15000);
 
   (function(){

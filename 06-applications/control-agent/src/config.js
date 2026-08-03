@@ -24,5 +24,12 @@ export function loadConfig() {
     // mosquitto에 인증을 걸었으면 채운다. 비워두면 익명 접속을 시도한다.
     mqttUser: process.env.MQTT_USER || undefined,
     mqttPassword: process.env.MQTT_PASSWORD || undefined,
+
+    // ── CCTV (선택) ──
+    // 비워두면 상태 보고만 건너뛴다. 조명·냉난방은 CCTV 없이도 완결이므로, 여기서
+    // 누락을 치명적 오류로 다루면 카메라를 안 단 상태에서 조명까지 멈춘다.
+    mediamtxApiUrl: (process.env.MEDIAMTX_API_URL || "http://127.0.0.1:9997").replace(/\/+$/, ""),
+    // MediaMTX recordPath의 **뿌리 디렉터리**. 그 아래에 path 이름별 폴더가 생긴다.
+    mediamtxRecordDir: process.env.MEDIAMTX_RECORD_DIR || "",
   };
 }

@@ -17,6 +17,7 @@ import { DeviceRegistry } from "./devices.js";
 import { connectMqtt, queryInitialState } from "./mqtt.js";
 import { subscribeCommands } from "./commands.js";
 import { mergeState, parsePayload, parseTopic } from "./state.js";
+import { startCameraReporter } from "./cameras.js";
 
 const RELOAD_INTERVAL_MS = 5 * 60_000; // 기기 등록/해제 반영 주기
 
@@ -63,6 +64,10 @@ async function main() {
   });
 
   subscribeCommands(sb, { mqttClient, registry });
+
+  // CCTV 상태 보고. 설정이 없으면 조용히 건너뛴다 — 영상은 이 프로세스를 지나가지 않고,
+  // 여기서는 "살아 있나·녹화가 진짜 돌고 있나"만 관찰해 어드민에 알린다.
+  startCameraReporter(sb, cfg);
 
   setInterval(() => {
     registry.reload().then((ok) => {

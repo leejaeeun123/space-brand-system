@@ -84,6 +84,13 @@
   .copy-block p{margin-top:2px;}
   .copy-block p + p{margin-top:10px;}
 
+  /* 영상정보처리기기 법정 고지 — 기재사항을 항목별로 갈라 한눈에 들어오게 한다. */
+  .notice-dl{display:grid;grid-template-columns:92px 1fr;gap:10px 14px;margin-top:20px;}
+  .notice-dl dt{font-size:13px;color:#6b665c;}
+  .notice-dl dd{font-size:14px;color:#2c2720;}
+  .notice-foot{margin-top:20px;}
+  .notice-foot p + p{margin-top:8px;}
+
   /* Footer */
   footer{padding:40px 24px 0;text-align:center;}
   footer p{font-size:13px;color:#6b665c;}
@@ -197,6 +204,38 @@
       <li>개인 물품은 꼭 챙겨주세요. 분실물은 저희가 책임지기 어려워요.</li>
       <li>반려견과 함께라면 물그릇과 배변패드를 챙겨주시고, 배변은 바로 치워주세요.</li>
     </ul>
+  </section>
+
+  <!-- 영상정보처리기기 고지.
+       「개인정보 보호법」 제25조·같은 법 시행령 제24조의 필수 기재사항(설치 목적·장소, 촬영
+       범위·시간, 관리책임자 연락처)을 담는다. 항목을 빼면 고지 의무 미이행이다.
+
+       ⚠️ 보관 기간은 **네 군데가 같아야** 한다:
+         1. 이 페이지   2. 현장 안내판   3. mediamtx.yml 의 recordDeleteAfter
+         4. Supabase 시크릿 CAMERA_RETENTION_DAYS
+       어긋나면 손님에게 약속한 기간과 실제 보관 기간이 달라진다. 상세: cctv-setup.md C-0 -->
+  <section id="cctv">
+    <h2>영상정보처리기기 안내</h2>
+    <div class="item">
+      <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="CCTV"><rect x="14" y="30" width="50" height="28" rx="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M64 36 L86 26 L86 62 L64 52 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><circle cx="28" cy="44" r="5" fill="currentColor"/><path d="M39 58 L39 78" fill="none" stroke="currentColor" stroke-width="3"/><path d="M23 78 L55 78" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
+      <div class="copy-block">
+        <p>범죄 예방과 시설 안전을 위해 공간 일부에 CCTV를 운영하고 있어요.</p>
+        <p class="small">「개인정보 보호법」 제25조와 같은 법 시행령 제24조에 따라 아래와 같이 알려드려야 하는 사항이에요.</p>
+      </div>
+    </div>
+
+    <dl class="notice-dl">
+      <dt>설치 목적</dt><dd>범죄 예방 및 시설 안전</dd>
+      <dt>설치 장소<br>촬영 범위</dt><dd>현관(출입구) 방향</dd>
+      <dt>촬영 시간</dt><dd>24시간 연속 촬영·녹화</dd>
+      <dt>보관 기간</dt><dd>촬영일로부터 7일. 지나면 자동으로 파기돼요.</dd>
+      <dt>관리책임자</dt><dd>노모어워크컴퍼니(NMWC) 이준용 · 0504-0905-3291</dd>
+    </dl>
+
+    <div class="notice-foot">
+      <p class="small">화장실처럼 사생활 침해 우려가 있는 곳은 촬영하지 않고, <strong>소리는 녹음하지 않아요.</strong></p>
+      <p class="small">본인이 촬영된 영상은 열람하거나 존재 여부를 확인해달라고 요청하실 수 있어요. 위 연락처로 말씀해 주세요.</p>
+    </div>
   </section>
 
   <section id="trash">
