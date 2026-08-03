@@ -6,6 +6,9 @@
 var SUPABASE_URL = 'https://sewqusncgznypjigmfde.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI';
 
+var ADMIN_URL = 'https://typelounge.vercel.app/admin.html';
+var SPACE_NAME = 'TYPE LOUNGE';
+
 var PROCESSED_LABEL = 'spacecloud-processed';
 var ERROR_LABEL = 'spacecloud-error';
 var GMAIL_QUERY = 'from:office@spacecloud.kr subject:("예약 완료" OR "취소 완료") -label:' + PROCESSED_LABEL + ' -label:' + ERROR_LABEL;
@@ -38,6 +41,7 @@ function processSpaceCloudReservations() {
           '[예약 자동등록 실패] ' + message.getSubject(),
           '메시지 날짜: ' + message.getDate() + '\n오류: ' + err.message
         );
+        notifyMattermost(buildErrorMessage(message, err));
       }
     });
 
@@ -107,6 +111,7 @@ function submitReservation(reservation, password) {
   if (reservation.p_booking_no && bookingNoExists(reservation.p_booking_no, password)) return; // 이미 등록된 예약번호 → 중복 등록 방지
   var payload = Object.assign({ p_password: password }, reservation);
   callRpc('admin_add_reservation', payload);
+  notifyMattermost(buildReservationMessage(reservation));
 }
 
 function bookingNoExists(bookingNo, password) {
@@ -130,6 +135,7 @@ function cancelReservation(cancellation, password) {
   }
 
   callRpc('admin_set_cancelled', { p_password: password, p_id: match.id, p_value: true });
+  notifyMattermost(buildCancellationMessage(cancellation, match));
 }
 
 function callRpc(name, payload) {
@@ -156,6 +162,95 @@ function extractField(html, label) {
 function pad2(n) {
   n = String(n);
   return n.length < 2 ? '0' + n : n;
+}
+
+/**
+ * Mattermost 알림. 알림 실패가 예약 처리 결과를 오염시키면 안 되므로 어떤 예외도 밖으로 던지지 않는다.
+ * (실패 시 스레드가 spacecloud-error로 라벨링되어 정상 등록된 예약이 재처리 대상에서 빠지는 것을 방지)
+ */
+function notifyMattermost(text) {
+  try {
+    var url = PropertiesService.getScriptProperties().getProperty('MATTERMOST_WEBHOOK_URL');
+    if (!url) return;
+
+    var response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({ text: text }),
+      muteHttpExceptions: true
+    });
+
+    var code = response.getResponseCode();
+    if (code >= 300) console.error('Mattermost 알림 실패 (' + code + '): ' + response.getContentText());
+  } catch (err) {
+    console.error('Mattermost 알림 예외: ' + err.message);
+  }
+}
+
+function buildReservationMessage(r) {
+  var guests = r.p_guests ? ' (' + r.p_guests + '명)' : '';
+  return '**새 예약** · ' + (r.p_memo || SPACE_NAME) + '\n\n' + mdTable([
+    ['예약자', r.p_name + guests],
+    ['일시', formatPeriod(r.p_date, r.p_start, r.p_end)],
+    ['결제', joinNonEmpty([formatAmount(r.p_amount), r.p_payment], ' · ')],
+    ['옵션', r.p_option],
+    ['요청', r.p_request],
+    ['예약번호', r.p_booking_no]
+  ]) + '\n\n[어드민에서 보기](' + ADMIN_URL + ')';
+}
+
+function buildCancellationMessage(cancellation, match) {
+  return '**예약 취소** · ' + ((match && match.memo) || SPACE_NAME) + '\n\n' + mdTable([
+    ['예약자', cancellation.name || (match && match.name)],
+    ['일시', formatPeriod(cancellation.date, cancellation.start, cancellation.end)],
+    ['사유', cancellation.reason],
+    ['예약번호', match && match.booking_no]
+  ]) + '\n\n[어드민에서 보기](' + ADMIN_URL + ')';
+}
+
+function buildErrorMessage(message, err) {
+  return '**예약 자동등록 실패** · ' + SPACE_NAME + '\n\n' + mdTable([
+    ['메일 제목', message.getSubject()],
+    ['메일 날짜', Utilities.formatDate(message.getDate(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm')],
+    ['오류', err.message]
+  ]) + '\n\n수동 확인이 필요합니다. 원인 해결 후 Gmail에서 `' + ERROR_LABEL + '` 라벨을 떼면 다음 실행 때 재시도됩니다.' +
+    '\n[어드민에서 보기](' + ADMIN_URL + ')';
+}
+
+/** [라벨, 값] 배열을 마크다운 표로. 값이 빈 행은 생략한다. */
+function mdTable(rows) {
+  var lines = ['| 항목 | 내용 |', '|---|---|'];
+  rows.forEach(function (row) {
+    var value = row[1];
+    if (value === null || value === undefined || String(value).trim() === '') return;
+    lines.push('| ' + row[0] + ' | ' + escapePipes(String(value).trim()) + ' |');
+  });
+  return lines.join('\n');
+}
+
+/** 값에 포함된 |·개행이 표 구조를 깨뜨리지 않도록 무해화 (요청사항 등 자유 입력 대비) */
+function escapePipes(value) {
+  return value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+
+function formatPeriod(date, start, end) {
+  if (!date) return '';
+  return date + ' (' + weekdayKo(date) + ') ' + start + '–' + end;
+}
+
+function weekdayKo(date) {
+  var parts = date.split('-');
+  var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  return ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+}
+
+function formatAmount(amount) {
+  if (amount === null || amount === undefined || amount === '') return '';
+  return String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '원';
+}
+
+function joinNonEmpty(values, separator) {
+  return values.filter(function (v) { return v !== null && v !== undefined && String(v).trim() !== ''; }).join(separator);
 }
 
 /** 1회 실행: 15분마다 자동으로 processSpaceCloudReservations를 돌리는 트리거 설치 */
