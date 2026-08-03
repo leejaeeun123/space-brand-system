@@ -1,5 +1,8 @@
 # CCTV 설치 체크리스트
 
+> **합정 맥에서 처음부터 세팅하는 중이라면 [`onsite-handoff.md`](./onsite-handoff.md)를 먼저 읽는다.**
+> 뭐가 이미 끝났고 오늘 뭘 건너뛰는지가 거기 있다. 이 문서는 절차만 담는다.
+>
 > 냉난방·조명은 [`control-setup.md`](./control-setup.md)에 있다. 이 문서는 **C. CCTV**만 다룬다.
 > 설계 배경은 [`control-agent/mediamtx/mediamtx.yml`](./control-agent/mediamtx/mediamtx.yml)의
 > 주석과 [`supabase/functions/control/handlers/cameras.ts`](../supabase/functions/control/handlers/cameras.ts)에 있다.

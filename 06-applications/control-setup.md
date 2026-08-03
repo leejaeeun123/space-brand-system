@@ -1,5 +1,8 @@
 # 공간 제어 설치 체크리스트
 
+> **합정 맥에서 처음부터 세팅하는 중이라면 [`onsite-handoff.md`](./onsite-handoff.md)를 먼저 읽는다.**
+> 뭐가 이미 끝났고 오늘 어디까지 하는지가 거기 있다.
+>
 > **이 문서가 절차의 유일한 출처다.** 설계 배경과 문제 해결은 각 README에 있다:
 > 냉난방 → [`supabase/functions/control/README.md`](../supabase/functions/control/README.md) ·
 > 조명 → [`control-agent/README.md`](./control-agent/README.md)
