@@ -72,10 +72,13 @@ function parseReservationEmail(message) {
     p_start: period.start,
     p_end: period.end,
     p_guests: guests ? Number(guests[0]) : null,
-    p_purpose: null,
+    p_purpose: null,  // 아래 phone/email 과 같은 이유로 메일에 없음
     p_option: extractField(html, '예약옵션') || null,
     p_request: extractField(html, '요청사항') || null,
     p_name: name,
+    // 스클 "예약 완료" 메일에는 연락처·이메일·사용목적이 실려오지 않는다(2026-08-03 원문 확인:
+    // 오는 필드는 예약공간·예약내용·예약인원·예약자명·결제수단·결제금액뿐. 전화번호/이메일 패턴도 원문에 0건).
+    // 필요하면 스클 예약 상세 페이지에서 따로 가져와야 한다 — 파서를 고쳐도 안 나온다.
     p_phone: null,
     p_email: null,
     p_amount: amount ? Number(amount) : null,
