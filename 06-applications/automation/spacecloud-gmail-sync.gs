@@ -122,20 +122,31 @@ function bookingNoExists(bookingNo, password) {
   return reservations.some(function (r) { return r.booking_no === bookingNo; });
 }
 
+/**
+ * 취소 메일 반영. 멱등이어야 한다 — 같은 메일이 다시 처리되는 경우(라벨 수동 해제, 수동 재실행,
+ * 취소 메일이 예약 메일보다 먼저 처리되는 순서 역전)가 실제로 발생했다(2026-08-03 10:53 알림).
+ * "이미 취소됨"은 실패가 아니라 목표 상태 도달이므로 조용히 종료한다. 예약 자체가 없을 때만 에러.
+ */
 function cancelReservation(cancellation, password) {
   var reservations = callRpc('admin_list_reservations', { p_password: password });
-  var match = reservations.filter(function (r) {
-    return !r.cancelled && r.date === cancellation.date &&
+
+  // cancelled 여부와 무관하게 (날짜+시작+종료)로 먼저 찾는다.
+  // 여기서 cancelled를 걸러내면 "이미 취소된 예약"과 "존재하지 않는 예약"이 구분되지 않는다.
+  var candidates = reservations.filter(function (r) {
+    return r.date === cancellation.date &&
       String(r.start_time).slice(0, 5) === cancellation.start &&
       String(r.end_time).slice(0, 5) === cancellation.end;
-  })[0];
+  });
 
-  if (!match) {
+  if (!candidates.length) {
     throw new Error(
       '취소 대상 예약을 찾지 못했습니다: ' + cancellation.date + ' ' + cancellation.start + '-' + cancellation.end +
       ' (' + cancellation.name + (cancellation.reason ? ', 사유: ' + cancellation.reason : '') + ')'
     );
   }
+
+  var match = candidates.filter(function (r) { return !r.cancelled; })[0];
+  if (!match) return; // 이미 취소됨 — 재처리이므로 RPC·알림 없이 종료
 
   callRpc('admin_set_cancelled', { p_password: password, p_id: match.id, p_value: true });
   notifyMattermost(buildCancellationMessage(cancellation, match));
