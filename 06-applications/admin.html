@@ -283,6 +283,9 @@
         <button type="button" id="allOnBtn" onclick="allDevicesPower('power_on')">전체 켜기</button>
         <button type="button" id="allOffBtn" onclick="allDevicesPower('power_off')">전체 끄기</button>
       </div>
+      <div class="ctl-all-row">
+        <button type="button" id="nightModeBtn" onclick="nightMode()">나이트모드</button>
+      </div>
       <h2>기기</h2>
       <div id="ctlNotice" class="ctl-notice" style="display:none;"></div>
       <div id="ctlList"></div>
@@ -977,6 +980,45 @@
     });
   }
 
+  /* SiHAS 조명 식별 — DB에는 kind='light'만 있고 벤더 구분이 없다(sihas-bridge는
+     backend에 Tasmota로 위장하는 게 설계 원칙). 등록할 때 이름에 SiHAS를 넣어두는
+     걸 유일한 표식으로 삼는다(형운 확인, 2026-08-04). */
+  function isSihasLight(d){ return /sihas/i.test(d.name); }
+
+  function allControlBtns(){
+    return [
+      document.getElementById('allOnBtn'),
+      document.getElementById('allOffBtn'),
+      document.getElementById('nightModeBtn')
+    ];
+  }
+
+  /* jobs: [{device, command}]. 하나씩 개별 요청을 병렬로 보내고, 일부가 실패해도
+     나머지는 계속 진행한다 — 반쯤 실행된 나이트모드가 나머지를 포기하면 더 헷갈린다. */
+  function runDeviceCommands(jobs, successMsg){
+    var btns = allControlBtns();
+    btns.forEach(function(b){ b.disabled = true; });
+
+    return Promise.all(jobs.map(function(job){
+      return controlCall('command', { device_id: job.device.id, command: job.command })
+        .then(function(){ return { name: job.device.name, ok: true }; })
+        .catch(function(err){ return { name: job.device.name, ok: false, message: err.message }; });
+    })).then(function(results){
+      // refreshDevices() 내부 renderDevices()가 성공 시 ctlNotice('')로 알림을 지운다 —
+      // 그래서 이 메시지는 refreshDevices가 끝난 뒤에 세팅해야 살아남는다.
+      var failed = results.filter(function(r){ return !r.ok; });
+      return refreshDevices().then(function(){
+        if(!failed.length){
+          ctlNotice(successMsg);
+        } else {
+          ctlNotice('일부 실패했어요: ' + failed.map(function(r){ return r.name + ' (' + r.message + ')'; }).join(', '), true);
+        }
+      });
+    }).then(function(){
+      btns.forEach(function(b){ b.disabled = false; });
+    });
+  }
+
   function allDevicesPower(cmd){
     var targets = devicesCache.filter(function(d){
       return (d.capabilities || []).indexOf('power') !== -1;
@@ -985,30 +1027,28 @@
     var verb = cmd === 'power_on' ? '켤까요' : '끌까요';
     if(!confirm('등록된 기기 ' + targets.length + '개를 모두 ' + verb + '?')) return;
 
-    var onBtn = document.getElementById('allOnBtn');
-    var offBtn = document.getElementById('allOffBtn');
-    onBtn.disabled = true;
-    offBtn.disabled = true;
+    runDeviceCommands(
+      targets.map(function(d){ return { device: d, command: cmd }; }),
+      targets.length + '개 기기를 모두 ' + (cmd === 'power_on' ? '켰어요' : '껐어요') + '.'
+    );
+  }
 
-    Promise.all(targets.map(function(d){
-      return controlCall('command', { device_id: d.id, command: cmd })
-        .then(function(){ return { name: d.name, ok: true }; })
-        .catch(function(err){ return { name: d.name, ok: false, message: err.message }; });
-    })).then(function(results){
-      // refreshDevices() 내부 renderDevices()가 성공 시 ctlNotice('')로 알림을 지운다 —
-      // 그래서 이 메시지는 refreshDevices가 끝난 뒤에 세팅해야 살아남는다.
-      var failed = results.filter(function(r){ return !r.ok; });
-      return refreshDevices().then(function(){
-        if(!failed.length){
-          ctlNotice(targets.length + '개 기기를 모두 ' + (cmd === 'power_on' ? '켰어요' : '껐어요') + '.');
-        } else {
-          ctlNotice('일부 실패했어요: ' + failed.map(function(r){ return r.name + ' (' + r.message + ')'; }).join(', '), true);
-        }
-      });
-    }).then(function(){
-      onBtn.disabled = false;
-      offBtn.disabled = false;
-    });
+  /* 나이트모드 — SiHAS 조명만 끄고 나머지 조명은 켠다. 냉난방은 손대지 않는다(형운 지시,
+     2026-08-04). */
+  function nightMode(){
+    var lights = devicesCache.filter(function(d){ return d.kind === 'light'; });
+    if(!lights.length){ ctlNotice('등록된 조명이 없어요', true); return; }
+
+    var sihas = lights.filter(isSihasLight);
+    var others = lights.filter(function(d){ return !isSihasLight(d); });
+    if(!confirm(
+      '나이트모드로 바꿀까요?\nSiHAS 조명 ' + sihas.length + '개는 끄고, ' +
+      '나머지 조명 ' + others.length + '개는 켭니다.\n냉난방은 그대로 둬요.'
+    )) return;
+
+    var jobs = sihas.map(function(d){ return { device: d, command: 'power_off' }; })
+      .concat(others.map(function(d){ return { device: d, command: 'power_on' }; }));
+    runDeviceCommands(jobs, '나이트모드로 전환했어요.');
   }
 
   function timeAgo(iso){
