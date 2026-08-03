@@ -1,0 +1,15 @@
+{
+  "mqtt_host": "localhost",
+  "mqtt_port": 1883,
+  "poll_interval_s": 30,
+  "mqtt_username": "nmwc",
+  "mqtt_password": "<브로커비번>",
+  "devices": [
+    {
+      "address": "sihas_000000_ch0",
+      "ip": "192.168.0.101",
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "channel": 0
+    }
+  ]
+}

@@ -213,6 +213,13 @@
   .dev-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
   .dev-row > .dev-row-label{font-size:12px;color:#6b665c;width:100%;margin-bottom:2px;}
   .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;color:#6b665c;line-height:1.6;}
+  .ctl-all-row{display:flex;gap:8px;margin-bottom:14px;}
+  .ctl-all-row button{
+    font-family:inherit;font-weight:600;font-size:14px;flex:1;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
+    padding:14px;cursor:pointer;min-height:48px;
+  }
+  .ctl-all-row button:disabled{opacity:.5;cursor:default;}
   /* CCTV */
   .cam-video{width:100%;aspect-ratio:16/9;background:#111;border-radius:6px;margin-top:10px;display:block;}
   .cam-span{
@@ -272,6 +279,10 @@
     </section>
 
     <section class="view" id="view-control">
+      <div class="ctl-all-row">
+        <button type="button" id="allOnBtn" onclick="allDevicesPower('power_on')">전체 켜기</button>
+        <button type="button" id="allOffBtn" onclick="allDevicesPower('power_off')">전체 끄기</button>
+      </div>
       <h2>기기</h2>
       <div id="ctlNotice" class="ctl-notice" style="display:none;"></div>
       <div id="ctlList"></div>
@@ -963,6 +974,40 @@
     }).catch(function(err){
       document.getElementById('ctlList').innerHTML = '';
       ctlNotice('기기 목록을 불러오지 못했어요: ' + err.message, true);
+    });
+  }
+
+  function allDevicesPower(cmd){
+    var targets = devicesCache.filter(function(d){
+      return (d.capabilities || []).indexOf('power') !== -1;
+    });
+    if(!targets.length){ ctlNotice('전원 제어 가능한 기기가 없어요', true); return; }
+    var verb = cmd === 'power_on' ? '켤까요' : '끌까요';
+    if(!confirm('등록된 기기 ' + targets.length + '개를 모두 ' + verb + '?')) return;
+
+    var onBtn = document.getElementById('allOnBtn');
+    var offBtn = document.getElementById('allOffBtn');
+    onBtn.disabled = true;
+    offBtn.disabled = true;
+
+    Promise.all(targets.map(function(d){
+      return controlCall('command', { device_id: d.id, command: cmd })
+        .then(function(){ return { name: d.name, ok: true }; })
+        .catch(function(err){ return { name: d.name, ok: false, message: err.message }; });
+    })).then(function(results){
+      // refreshDevices() 내부 renderDevices()가 성공 시 ctlNotice('')로 알림을 지운다 —
+      // 그래서 이 메시지는 refreshDevices가 끝난 뒤에 세팅해야 살아남는다.
+      var failed = results.filter(function(r){ return !r.ok; });
+      return refreshDevices().then(function(){
+        if(!failed.length){
+          ctlNotice(targets.length + '개 기기를 모두 ' + (cmd === 'power_on' ? '켰어요' : '껐어요') + '.');
+        } else {
+          ctlNotice('일부 실패했어요: ' + failed.map(function(r){ return r.name + ' (' + r.message + ')'; }).join(', '), true);
+        }
+      });
+    }).then(function(){
+      onBtn.disabled = false;
+      offBtn.disabled = false;
     });
   }
 

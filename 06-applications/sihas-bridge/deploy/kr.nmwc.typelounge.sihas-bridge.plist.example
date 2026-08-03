@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  실제 파일명은 kr.nmwc.typelounge.sihas-bridge.plist 여야 launchd 가 읽는다.
+  이 .example 은 그대로 두고 복사해서 쓴다. <<< >>> 로 감싼 값을 전부 실제 경로로
+  치환할 것 — 하나라도 남으면 launchd 가 조용히 실패한다.
+
+  이 파일은 LaunchDaemon(시스템 전역, /Library/LaunchDaemons/)용이다 — LaunchAgent
+  (~/Library/LaunchAgents/)로 쓰지 말 것. 원본(Space, fast user switching 노드)에서
+  겪은 실장애: 콘솔 로그인 사용자가 바뀌자 LaunchAgent가 GUI 세션을 못 잡아 7시간
+  재기동되지 않았다. 합정 맥이 단일 계정 전용이라면 이 리스크는 낮지만, 계정을
+  공유하거나 자동 로그인이 꺼져 있다면 LaunchDaemon 쪽이 안전하다.
+
+  참고: 이 리포의 control-agent(냉난방·조명 Node 에이전트)는 LaunchAgent로 배포돼
+  있다(control-setup.md B-7) — 같은 맥에 두 방식이 섞여도 무방하다(서로 독립 프로세스).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>kr.nmwc.typelounge.sihas-bridge</string>
+
+    <!-- LaunchDaemon은 기본 root로 돈다 — venv/config가 특정 유저 홈 아래 있으므로
+         반드시 그 유저로 낮춰 실행한다(예: nmwc). -->
+    <key>UserName</key>
+    <string><<<RUN_AS_USER>>></string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string><<<PYTHON_PATH>>></string>
+        <string>-m</string>
+        <string>sihas_bridge</string>
+        <string><<<REPO_PATH>>>/06-applications/sihas-bridge/config.json</string>
+    </array>
+
+    <!-- -m 은 cwd 기준으로 패키지를 찾는다. 06-applications/sihas-bridge/ 여야 sihas_bridge 가 잡힌다. -->
+    <key>WorkingDirectory</key>
+    <string><<<REPO_PATH>>>/06-applications/sihas-bridge</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- 크래시·정전 후 자동 복구. 이 노드는 무인이라 사람이 다시 띄워줄 수 없다. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- 부팅 직후 mosquitto 보다 먼저 떠도 paho 가 재접속하지만, 재시작 폭주는 막는다. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string><<<LOG_DIR>>>/sihas-bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string><<<LOG_DIR>>>/sihas-bridge.err.log</string>
+</dict>
+</plist>

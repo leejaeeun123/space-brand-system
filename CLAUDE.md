@@ -3,6 +3,20 @@
 타입라운지(TYPE LOUNGE) 브랜드 시스템 + 무인 운영 시스템.
 레포가 무엇이고 지금 어떤 상태인지는 [`README.md`](./README.md)에 있다. 이 문서는 **어떻게 고치는가**만 다룬다.
 
+## 정본 위치 (2026-08-03 이전)
+
+**정본은 `~/Dev/space-brand-system`.** `Work/NMWC/Project/_core/space-brand-system`(iCloud 동기 경로)은
+origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는다.
+
+- **이전 사유**: 이 경로가 iCloud "데스크탑·문서" 동기화 대상이라, 인자 없는 `git status`/`git commit`이
+  워킹트리 전체를 stat하는 인덱스 refresh 단계에서 60초+ hang했다(2~3.5MB PNG 목업 여러 개 보유).
+  dataless 스텁이 없는 상태에서도 발생 — 흔한 "dataless라서 느리다" 진단으로는 안 잡힌다.
+  상세: 글로벌 메모리 `reference_icloud_dataless_git.md` 2026-08-03 항목.
+- **커밋 신원**: `~/Dev`는 `Work/*` gitdir includeIf 밖이지만, 글로벌 기본값이 이미
+  `hyungwoon <hyungwoon.kr@gmail.com>`라 별도 설정 불필요(확인됨).
+- **NMWC 클론을 다시 정본으로 되돌리지 않는다.** 작업은 항상 `~/Dev/space-brand-system`에서, 커밋 후
+  push하면 iCloud 클론은 `git pull`로만 따라온다.
+
 ## 이 레포의 성격
 
 **문서가 곧 제품이다.** 브랜드 정본(`01`~`05`·`07`)은 사람이 읽는 결정문이고,
