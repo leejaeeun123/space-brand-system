@@ -42,14 +42,40 @@
   }
   #gate .error{color:var(--orange);font-size:13px;height:16px;}
 
-  /* App */
-  #app{display:none;max-width:640px;margin:0 auto;padding:24px 16px 80px;}
-  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
-  header .wordmark{font-weight:600;font-size:22px;letter-spacing:-.02em;}
-  header button{
-    font-family:inherit;font-size:13px;color:#6b665c;background:none;border:1px solid var(--hair);
-    border-radius:8px;padding:10px 14px;cursor:pointer;min-height:40px;
+  /* App shell */
+  #app{display:none;}
+
+  /* Sidebar */
+  #sidebar{
+    position:fixed;top:0;left:0;bottom:0;width:236px;z-index:8;
+    background:var(--white);border-right:1px solid var(--hair);
+    display:flex;flex-direction:column;padding:24px 16px;
+    transform:translateX(-100%);transition:transform .22s ease;
   }
+  #sidebar.open{transform:translateX(0);}
+  .side-brand{font-weight:600;font-size:18px;letter-spacing:-.02em;padding:0 10px 20px;}
+  .side-nav{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .side-link{
+    font-family:inherit;font-weight:600;font-size:14px;text-align:left;
+    background:none;border:0;border-radius:8px;padding:12px 10px;min-height:44px;
+    cursor:pointer;color:#6b665c;
+  }
+  .side-link.active{background:var(--ink);color:var(--white);}
+  .side-logout{
+    font-family:inherit;font-size:13px;color:#6b665c;background:none;border:1px solid var(--hair);
+    border-radius:8px;padding:12px 14px;cursor:pointer;min-height:44px;
+  }
+  #sideScrim{position:fixed;inset:0;background:rgba(22,19,15,.45);z-index:7;display:none;}
+  #sideScrim.open{display:block;}
+
+  /* Main */
+  #main{max-width:640px;margin:0 auto;padding:24px 16px 80px;}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:28px;}
+  .hamburger{
+    font-family:inherit;font-size:17px;line-height:1;background:none;border:1px solid var(--hair);
+    border-radius:8px;width:40px;height:40px;cursor:pointer;color:var(--ink);flex:0 0 auto;
+  }
+  .page-title{font-weight:600;font-size:20px;letter-spacing:-.02em;}
 
   h2{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:32px 0 14px;}
   h2:first-of-type{margin-top:0;}
@@ -164,7 +190,16 @@
   @media (min-width:480px){
     .row2{grid-template-columns:1fr 1fr;}
     .row3{grid-template-columns:1fr 1fr 1fr;}
-    #app{padding-left:20px;padding-right:20px;}
+    #main{padding-left:20px;padding-right:20px;}
+  }
+
+  /* 데스크탑: 사이드바 고정 노출 */
+  @media (min-width:900px){
+    #sidebar{transform:translateX(0);}
+    #sideScrim{display:none !important;}
+    .hamburger{display:none;}
+    #main{margin-left:236px;max-width:none;padding-left:32px;padding-right:32px;}
+    #main > .topbar, #main > .view{max-width:640px;margin-left:auto;margin-right:auto;}
   }
 </style>
 </head>
@@ -180,27 +215,40 @@
 </div>
 
 <div id="app">
-  <header>
-    <div class="wordmark">TYPE LOUNGE 어드민</div>
-    <button onclick="lock()">로그아웃</button>
-  </header>
+  <aside id="sidebar">
+    <div class="side-brand">TYPE LOUNGE</div>
+    <nav class="side-nav">
+      <button type="button" class="side-link" data-view="reservations">예약관리</button>
+    </nav>
+    <button type="button" class="side-logout" onclick="lock()">로그아웃</button>
+  </aside>
+  <div id="sideScrim" onclick="closeSidebar()"></div>
 
-  <h2>예약 캘린더</h2>
-  <div class="cal-nav">
-    <button onclick="changeMonth(-1)">‹</button>
-    <div class="label" id="calLabel"></div>
-    <button onclick="changeMonth(1)">›</button>
-  </div>
-  <div class="cal-grid" id="calGrid"></div>
+  <div id="main">
+    <div class="topbar">
+      <button type="button" class="hamburger" onclick="openSidebar()" aria-label="메뉴 열기">☰</button>
+      <div class="page-title" id="pageTitle">예약관리</div>
+    </div>
 
-  <h2>선택한 날짜</h2>
-  <div class="day-label" id="dayLabel"></div>
-  <div id="dayList"></div>
+    <section class="view" id="view-reservations">
+      <h2>예약 캘린더</h2>
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <div class="label" id="calLabel"></div>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
 
-  <button type="button" class="add-btn" onclick="openAddModal()">+ 새 예약 추가</button>
+      <h2>선택한 날짜</h2>
+      <div class="day-label" id="dayLabel"></div>
+      <div id="dayList"></div>
 
-  <div class="warn">
-    이 예약 데이터는 Supabase DB에 저장돼서 어느 기기에서 열어도 같은 내역이 보여요. 비밀번호는 서버(DB)에서 직접 확인하지만, 그래도 이 페이지 링크와 비밀번호는 형운님만 알고 계셔야 해요.
+      <button type="button" class="add-btn" onclick="openAddModal()">+ 새 예약 추가</button>
+
+      <div class="warn">
+        이 예약 데이터는 Supabase DB에 저장돼서 어느 기기에서 열어도 같은 내역이 보여요. 비밀번호는 서버(DB)에서 직접 확인하지만, 그래도 이 페이지 링크와 비밀번호는 형운님만 알고 계셔야 해요.
+      </div>
+    </section>
   </div>
 </div>
 
@@ -394,6 +442,7 @@
   function lock(){
     sessionStorage.removeItem(UNLOCK_KEY);
     currentPassword = '';
+    closeSidebar();
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('pw').value = '';
@@ -402,9 +451,41 @@
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('fDate').value = selectedDate;
+    showView(currentView);
     renderCalendar();
     renderDayList();
   }
+
+  /* 메뉴 — 추가하려면 VIEWS에 한 줄, 사이드바에 data-view 버튼, 본문에 <section id="view-이름"> 하나 */
+  var VIEWS = { reservations: '예약관리' };
+  var currentView = 'reservations';
+
+  function showView(name){
+    if(!VIEWS[name]) name = 'reservations';
+    currentView = name;
+    Object.keys(VIEWS).forEach(function(key){
+      var section = document.getElementById('view-' + key);
+      if(section) section.style.display = (key === name) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.side-link').forEach(function(link){
+      link.classList.toggle('active', link.dataset.view === name);
+    });
+    document.getElementById('pageTitle').textContent = VIEWS[name];
+    closeSidebar();
+  }
+
+  function openSidebar(){
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sideScrim').classList.add('open');
+  }
+  function closeSidebar(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sideScrim').classList.remove('open');
+  }
+
+  document.querySelectorAll('.side-link').forEach(function(link){
+    link.addEventListener('click', function(){ showView(link.dataset.view); });
+  });
 
   document.getElementById('pw').addEventListener('keydown', function(e){
     if(e.key === 'Enter') tryUnlock();
