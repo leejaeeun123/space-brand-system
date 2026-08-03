@@ -6,7 +6,7 @@
 var SUPABASE_URL = 'https://sewqusncgznypjigmfde.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI';
 
-var ADMIN_URL = 'https://typelounge.vercel.app/admin.html';
+var ADMIN_URL = 'https://typelounge.vercel.app/admin';
 var SPACE_NAME = 'TYPE LOUNGE';
 
 var PROCESSED_LABEL = 'spacecloud-processed';
