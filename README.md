@@ -24,8 +24,20 @@ PLAN.md            구축 계획 (합의 완료)
 03-identity/       logo-guidelines · color-palette · typography · design-tokens
 04-signage/        signage-system · exterior-signage · interior-wayfinding · pictograms
 05-design-system/  README (우산 문서)
+06-applications/     사이니지 시안 · 게스트 가이드 · 어드민 · 예약 자동화 · 공간 제어
 assets/            무드보드 · 레퍼런스 이미지
 ```
+
+## 공간 제어 (냉난방·조명)
+
+합정 공간의 에어컨·조명을 어드민에서 원격으로 켜고 끕니다. `admin.html` → **공간 제어** 탭.
+
+👉 설치 절차: **[06-applications/control-setup.md](./06-applications/control-setup.md)**
+
+| | 구현 | 현장 장비 |
+|---|---|---|
+| 냉난방 | LG ThinQ Cloud API (HTTPS) | 불필요 |
+| 조명 | Tasmota + 로컬 mosquitto + 상주 에이전트 | 합정에 맥 1대 |
 
 ## 검토 포인트 (사용자)
 

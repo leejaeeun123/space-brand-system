@@ -1,0 +1,19 @@
+{
+  "name": "typelounge-control-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "합정 현장 상주 에이전트 — 로컬 mosquitto <-> Supabase 중계",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "mqtt": "^5.10.0",
+    "ws": "^8.21.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

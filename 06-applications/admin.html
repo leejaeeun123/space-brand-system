@@ -201,6 +201,16 @@
     #main{margin-left:236px;max-width:none;padding-left:32px;padding-right:32px;}
     #main > .topbar, #main > .view{max-width:640px;margin-left:auto;margin-right:auto;}
   }
+  /* 공간 제어 */
+  .dev-card{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;}
+  .dev-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .dev-name{font-weight:600;}
+  .dev-meta{font-size:12px;color:#6b665c;margin:4px 0 10px;}
+  .dev-warn{color:var(--orange);}
+  .dev-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
+  .dev-row > .dev-row-label{font-size:12px;color:#6b665c;width:100%;margin-bottom:2px;}
+  .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;color:#6b665c;line-height:1.6;}
+  .ctl-input{font-family:inherit;font-size:14px;border:1px solid var(--hair);border-radius:8px;padding:10px 12px;min-height:44px;flex:1 1 160px;color:var(--ink);background:var(--white);}
 </style>
 </head>
 <body>
@@ -219,6 +229,7 @@
     <div class="side-brand">TYPE LOUNGE</div>
     <nav class="side-nav">
       <button type="button" class="side-link" data-view="reservations">예약관리</button>
+      <button type="button" class="side-link" data-view="control">공간 제어</button>
     </nav>
     <button type="button" class="side-logout" onclick="lock()">로그아웃</button>
   </aside>
@@ -248,6 +259,31 @@
       <div class="warn">
         이 예약 데이터는 Supabase DB에 저장돼서 어느 기기에서 열어도 같은 내역이 보여요. 비밀번호는 서버(DB)에서 직접 확인하지만, 그래도 이 페이지 링크와 비밀번호는 형운님만 알고 계셔야 해요.
       </div>
+    </section>
+
+    <section class="view" id="view-control">
+      <h2>기기</h2>
+      <div id="ctlNotice" class="ctl-notice" style="display:none;"></div>
+      <div id="ctlList"></div>
+
+      <h2>기기 등록</h2>
+      <div class="ctl-notice">
+        LG ThinQ 앱에 에어컨을 등록하고 PAT를 발급해 서버에 넣은 뒤, 아래 버튼으로 불러와 등록하세요.
+      </div>
+      <button type="button" class="status-btn" onclick="loadThinqDevices()">ThinQ 기기 불러오기</button>
+      <div id="ctlRegister" style="margin-top:10px;"></div>
+
+      <h2>조명 등록</h2>
+      <div class="ctl-notice">
+        Tasmota 기기 Console에 넣은 <strong>Topic</strong> 값과 부를 이름을 넣으세요.
+        조명은 합정 에이전트가 켜져 있어야 동작합니다(냉난방은 무관).
+      </div>
+      <div class="dev-row">
+        <input type="text" class="ctl-input" id="fLightName" placeholder="이름 (예: 메인 조명)">
+        <input type="text" class="ctl-input" id="fLightAddr" placeholder="Topic (예: light_main)">
+        <button type="button" class="status-btn" onclick="registerLight()">등록</button>
+      </div>
+      <div id="ctlLightMsg" class="dev-meta"></div>
     </section>
   </div>
 </div>
@@ -457,7 +493,7 @@
   }
 
   /* 메뉴 — 추가하려면 VIEWS에 한 줄, 사이드바에 data-view 버튼, 본문에 <section id="view-이름"> 하나 */
-  var VIEWS = { reservations: '예약관리' };
+  var VIEWS = { reservations: '예약관리', control: '공간 제어' };
   var currentView = 'reservations';
 
   function showView(name){
@@ -471,6 +507,7 @@
       link.classList.toggle('active', link.dataset.view === name);
     });
     document.getElementById('pageTitle').textContent = VIEWS[name];
+    if(name === 'control') refreshDevices();
     closeSidebar();
   }
 
@@ -785,6 +822,204 @@
     div.textContent = s || '';
     return div.innerHTML;
   }
+
+  /* ── 공간 제어 ─────────────────────────────────────────────────────────────
+     예약과 달리 RPC를 직접 부르지 않는다. ThinQ PAT와 service_role 키는 브라우저에
+     내려오면 안 되므로, Edge Function(control)이 유일한 경로다. */
+  var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
+  var devicesCache = [];
+
+  function controlCall(action, extra){
+    var body = { action: action, password: currentPassword };
+    if(extra) Object.keys(extra).forEach(function(k){ body[k] = extra[k]; });
+    return fetch(CONTROL_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if(!res.ok) throw new Error(data.error || ('요청 실패 (' + res.status + ')'));
+        return data;
+      });
+    });
+  }
+
+  function ctlNotice(msg, isError){
+    var el = document.getElementById('ctlNotice');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+    el.classList.toggle('dev-warn', !!isError);
+  }
+
+  function refreshDevices(){
+    return controlCall('list').then(function(data){
+      devicesCache = data.devices || [];
+      renderDevices(data);
+    }).catch(function(err){
+      document.getElementById('ctlList').innerHTML = '';
+      ctlNotice('기기 목록을 불러오지 못했어요: ' + err.message, true);
+    });
+  }
+
+  function timeAgo(iso){
+    var sec = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+    if(sec < 60) return sec + '초 전';
+    if(sec < 3600) return Math.round(sec/60) + '분 전';
+    return Math.round(sec/3600) + '시간 전';
+  }
+
+  /* ⚠ '모름'을 '꺼짐'으로 합치지 않는다. 합치면 꺼진 줄 알았는데 실제로는 켜져 있는
+     상황(= 냉난방 무한 가동)이 조용히 숨는다. */
+  function powerLabel(p){
+    if(p === 'ON') return '켜짐';
+    if(p === 'OFF') return '꺼짐';
+    return '모름';
+  }
+
+  function stateLabel(s){
+    if(s.never_seen) return '아직 상태를 받은 적 없음';
+    var parts = [s.online ? '연결됨' : '연결 끊김'];
+    if(s.is_stale) parts.push('갱신 끊김');
+    if(s.updated_at) parts.push(timeAgo(s.updated_at));
+    return parts.join(' · ');
+  }
+
+  function btn(id, cmd, value, label, active){
+    return '<button type="button" class="status-btn' + (active ? ' done' : '') + '"' +
+      ' data-dev="' + id + '" data-cmd="' + cmd + '"' +
+      (value === null ? '' : ' data-val="' + escapeHtml(String(value)) + '"') +
+      '>' + escapeHtml(label) + '</button>';
+  }
+
+  function deviceCardHtml(d){
+    var s = d.state || {};
+    var a = s.attrs || {};
+    var caps = d.capabilities || [];
+    var c = d.constraints || {};
+    var rows = '';
+
+    if(caps.indexOf('power') !== -1){
+      rows += '<div class="dev-row"><span class="dev-row-label">전원</span>' +
+        btn(d.id, 'power_on', null, '켜기', s.power === 'ON') +
+        btn(d.id, 'power_off', null, '끄기', s.power === 'OFF') + '</div>';
+    }
+    if(caps.indexOf('temp') !== -1 && c.temp){
+      var cur = Number(a.target_temp);
+      var base = isFinite(cur) ? cur : c.temp.min;
+      var down = Math.max(c.temp.min, base - c.temp.step);
+      var up = Math.min(c.temp.max, base + c.temp.step);
+      rows += '<div class="dev-row"><span class="dev-row-label">목표온도 (' +
+        c.temp.min + '~' + c.temp.max + c.temp.unit + ', ' + c.temp.step + c.temp.unit + ' 단위)</span>' +
+        btn(d.id, 'set_temp', down, '−') +
+        '<span style="min-width:56px;text-align:center;">' +
+        (isFinite(cur) ? cur + c.temp.unit : '—') + '</span>' +
+        btn(d.id, 'set_temp', up, '+') + '</div>';
+    }
+    if(caps.indexOf('mode') !== -1 && (c.modes || []).length){
+      rows += '<div class="dev-row"><span class="dev-row-label">모드</span>' +
+        c.modes.map(function(m){ return btn(d.id, 'set_mode', m, m, a.mode === m); }).join('') + '</div>';
+    }
+    if(caps.indexOf('wind') !== -1 && (c.wind || []).length){
+      rows += '<div class="dev-row"><span class="dev-row-label">풍량</span>' +
+        c.wind.map(function(w){ return btn(d.id, 'set_wind', w, w, a.wind === w); }).join('') + '</div>';
+    }
+
+    var meta = [powerLabel(s.power), stateLabel(s)];
+    if(a.current_temp !== undefined) meta.push('현재 ' + a.current_temp + (a.unit || ''));
+
+    return '<div class="dev-card">' +
+      '<div class="dev-head"><span class="dev-name">' + escapeHtml(d.name) + '</span>' +
+      '<button type="button" class="del-btn" data-remove="' + d.id + '">등록 해제</button></div>' +
+      '<div class="dev-meta' + (s.never_seen || s.is_stale ? ' dev-warn' : '') + '">' +
+      escapeHtml(meta.join(' · ')) + '</div>' + rows + '</div>';
+  }
+
+  function renderDevices(data){
+    var list = document.getElementById('ctlList');
+    if(!devicesCache.length){
+      list.innerHTML = '';
+      ctlNotice(data.thinq_configured
+        ? '등록된 기기가 없어요. 아래에서 ThinQ 기기를 불러와 등록하세요.'
+        : 'ThinQ가 아직 설정되지 않았어요. 서버에 PAT를 넣어야 기기를 불러올 수 있어요.');
+      return;
+    }
+    ctlNotice('');
+    list.innerHTML = devicesCache.map(deviceCardHtml).join('');
+  }
+
+  document.getElementById('ctlList').addEventListener('click', function(e){
+    var el = e.target.closest('button');
+    if(!el) return;
+    if(el.dataset.remove){
+      if(!confirm('이 기기의 등록을 해제할까요? 기기 자체는 그대로예요.')) return;
+      controlCall('delete', { device_id: el.dataset.remove })
+        .then(refreshDevices)
+        .catch(function(err){ ctlNotice(err.message, true); });
+      return;
+    }
+    if(!el.dataset.dev) return;
+    var value = el.dataset.val;
+    // set_temp만 숫자다 — 모드·풍량은 문자열 enum이라 변환하면 안 된다.
+    if(value !== undefined && el.dataset.cmd === 'set_temp') value = Number(value);
+    el.disabled = true;
+    controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd, value: value })
+      .then(refreshDevices)
+      .catch(function(err){ ctlNotice(err.message, true); })
+      .then(function(){ el.disabled = false; });
+  });
+
+  function loadThinqDevices(){
+    var box = document.getElementById('ctlRegister');
+    box.textContent = '불러오는 중...';
+    controlCall('thinq_devices').then(function(data){
+      var registered = devicesCache.map(function(d){ return d.address; });
+      var items = (data.devices || []).filter(function(x){ return x.device_id; });
+      if(!items.length){ box.textContent = 'LG 계정에 등록된 기기가 없어요.'; return; }
+      box.innerHTML = items.map(function(x){
+        var done = registered.indexOf(x.device_id) !== -1;
+        return '<div class="dev-card"><div class="dev-name">' +
+          escapeHtml(x.alias || '(별칭 없음)') + '</div>' +
+          '<div class="dev-meta">' + escapeHtml([x.type, x.model].filter(Boolean).join(' · ')) + '</div>' +
+          (done ? '<span class="dev-meta">등록됨</span>'
+                : '<button type="button" class="status-btn" data-add="' + x.device_id + '" data-alias="' +
+                  escapeHtml(x.alias || '에어컨') + '">등록</button>') + '</div>';
+      }).join('');
+    }).catch(function(err){ box.textContent = '불러오지 못했어요: ' + err.message; });
+  }
+
+  document.getElementById('ctlRegister').addEventListener('click', function(e){
+    var el = e.target.closest('button[data-add]');
+    if(!el) return;
+    var name = prompt('이 기기를 뭐라고 부를까요?', el.dataset.alias);
+    if(!name) return;
+    el.disabled = true;
+    controlCall('register', { address: el.dataset.add, name: name })
+      .then(function(){ return refreshDevices(); })
+      .then(loadThinqDevices)
+      .catch(function(err){ ctlNotice(err.message, true); el.disabled = false; });
+  });
+
+  function registerLight(){
+    var nameEl = document.getElementById('fLightName');
+    var addrEl = document.getElementById('fLightAddr');
+    var msg = document.getElementById('ctlLightMsg');
+    var name = nameEl.value.trim();
+    var address = addrEl.value.trim();
+    if(!name || !address){ msg.textContent = '이름과 Topic을 둘 다 넣어주세요.'; return; }
+    msg.textContent = '등록 중...';
+    controlCall('register_light', { name: name, address: address }).then(function(){
+      nameEl.value = '';
+      addrEl.value = '';
+      msg.textContent = '등록됐어요.';
+      return refreshDevices();
+    }).catch(function(err){ msg.textContent = err.message; });
+  }
+
+  /* 제어 화면을 보고 있을 때만 주기적으로 갱신한다. ThinQ는 TTL(30초) 안이면
+     서버가 캐시로 답하므로 실제 벤더 호출은 드물다. */
+  setInterval(function(){
+    if(currentView === 'control' && currentPassword) refreshDevices();
+  }, 15000);
 
   (function(){
     var savedPw = sessionStorage.getItem(UNLOCK_KEY);
