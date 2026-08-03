@@ -540,7 +540,8 @@
       if(dateStr === selectedDate) cell.className += ' selected';
       cell.onclick = (function(ds){ return function(){ selectDate(ds); }; })(dateStr);
 
-      var dayRes = reservations.filter(function(r){ return r.date === dateStr; })
+      // 취소된 건은 캘린더에서 제외 — 날짜 목록에서는 '취소됨' 배지로 계속 보인다
+      var dayRes = reservations.filter(function(r){ return r.date === dateStr && !r.cancelled; })
         .sort(function(a,b){ return a.start.localeCompare(b.start); });
 
       var html = '<div class="num">' + day + '</div>';
