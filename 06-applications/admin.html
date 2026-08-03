@@ -152,7 +152,7 @@
     background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
     padding:14px;cursor:pointer;width:100%;min-height:48px;margin-top:14px;
   }
-  #addModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
+  #addModal .modal-box, #hvacModal .modal-box, #lightModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
   .modal-box-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .modal-box-header h2{margin:0;}
   .modal-close{
@@ -210,7 +210,6 @@
   .dev-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
   .dev-row > .dev-row-label{font-size:12px;color:#6b665c;width:100%;margin-bottom:2px;}
   .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;color:#6b665c;line-height:1.6;}
-  .ctl-input{font-family:inherit;font-size:14px;border:1px solid var(--hair);border-radius:8px;padding:10px 12px;min-height:44px;flex:1 1 160px;color:var(--ink);background:var(--white);}
 </style>
 </head>
 <body>
@@ -266,24 +265,8 @@
       <div id="ctlNotice" class="ctl-notice" style="display:none;"></div>
       <div id="ctlList"></div>
 
-      <h2>기기 등록</h2>
-      <div class="ctl-notice">
-        LG ThinQ 앱에 에어컨을 등록하고 PAT를 발급해 서버에 넣은 뒤, 아래 버튼으로 불러와 등록하세요.
-      </div>
-      <button type="button" class="status-btn" onclick="loadThinqDevices()">ThinQ 기기 불러오기</button>
-      <div id="ctlRegister" style="margin-top:10px;"></div>
-
-      <h2>조명 등록</h2>
-      <div class="ctl-notice">
-        Tasmota 기기 Console에 넣은 <strong>Topic</strong> 값과 부를 이름을 넣으세요.
-        조명은 합정 에이전트가 켜져 있어야 동작합니다(냉난방은 무관).
-      </div>
-      <div class="dev-row">
-        <input type="text" class="ctl-input" id="fLightName" placeholder="이름 (예: 메인 조명)">
-        <input type="text" class="ctl-input" id="fLightAddr" placeholder="Topic (예: light_main)">
-        <button type="button" class="status-btn" onclick="registerLight()">등록</button>
-      </div>
-      <div id="ctlLightMsg" class="dev-meta"></div>
+      <button type="button" class="add-btn" onclick="openHvacModal()">+ 냉난방 기기 추가</button>
+      <button type="button" class="add-btn" onclick="openLightModal()">+ 조명 추가</button>
     </section>
   </div>
 </div>
@@ -390,6 +373,45 @@
       </div>
 
       <button type="submit">예약 추가</button>
+    </form>
+  </div>
+</div>
+
+<div id="hvacModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box-header">
+      <h2>냉난방 기기 추가</h2>
+      <button type="button" class="modal-close" onclick="closeHvacModal()">✕</button>
+    </div>
+    <div class="ctl-notice">
+      LG ThinQ 계정에 등록된 기기를 불러옵니다. 서버에 PAT가 설정돼 있어야 합니다.
+    </div>
+    <div id="ctlRegister"></div>
+    <button type="button" class="add-btn" onclick="loadThinqDevices()">다시 불러오기</button>
+  </div>
+</div>
+
+<div id="lightModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box-header">
+      <h2>조명 추가</h2>
+      <button type="button" class="modal-close" onclick="closeLightModal()">✕</button>
+    </div>
+    <form onsubmit="registerLight(event)">
+      <div>
+        <label>이름</label>
+        <input type="text" id="fLightName" required placeholder="예: 메인 조명">
+      </div>
+      <div>
+        <label>Tasmota Topic</label>
+        <input type="text" id="fLightAddr" required placeholder="예: light_main">
+      </div>
+      <div class="ctl-notice">
+        기기 Console에 <code>Topic</code>으로 넣은 값입니다(영숫자·<code>_</code>·<code>-</code>, 32자 이내).
+        조명은 합정 에이전트가 켜져 있어야 동작합니다(냉난방은 무관).
+      </div>
+      <div id="ctlLightMsg" class="dev-meta"></div>
+      <button type="submit">조명 추가</button>
     </form>
   </div>
 </div>
@@ -994,23 +1016,38 @@
     if(!name) return;
     el.disabled = true;
     controlCall('register', { address: el.dataset.add, name: name })
-      .then(function(){ return refreshDevices(); })
-      .then(loadThinqDevices)
+      .then(function(){ closeHvacModal(); return refreshDevices(); })
       .catch(function(err){ ctlNotice(err.message, true); el.disabled = false; });
   });
 
-  function registerLight(){
-    var nameEl = document.getElementById('fLightName');
-    var addrEl = document.getElementById('fLightAddr');
+  function openHvacModal(){
+    document.getElementById('ctlRegister').innerHTML = '';
+    document.getElementById('hvacModal').style.display = 'flex';
+    loadThinqDevices();   // 열자마자 불러온다 — 버튼을 한 번 더 누르게 하지 않는다
+  }
+  function closeHvacModal(){
+    document.getElementById('hvacModal').style.display = 'none';
+  }
+
+  function openLightModal(){
+    document.getElementById('fLightName').value = '';
+    document.getElementById('fLightAddr').value = '';
+    document.getElementById('ctlLightMsg').textContent = '';
+    document.getElementById('lightModal').style.display = 'flex';
+  }
+  function closeLightModal(){
+    document.getElementById('lightModal').style.display = 'none';
+  }
+
+  function registerLight(e){
+    e.preventDefault();
     var msg = document.getElementById('ctlLightMsg');
-    var name = nameEl.value.trim();
-    var address = addrEl.value.trim();
-    if(!name || !address){ msg.textContent = '이름과 Topic을 둘 다 넣어주세요.'; return; }
+    var name = document.getElementById('fLightName').value.trim();
+    var address = document.getElementById('fLightAddr').value.trim();
     msg.textContent = '등록 중...';
+    // 성공하면 모달을 닫고, 실패하면 열어둔 채 안에 이유를 남긴다 — 닫으면 뭐가 틀렸는지 볼 수 없다.
     controlCall('register_light', { name: name, address: address }).then(function(){
-      nameEl.value = '';
-      addrEl.value = '';
-      msg.textContent = '등록됐어요.';
+      closeLightModal();
       return refreshDevices();
     }).catch(function(err){ msg.textContent = err.message; });
   }
