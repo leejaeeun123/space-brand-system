@@ -146,8 +146,8 @@ node --version     # v20.6 이상
 ### 6-1. C-4 MediaMTX
 
 - `mediamtx.yml`의 `<>` 자리를 전부 채운다. **하나라도 남기면 인증이 비어 누구나 볼 수 있다.**
-- 카메라가 없으니 `paths:`의 `entrance` 블록은 **주석 처리하거나 그대로 둔다** — 소스에 못 붙어
-  로그에 에러가 계속 찍히지만 서버는 정상이다. C-4b의 `testpattern`으로 확인할 것이다.
+- 카메라가 없으니 `paths:`의 `entrance`·`lounge` 블록은 **주석 처리하거나 그대로 둔다** — 소스에
+  못 붙어 로그에 에러가 계속 찍히지만 서버는 정상이다. C-4b의 `testpattern`으로 확인할 것이다.
 - `<녹화경로>`도 iCloud 밖으로. `~/typelounge-recordings` 권장.
 - C-4의 로컬 확인은 `curl -u`로 한다. **브라우저 주소창에 `?user=&pass=`를 붙여도 안 된다** —
   MediaMTX가 v1.18.0에서 쿼리 자격증명을 막았다.

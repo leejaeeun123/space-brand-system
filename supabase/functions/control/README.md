@@ -1,6 +1,8 @@
-# 공간 제어 (냉난방)
+# 공간 제어 (냉난방 · 조명 큐 · CCTV 목록)
 
-`admin.html`의 **공간 제어** 탭이 쓰는 Edge Function. 지금은 **LG ThinQ 냉난방만** 연결돼 있다.
+`admin.html`의 **공간 제어**·**CCTV** 탭이 쓰는 Edge Function. 세 가지를 다룬다 —
+**냉난방(LG ThinQ)** 직접 제어, **조명(Tasmota)** 명령 큐잉, **CCTV** 목록·자격증명 발급.
+영상 자체는 여기를 지나가지 않는다(→ `handlers/cameras.ts`).
 
 Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다. 그쪽 AWS 인프라는
 쓰지 않는다 — 접근 권한이 없다. ThinQ는 순수 HTTPS REST라 인프라 없이 그대로 옮겨진다.
@@ -46,14 +48,23 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 | `handlers/list.ts` | 목록 조회 + ThinQ 상태 갱신(TTL 30초) |
 | `handlers/command.ts` | 명령 1건 검증·발행 |
 | `handlers/registry.ts` | 기기 등록/해제, ThinQ 계정 기기 목록 |
+| `handlers/cameras.ts` | 카메라 목록·등록·해제 + 스트림 자격증명·보관기간 발급 |
+| `handlers/shared.ts` | 핸들러 공통 — 에러 타입·입력 검증 |
 | `thinq/client.ts` | HTTP 클라이언트 + 에러 매핑 |
 | `thinq/commands.ts` | Command → 제어 본문 + 범위/enum 검증 |
 | `thinq/profile.ts` | 프로파일 → capabilities/constraints 파생 |
 | `thinq/state.ts` | state 응답 → DeviceState |
 | `devices.ts` | Postgres 접근 (service_role) |
+| `cameras.ts` | 카메라·카메라 상태 Postgres 접근 |
+| `types.ts` | 공유 타입 |
 | `tasmota/topics.ts` | 조명 MQTT 토픽 문법 + 기기 ID 검증 |
 
-action은 6개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete`.
+action은 10개다.
+
+- 기기 제어 6개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete`
+- CCTV 4개: `cameras` · `camera_credentials` · `camera_register` · `camera_delete`
+
+CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-setup.md)에 있다.
 
 ## 절대 되돌리면 안 되는 것
 

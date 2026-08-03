@@ -134,11 +134,15 @@ recordDeleteAfter: 7d
 # 경고가 뜨면 카메라 설정을 다시 확인하고, 그동안 쌓인 녹화는 파기한다.
 
 paths:
+  # 출입구 — 누가 언제 드나들었나. 분쟁 때 가장 자주 다시 보게 되는 쪽이다.
   entrance:
     source: rtsp://<카메라계정>:<카메라비번>@<카메라 IP>:554/stream1
     sourceOnDemand: no
 
-  # 카메라를 늘릴 때 이 블록을 복사한다. 어드민에도 같은 이름으로 등록해야 보인다.
-  # lounge:
-  #   source: rtsp://<카메라계정>:<카메라비번>@<카메라 IP2>:554/stream1
-  #   sourceOnDemand: no
+  # 실내 라운지 — 무슨 일이 있었나. 화장실이 화각에 들어가면 위법이니 각도를 바꾼다
+  # (개인정보 보호법 §25, cctv-setup.md C-0). 용량이 모자라면 이쪽만 stream2로 낮춘다.
+  lounge:
+    source: rtsp://<카메라계정>:<카메라비번>@<카메라 IP2>:554/stream1
+    sourceOnDemand: no
+
+  # 카메라를 더 늘릴 때 위 블록을 복사한다. 어드민에도 같은 이름으로 등록해야 보인다.
