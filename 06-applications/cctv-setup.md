@@ -157,7 +157,7 @@ cp mediamtx/mediamtx.yml "$(brew --prefix)/etc/mediamtx.yml"
 `<스트림계정>`/`<스트림비번>`은 여기서 새로 정하는 값이다(카메라 계정과 다르다).
 어드민이 영상을 볼 때 쓸 계정이고, C-7에서 Supabase에도 같은 값을 넣는다.
 
-- [ ] **비밀번호는 32자 이상 랜덤으로 만든다.** `cam.<도메인>`은 전 인터넷에 열리는데
+- [ ] **비밀번호는 32자 이상 랜덤으로 만든다.** `cam.nmwc.ai.kr`은 전 인터넷에 열리는데
       MediaMTX에는 브루트포스 방어가 없다. 사람이 외울 값이 아니니 짧게 만들 이유도 없다:
 
       ```bash
@@ -185,6 +185,63 @@ brew services start mediamtx
 > 토큰을 보지 않고 user/pass만 비교한다. 브라우저에서 주소창에 URL을 붙여넣어 확인하려 하면
 > 401만 보게 되니, 확인은 위 `curl -u`로 한다(브라우저는 Basic 인증 대화상자를 띄운다).
 
+---
+
+## C-4b. 카메라 없이 전 구간 검증 (권장 — 카메라 사기 전에)
+
+**카메라가 없어도 가짜 스트림으로 admin까지 전부 확인할 수 있다.** 이걸 먼저 하면 설치 당일에
+남는 미지수가 "카메라가 RTSP를 뱉는가" 하나로 줄어든다. 특히 **hls.js와 MediaMTX 인증이
+실제로 맞물리는지**는 이 방법 말고는 카메라를 산 뒤에야 알 수 있다.
+
+임시로 로컬 RTSP 수신만 연다. **`127.0.0.1`에 묶어서 LAN에도 안 열린다.**
+
+```yaml
+# mediamtx.yml — 검증 동안만. 끝나면 되돌린다.
+rtsp: yes
+rtspAddress: 127.0.0.1:8554
+```
+
+```yaml
+# paths 에 임시 경로 추가 (entrance 는 카메라가 없으니 아직 안 뜬다)
+  testpattern:
+    source: publisher
+```
+
+```bash
+brew services restart mediamtx
+brew install ffmpeg    # 없으면
+
+# 컬러바를 15fps로 밀어넣는다. lavfi testsrc 는 비디오만이라 오디오가 안 붙는다.
+ffmpeg -re -f lavfi -i "testsrc=size=1280x720:rate=15" \
+  -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p \
+  -f rtsp rtsp://127.0.0.1:8554/testpattern
+```
+
+어드민 → CCTV → `+ 카메라 추가` → 이름 `테스트`, 스트림 이름 `testpattern`.
+
+- [ ] **컬러바가 admin 화면에 뜬다** ← 여기까지 오면 admin→터널→MediaMTX→hls.js 인증이 전부 맞물린 것이다
+- [ ] 카드에 `녹화 중 · 연결됨` 이 뜬다 (녹화도 같이 검증된다)
+- [ ] 10분쯤 두었다가 **되감기**로 그 구간이 재생된다
+
+**오디오 경고도 같이 검증한다.** ffmpeg를 끊고 오디오를 섞어 다시 밀어넣는다:
+
+```bash
+ffmpeg -re -f lavfi -i "testsrc=size=1280x720:rate=15" -f lavfi -i "sine=frequency=440" \
+  -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -c:a aac -shortest \
+  -f rtsp rtsp://127.0.0.1:8554/testpattern
+```
+
+- [ ] 30초 안에 카드 맨 앞에 **`⚠ 오디오 트랙 감지`** 가 뜬다
+- [ ] `agent.log` 에도 같은 경고가 남는다
+
+정리 — **되돌리는 걸 잊으면 로컬 RTSP가 계속 열려 있고 가짜 카메라가 어드민에 남는다:**
+
+- [ ] ffmpeg 종료
+- [ ] 어드민에서 `테스트` 카메라 **등록 해제**
+- [ ] `mediamtx.yml` 에서 `rtsp: no` 로 되돌리고 `testpattern` 경로 삭제
+- [ ] `brew services restart mediamtx`
+- [ ] 녹화 폴더의 `testpattern/` 삭제 (보관기간까지 디스크를 차지한다)
+
 ## C-5. 용량 계산
 
 MediaMTX는 받은 영상을 다시 인코딩하지 않는다 — 카메라 비트레이트가 그대로 디스크 소모다.
@@ -206,9 +263,31 @@ MediaMTX는 받은 영상을 다시 인코딩하지 않는다 — 카메라 비�
 > Tailscale로 갈 수 있다 — 단 그 경우 **admin을 보는 기기마다 Tailscale이 필요**해서
 > 직원·외부인 폰에서는 영상이 안 보인다. 혼자 본다면 그쪽이 더 간단하다.
 
+**NMWC 계정 실측(2026-08-03) — 이 조건은 이미 충족돼 있다:**
+
+| | |
+|---|---|
+| 도메인 | `nmwc.ai.kr` (Cloudflare Free, Active). 계정에 이 하나뿐이다 |
+| DNS | 12/200 사용. `cam`·`camrec` 이름 충돌 없음 |
+| 선례 | 터널 `nmwc-mattermost`가 이미 `mm`·`sb`·`ws`를 서빙 중 — 같은 CLI 방식이다 |
+
+두 가지를 알고 시작한다:
+
+- **Zero Trust 플랜을 고를 필요가 없다.** 대시보드의 Networks → Tunnels는 온보딩(플랜 선택)을
+  요구하지만, 아래 CLI로 만드는 건 *locally-managed tunnel*이라 그 경로를 안 탄다.
+  기존 `nmwc-mattermost`도 같은 방식이다. 플랜 선택 화면이 뜨면 그냥 나온다.
+- **서브도메인은 한 단계까지만 쓴다.** Free 플랜의 Universal SSL은 `nmwc.ai.kr`과
+  `*.nmwc.ai.kr`만 커버한다(실측). `cam.typelounge.nmwc.ai.kr`처럼 두 단계로 가면
+  인증서가 없어 TLS부터 실패하고, 고치려면 ACM(유료)이 필요하다.
+
+> ⚠️ **와일드카드 레코드가 이미 있다** — `*.nmwc.ai.kr CNAME nmwc.ai.kr (DNS only)`.
+> 우리가 만들 `cam`·`camrec`은 더 구체적이라 우선하므로 충돌은 없다. 다만 **터널이 안 붙었거나
+> 이름을 오타 냈을 때 연결 거부가 아니라 Vercel 페이지(404)가 돌아온다.** "401이 나와야 정상"인
+> 확인 단계에서 엉뚱한 응답을 보게 되니, 그럴 땐 DNS부터 의심한다.
+
 ```bash
 brew install cloudflared
-cloudflared tunnel login
+cloudflared tunnel login          # 브라우저가 열리면 nmwc.ai.kr 를 고른다
 cloudflared tunnel create typelounge-cam        # 출력된 <터널ID>를 적어둔다
 ```
 
@@ -218,9 +297,9 @@ cloudflared tunnel create typelounge-cam        # 출력된 <터널ID>를 적어
 tunnel: <터널ID>
 credentials-file: /Users/<사용자>/.cloudflared/<터널ID>.json
 ingress:
-  - hostname: cam.<도메인>
+  - hostname: cam.nmwc.ai.kr
     service: http://127.0.0.1:8888      # 실시간(HLS)
-  - hostname: camrec.<도메인>
+  - hostname: camrec.nmwc.ai.kr
     service: http://127.0.0.1:9996      # 녹화 재생
   - service: http_status:404
 ```
@@ -229,8 +308,8 @@ ingress:
 두 포트를 경로로 나눠 붙일 수 없다. 호스트 두 개가 가장 싸다.
 
 ```bash
-cloudflared tunnel route dns typelounge-cam cam.<도메인>
-cloudflared tunnel route dns typelounge-cam camrec.<도메인>
+cloudflared tunnel route dns typelounge-cam cam.nmwc.ai.kr
+cloudflared tunnel route dns typelounge-cam camrec.nmwc.ai.kr
 sudo cloudflared service install                 # 재부팅해도 살아나게
 ```
 
@@ -238,10 +317,10 @@ sudo cloudflared service install                 # 재부팅해도 살아나게
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-  https://cam.<도메인>/entrance/index.m3u8            # 200
-curl -s -o /dev/null -w '%{http_code}\n' https://cam.<도메인>/entrance/index.m3u8   # 401
+  https://cam.nmwc.ai.kr/entrance/index.m3u8            # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://cam.nmwc.ai.kr/entrance/index.m3u8   # 401
 curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-  'https://camrec.<도메인>/list?path=entrance'        # 200
+  'https://camrec.nmwc.ai.kr/list?path=entrance'        # 200
 ```
 
 - [ ] 인증을 붙이면 `200`
@@ -257,8 +336,8 @@ cd <이 레포>
 supabase db push
 supabase functions deploy control
 supabase secrets set \
-  CAMERA_LIVE_BASE=https://cam.<도메인> \
-  CAMERA_PLAYBACK_BASE=https://camrec.<도메인> \
+  CAMERA_LIVE_BASE=https://cam.nmwc.ai.kr \
+  CAMERA_PLAYBACK_BASE=https://camrec.nmwc.ai.kr \
   CAMERA_STREAM_USER=<스트림계정> \
   CAMERA_STREAM_PASS=<스트림비번> \
   CAMERA_RETENTION_DAYS=7
