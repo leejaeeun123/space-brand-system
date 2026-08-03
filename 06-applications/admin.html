@@ -84,6 +84,8 @@
   .res-item .time{font-weight:600;font-size:15px;}
   .res-item .no{color:#8a8478;font-size:11px;margin-top:2px;}
   .res-item .src{display:inline-block;font-size:10px;color:#6b665c;border:1px solid var(--hair);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+  .res-item.cancelled{opacity:.55;}
+  .res-item .cancel-badge{display:inline-block;font-size:10px;color:#fff;background:#c0392b;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
   .res-item .del-btn{
     font-family:inherit;font-size:13px;color:var(--orange);background:none;border:1px solid var(--hair);border-radius:8px;cursor:pointer;
     flex:0 0 auto;padding:9px 12px;
@@ -119,6 +121,17 @@
   .modal-actions .confirm{background:var(--ink);color:var(--white);border-color:var(--ink);}
   .modal-actions .cancel{background:var(--white);color:var(--ink);}
   .empty-note{color:#8a8478;font-size:13px;padding:8px 0;}
+  .add-btn{
+    font-family:inherit;font-weight:600;font-size:14px;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
+    padding:14px;cursor:pointer;width:100%;min-height:48px;margin-top:14px;
+  }
+  #addModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
+  .modal-box-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .modal-box-header h2{margin:0;}
+  .modal-close{
+    font-family:inherit;font-size:18px;line-height:1;background:none;border:0;cursor:pointer;color:#8a8478;padding:6px;flex:0 0 auto;
+  }
 
   /* Form */
   form{display:grid;gap:10px;}
@@ -184,107 +197,116 @@
   <div class="day-label" id="dayLabel"></div>
   <div id="dayList"></div>
 
-  <h2>새 예약 추가</h2>
-  <form onsubmit="addReservation(event)">
-    <fieldset>
-      <legend>예약 내용</legend>
-      <div class="row2">
-        <div>
-          <label>예약 구분</label>
-          <select id="fSource" required>
-            <option value="" disabled selected>선택</option>
-            <option value="스클">스클</option>
-            <option value="네이버">네이버</option>
-          </select>
-        </div>
-        <div>
-          <label>예약번호</label>
-          <input type="text" id="fBookingNo" placeholder="예: 10385020">
-        </div>
-      </div>
-      <div class="row2">
-        <div>
-          <label>신청일</label>
-          <input type="date" id="fApplied">
-        </div>
-        <div></div>
-      </div>
-      <div class="row3">
-        <div>
-          <label>이용 날짜</label>
-          <input type="date" id="fDate" required>
-        </div>
-        <div>
-          <label>시작 시간</label>
-          <input type="time" id="fStart" required>
-        </div>
-        <div>
-          <label>종료 시간</label>
-          <input type="time" id="fEnd" required>
-        </div>
-      </div>
-      <div class="row2">
-        <div>
-          <label>인원수</label>
-          <input type="number" id="fGuests" min="1" placeholder="예: 5">
-        </div>
-        <div>
-          <label>사용목적</label>
-          <input type="text" id="fPurpose" placeholder="예: 비즈니스 미팅">
-        </div>
-      </div>
-      <div>
-        <label>추가옵션</label>
-        <input type="text" id="fOption" placeholder="예: 팟캐스트 장비 대여">
-      </div>
-      <div>
-        <label>요청사항</label>
-        <input type="text" id="fRequest" placeholder="예약자가 남긴 요청사항">
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>예약자 정보</legend>
-      <div>
-        <label>예약자명</label>
-        <input type="text" id="fName" required placeholder="예: 김민수">
-      </div>
-      <div class="row2">
-        <div>
-          <label>연락처</label>
-          <input type="tel" id="fPhone" placeholder="선택">
-        </div>
-        <div>
-          <label>이메일</label>
-          <input type="email" id="fEmail" placeholder="선택">
-        </div>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>결제 정보</legend>
-      <div class="row2">
-        <div>
-          <label>결제금액</label>
-          <input type="number" id="fAmount" min="0" placeholder="예: 16000">
-        </div>
-        <div>
-          <label>결제수단</label>
-          <input type="text" id="fPayment" placeholder="예: 네이버페이">
-        </div>
-      </div>
-    </fieldset>
-
-    <div>
-      <label>메모 (내부용)</label>
-      <input type="text" id="fMemo" placeholder="선택">
-    </div>
-
-    <button type="submit">예약 추가</button>
-  </form>
+  <button type="button" class="add-btn" onclick="openAddModal()">+ 새 예약 추가</button>
 
   <div class="warn">
     이 예약 데이터는 Supabase DB에 저장돼서 어느 기기에서 열어도 같은 내역이 보여요. 비밀번호는 서버(DB)에서 직접 확인하지만, 그래도 이 페이지 링크와 비밀번호는 형운님만 알고 계셔야 해요.
+  </div>
+</div>
+
+<div id="addModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box-header">
+      <h2>새 예약 추가</h2>
+      <button type="button" class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <form onsubmit="addReservation(event)">
+      <fieldset>
+        <legend>예약 내용</legend>
+        <div class="row2">
+          <div>
+            <label>예약 구분</label>
+            <select id="fSource" required>
+              <option value="" disabled selected>선택</option>
+              <option value="스클">스클</option>
+              <option value="네이버">네이버</option>
+            </select>
+          </div>
+          <div>
+            <label>예약번호</label>
+            <input type="text" id="fBookingNo" placeholder="예: 10385020">
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>신청일</label>
+            <input type="date" id="fApplied">
+          </div>
+          <div></div>
+        </div>
+        <div class="row3">
+          <div>
+            <label>이용 날짜</label>
+            <input type="date" id="fDate" required>
+          </div>
+          <div>
+            <label>시작 시간</label>
+            <input type="time" id="fStart" required>
+          </div>
+          <div>
+            <label>종료 시간</label>
+            <input type="time" id="fEnd" required>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>인원수</label>
+            <input type="number" id="fGuests" min="1" placeholder="예: 5">
+          </div>
+          <div>
+            <label>사용목적</label>
+            <input type="text" id="fPurpose" placeholder="예: 비즈니스 미팅">
+          </div>
+        </div>
+        <div>
+          <label>추가옵션</label>
+          <input type="text" id="fOption" placeholder="예: 팟캐스트 장비 대여">
+        </div>
+        <div>
+          <label>요청사항</label>
+          <input type="text" id="fRequest" placeholder="예약자가 남긴 요청사항">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>예약자 정보</legend>
+        <div>
+          <label>예약자명</label>
+          <input type="text" id="fName" required placeholder="예: 김민수">
+        </div>
+        <div class="row2">
+          <div>
+            <label>연락처</label>
+            <input type="tel" id="fPhone" placeholder="선택">
+          </div>
+          <div>
+            <label>이메일</label>
+            <input type="email" id="fEmail" placeholder="선택">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>결제 정보</legend>
+        <div class="row2">
+          <div>
+            <label>결제금액</label>
+            <input type="number" id="fAmount" min="0" placeholder="예: 16000">
+          </div>
+          <div>
+            <label>결제수단</label>
+            <input type="text" id="fPayment" placeholder="예: 네이버페이">
+          </div>
+        </div>
+      </fieldset>
+
+      <div>
+        <label>메모 (내부용)</label>
+        <input type="text" id="fMemo" placeholder="선택">
+      </div>
+
+      <button type="submit">예약 추가</button>
+    </form>
   </div>
 </div>
 
@@ -344,7 +366,8 @@
       memo: row.memo || '',
       checkinDone: !!row.checkin_done,
       checkoutDone: !!row.checkout_done,
-      cleaningDone: !!row.cleaning_done
+      cleaningDone: !!row.cleaning_done,
+      cancelled: !!row.cancelled
     };
   }
 
@@ -475,7 +498,7 @@
     list.innerHTML = '';
     reservations.forEach(function(r){
       var item = document.createElement('div');
-      item.className = 'res-item';
+      item.className = 'res-item' + (r.cancelled ? ' cancelled' : '');
 
       var rows = [];
       if(r.applied) rows.push(['신청일', r.applied]);
@@ -496,7 +519,7 @@
       item.innerHTML =
         '<div class="top">' +
           '<div>' +
-            '<div class="time">' + r.start + ' – ' + r.end + ' · ' + escapeHtml(r.name) + (r.source ? ' <span class="src">' + escapeHtml(r.source) + '</span>' : '') + '</div>' +
+            '<div class="time">' + r.start + ' – ' + r.end + ' · ' + escapeHtml(r.name) + (r.source ? ' <span class="src">' + escapeHtml(r.source) + '</span>' : '') + (r.cancelled ? ' <span class="cancel-badge">취소됨</span>' : '') + '</div>' +
             (r.bookingNo ? '<div class="no">예약번호 ' + escapeHtml(r.bookingNo) + '</div>' : '') +
           '</div>' +
           '<button class="del-btn" data-id="' + r.id + '">삭제</button>' +
@@ -513,6 +536,15 @@
       });
       list.appendChild(item);
     });
+  }
+
+  function openAddModal(){
+    document.getElementById('fDate').value = selectedDate;
+    document.getElementById('addModal').style.display = 'flex';
+  }
+
+  function closeAddModal(){
+    document.getElementById('addModal').style.display = 'none';
   }
 
   function addReservation(e){
@@ -546,6 +578,7 @@
       viewMonth = Number(parts[1]) - 1;
       e.target.reset();
       document.getElementById('fDate').value = selectedDate;
+      closeAddModal();
       return refresh();
     }).catch(function(err){
       alert('추가하지 못했어요: ' + (err && err.message ? err.message : err));
