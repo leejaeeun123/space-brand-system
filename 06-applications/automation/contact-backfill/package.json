@@ -1,0 +1,17 @@
+{
+  "name": "typelounge-contact-backfill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "스클 예약 연락처 자동 백필 — 파트너 API에서 빈 칸만 메운다",
+  "type": "module",
+  "scripts": {
+    "setup": "node spike-token.js --setup",
+    "spike": "node spike-token.js"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
