@@ -124,6 +124,18 @@
   .shots.wide{grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
   .shots.wide .ph{height:340px}
 
+  /* A5 안내문 실제 디자인 — 벡터 SVG, 클릭하면 내려받아진다 */
+  .sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sheets.land{grid-template-columns:repeat(auto-fill,minmax(224px,1fr))}
+  .sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);
+         text-decoration:none;color:inherit;display:block;transition:.12s ease-out}
+  .sheet:hover{border-color:var(--orange)}
+  .sheet img{width:100%;height:auto;display:block;background:#fff}
+  .sheet .cap{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .sheet .cap b{font-weight:600;font-size:12.5px}
+  .sheet .cap small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s;white-space:nowrap}
+  .sheet:hover .cap small{opacity:1}
+
   .seq{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:18px 0;
        font-size:13.5px;line-height:1.9;overflow-x:auto;white-space:nowrap}
   .seq b{font-weight:600}
@@ -464,6 +476,25 @@
       <li>글자는 <strong>Paperlogy 아웃라인(벡터)</strong>으로 구워 납품 — 폰트 설치 환경에 좌우되지 않는다</li>
     </ul>
     <div class="note"><strong>부착 방식이 디자인의 일부다</strong> · 트레이싱지를 원형 실버 자석 · 실버 클립 · 오렌지 마스킹테이프로 겹쳐 고정한다. 각인을 쓰지 않는 이유는 비용만이 아니라, 겹쳐 쌓인 층이 곧 브랜드 컨셉(<strong>모드의 겹침</strong>)이기 때문이다.</div>
+
+    <h3>세로 A5 5종 · 자석 안내판</h3>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6);margin-bottom:4px">아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.</p>
+    <div class="sheets">
+      <a class="sheet" href="assets/notice/notice-wifi.svg" download><img src="assets/notice/notice-wifi.svg" alt="와이파이 안내문"><div class="cap"><b>와이파이</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-aircon.svg" download><img src="assets/notice/notice-aircon.svg" alt="냉난방기 안내문"><div class="cap"><b>냉난방기</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-bluetooth.svg" download><img src="assets/notice/notice-bluetooth.svg" alt="블루투스 스피커 안내문"><div class="cap"><b>블루투스 스피커</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-tv.svg" download><img src="assets/notice/notice-tv.svg" alt="TV 안내문"><div class="cap"><b>TV</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-light.svg" download><img src="assets/notice/notice-light.svg" alt="조명 안내문"><div class="cap"><b>조명</b><small>SVG ↓</small></div></a>
+    </div>
+
+    <h3>가로 A5 3종 · 벽 직접부착</h3>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6);margin-bottom:4px">같은 요소 순서(픽토 → 제목 → 본문 → 워드마크)를 595×420 판형에 담는다. 제목은 14px, 본문 상단 <code>y 254</code>, 로고 <code>y 367</code>.</p>
+    <div class="sheets land">
+      <a class="sheet" href="assets/notice/notice-shoe.svg" download><img src="assets/notice/notice-shoe.svg" alt="신발장 안내문"><div class="cap"><b>신발장</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-trash.svg" download><img src="assets/notice/notice-trash.svg" alt="쓰레기 처리 방법 안내문"><div class="cap"><b>쓰레기 처리 방법</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-urinal.svg" download><img src="assets/notice/notice-urinal.svg" alt="소변기 사용 금지 안내문"><div class="cap"><b>소변기 사용 금지</b><small>SVG ↓</small></div></a>
+    </div>
+    <div class="note"><strong>소변기 안내문은 경고문 변형</strong> · 본문 없이 제목만 24px 2줄(행간 28), 픽토는 금지 표시 53×53에 세로중심 <code>y 86.5</code>. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 이 변형을 쓴다.</div>
   </section>
 
   <section>
