@@ -212,6 +212,16 @@
   .dev-warn{color:var(--orange);}
   .dev-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px;}
   .dev-row > .dev-row-label{font-size:12px;color:#6b665c;width:100%;margin-bottom:2px;}
+  /* 목표온도 직접 입력. 숫자만 받으려고 number를 쓰되, 스피너는 모바일에서 44px 타겟을
+     깎아먹어 숨긴다 — −/+ 버튼이 이미 그 역할이다. */
+  .temp-input{
+    font-family:inherit;font-weight:600;font-size:14px;width:76px;text-align:center;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
+    padding:10px 8px;min-height:44px;
+  }
+  .temp-input::-webkit-outer-spin-button,
+  .temp-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .temp-input[type=number]{-moz-appearance:textfield;}
   .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:10px;font-size:13px;color:#6b665c;line-height:1.6;}
   .ctl-all-row{display:flex;gap:8px;margin-bottom:14px;}
   .ctl-all-row button{
@@ -1081,6 +1091,24 @@
       '>' + escapeHtml(label) + '</button>';
   }
 
+  /* 화면에서 온도가 움직이는 폭. 기기 프로파일의 step(에어컨은 0.5)은 **서버 검증의 기준으로
+     그대로 두고**, 여기서는 한 번 눌렀을 때 가는 거리만 1도로 잡는다. 0.5도씩 두 번 눌러야
+     1도가 가는 건 실제로 쓸 때 성가시고, 1은 0.5의 배수라 서버의 (값-min)/step 정수 검증을
+     그대로 통과한다. 기기 step이 1보다 크면(그런 기기가 오면) 그쪽이 이긴다 — 기기가 못 받는
+     값을 UI 편의로 만들어내면 ThinQ가 400을 주거나 조용히 무시한다. */
+  function tempStep(t){ return Math.max(1, t.step || 1); }
+
+  /* 사람이 준 값을 기기가 받는 격자에 맞춘다. 범위 밖은 자르고, step 격자에 스냅한다.
+     0.5 격자에서 부동소수 꼬리(25.700000000000003)가 남으면 서버 검증이 그걸로 떨어진다. */
+  function snapTemp(t, v){
+    v = Math.min(t.max, Math.max(t.min, v));
+    if(t.step) v = t.min + Math.round((v - t.min) / t.step) * t.step;
+    return Math.round(v * 100) / 100;
+  }
+
+  /* base에서 dir(-1/+1) 방향으로 한 칸. 범위 끝에서는 제자리에 머문다. */
+  function tempNudge(t, base, dir){ return snapTemp(t, base + dir * tempStep(t)); }
+
   function deviceCardHtml(d){
     var s = d.state || {};
     var a = s.attrs || {};
@@ -1096,14 +1124,14 @@
     if(caps.indexOf('temp') !== -1 && c.temp){
       var cur = Number(a.target_temp);
       var base = isFinite(cur) ? cur : c.temp.min;
-      var down = Math.max(c.temp.min, base - c.temp.step);
-      var up = Math.min(c.temp.max, base + c.temp.step);
       rows += '<div class="dev-row"><span class="dev-row-label">목표온도 (' +
-        c.temp.min + '~' + c.temp.max + c.temp.unit + ', ' + c.temp.step + c.temp.unit + ' 단위)</span>' +
-        btn(d.id, 'set_temp', down, '−') +
-        '<span style="min-width:56px;text-align:center;">' +
-        (isFinite(cur) ? cur + c.temp.unit : '—') + '</span>' +
-        btn(d.id, 'set_temp', up, '+') + '</div>';
+        c.temp.min + '~' + c.temp.max + c.temp.unit + ', ' + tempStep(c.temp) + c.temp.unit + ' 단위)</span>' +
+        btn(d.id, 'set_temp', tempNudge(c.temp, base, -1), '−') +
+        '<input type="number" class="temp-input" data-temp-dev="' + escapeHtml(d.id) + '"' +
+        ' value="' + (isFinite(cur) ? cur : '') + '" placeholder="—"' +
+        ' min="' + c.temp.min + '" max="' + c.temp.max + '" step="' + tempStep(c.temp) + '"' +
+        ' inputmode="decimal" aria-label="목표온도">' +
+        btn(d.id, 'set_temp', tempNudge(c.temp, base, 1), '+') + '</div>';
     }
     if(caps.indexOf('mode') !== -1 && (c.modes || []).length){
       rows += '<div class="dev-row"><span class="dev-row-label">모드</span>' +
@@ -1156,6 +1184,34 @@
       .then(refreshDevices)
       .catch(function(err){ ctlNotice(err.message, true); })
       .then(function(){ el.disabled = false; });
+  });
+
+  /* 목표온도 직접 입력. 타이핑 중간값(2 → 25를 치는 중간)으로 명령이 나가면 안 돼서
+     input 이벤트가 아니라 **Enter와 change(=포커스 이탈)**에서만 보낸다. */
+  function submitTempInput(el){
+    var dev = devicesCache.filter(function(d){ return d.id === el.dataset.tempDev; })[0];
+    var t = dev && dev.constraints && dev.constraints.temp;
+    var raw = Number(el.value);
+    if(!t || !isFinite(raw)){ refreshDevices(); return; }
+
+    var value = snapTemp(t, raw);
+    // 스냅된 값을 칸에 되돌려 보여준다 — 27.2를 치면 27이 간다는 걸 보내기 전에 알려야 한다.
+    el.value = value;
+    el.disabled = true;
+    controlCall('command', { device_id: el.dataset.tempDev, command: 'set_temp', value: value })
+      .then(refreshDevices)
+      .catch(function(err){ ctlNotice(err.message, true); })
+      .then(function(){ el.disabled = false; });
+  }
+
+  document.getElementById('ctlList').addEventListener('change', function(e){
+    if(e.target.dataset && e.target.dataset.tempDev) submitTempInput(e.target);
+  });
+
+  document.getElementById('ctlList').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.tempDev) return;
+    e.preventDefault();
+    e.target.blur();  // change가 따라오면 거기서 보낸다. 여기서 또 보내면 두 번 간다.
   });
 
   function loadThinqDevices(){

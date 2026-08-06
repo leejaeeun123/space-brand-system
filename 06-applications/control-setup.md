@@ -277,7 +277,7 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 ```
 
 - [ ] `list`는 기기 목록이 온다 (`address` 필드는 없는 게 정상이다 — 손님에겐 안 내린다)
-- [ ] `delete`는 `"이 페이지에서는 켜기/끄기만 할 수 있어요"` 403
+- [ ] `delete`는 `"이 페이지에서는 켜기/끄기와 온도 조절만 할 수 있어요"` 403
 - [ ] `/control`에서 현관 비밀번호로 들어가 켜기/끄기가 실제 기기에 반영된다
 
 ### G-4. 손님에게 알리기

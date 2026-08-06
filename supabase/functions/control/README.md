@@ -23,7 +23,7 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 | 역할 | 비밀번호 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
 | `admin` | `ADMIN_PASSWORD` | `admin.html` | 10개 action 전부 |
-| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command`의 `power_on`·`power_off` |
+| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command`의 `power_on`·`power_off`·`set_temp` |
 
 **비밀번호를 하나로 둘 수 없는 이유가 있다.** admin 비밀번호는 이 함수만 여는 열쇠가 아니라
 `reservations`의 `admin_*` RPC — 예약자 이름·전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이
@@ -32,7 +32,11 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 
 판정은 전부 [`auth.ts`](./auth.ts)에 있고, **서버에 있어야 한다** — `guest-control.html`도 소스가
 공개되므로 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다. `command` action만 열어주는
-것으로도 부족하다: 같은 action이 `set_temp`·`set_mode`·`set_wind`도 태우기 때문에 명령까지 검사한다.
+것으로도 부족하다: 같은 action이 `set_mode`·`set_wind`도 태우기 때문에 명령까지 검사한다.
+
+**`set_temp`를 손님에게 열어둔 것은 의도적이다.** 손님은 이미 물리 리모컨으로 같은 일을 할 수
+있어 여기서 막아도 새로 막히는 게 없고, 값은 `thinq/commands.ts`가 기기 프로파일의 min/max/step에
+대고 검증한다. 반면 모드·풍량은 **다음 손님까지 남는 상태**라 닫은 채로 둔다.
 
 `GUEST_PASSWORD` 미설정은 손님 경로만 닫는다(401). `ADMIN_PASSWORD` 미설정은 예전처럼 전면
 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게 낫다. 두 값이 같으면 설정 실수로 보고

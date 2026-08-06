@@ -7,12 +7,12 @@
 <meta name="robots" content="noindex">
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <!--
-  손님용 공간 제어. admin.html의 '공간 제어' 탭을 켜기/끄기만 남기고 줄인 것이다.
+  손님용 공간 제어. admin.html의 '공간 제어' 탭에서 켜기/끄기와 냉난방 온도만 남기고 줄인 것이다.
 
   ⚠️ **admin.html의 코드를 그대로 복사해 오면 안 된다.** admin이 쓰는 비밀번호는 기기뿐 아니라
   예약자 이름·연락처를 여는 admin_* RPC까지 여는 열쇠라, 이 공개 페이지에 들어가면 개인정보가
   통째로 새어 나간다. 이 페이지는 **별도 비밀번호(현관 비밀번호)**를 쓰고, 서버(auth.ts)가
-  그 역할에 목록 조회와 켜기/끄기만 허용한다.
+  그 역할에 목록 조회와 켜기/끄기·온도 조절만 허용한다. 모드·풍량은 다음 손님까지 남는 상태라 닫혀 있다.
 
   이 파일의 버튼을 감추는 것으로는 아무것도 막지 못한다는 점이 설계의 전제다 — 소스가 공개되므로
   누구나 fetch로 다른 action을 부를 수 있고, 그걸 잘라내는 건 서버뿐이다.
@@ -98,6 +98,22 @@
   .dev-row button.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
   .dev-note{font-size:12px;color:var(--mute);}
 
+  /* 목표온도 줄. 위의 `.dev-row button`은 flex:1로 늘어나는데, 그 규칙을 그대로 쓰면
+     −/+ 가 입력칸과 폭을 나눠 가져 숫자가 찌그러진다. 버튼은 고정폭으로 되돌린다.
+     규칙 순서가 중요하다 — 특이도가 같아서 뒤에 오는 쪽이 이긴다. */
+  .temp-row{margin-top:10px;align-items:center;}
+  .temp-row button{flex:0 0 56px;}
+  .temp-input{
+    font-family:inherit;font-weight:600;font-size:16px;flex:1;min-width:0;text-align:center;
+    border:1px solid var(--hair);border-radius:999px;padding:12px;min-height:48px;
+    background:var(--white);color:var(--ink);
+  }
+  /* 스피너를 두면 48px 타겟 안에 2px 화살표가 생긴다 — 손가락으로는 못 누른다. */
+  .temp-input::-webkit-outer-spin-button,
+  .temp-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .temp-input[type=number]{-moz-appearance:textfield;}
+  .temp-hint{font-size:12px;color:var(--mute);margin-top:8px;}
+
   .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:24px;}
   .foot p{font-size:13px;color:var(--mute);}
   .foot p + p{margin-top:10px;}
@@ -135,7 +151,7 @@
   <button type="button" class="refresh" onclick="refreshDevices()">상태 새로고침</button>
 
   <div class="foot">
-    <p>냉난방 <strong>온도</strong>는 거울 선반 위 작은 흰색 리모컨으로 바꿔 주세요. 여기서는 켜고 끄는 것만 돼요.</p>
+    <p>냉난방은 여기서 켜고 끄고 <strong>온도</strong>까지 맞추실 수 있어요. 바람 세기와 모드는 거울 선반 위 작은 흰색 리모컨으로 바꿔 주세요.</p>
     <p>조명은 명령을 보낸 뒤 실제로 반영되기까지 몇 초 걸릴 수 있어요. 바로 안 바뀌어도 잠시 기다려 주세요.</p>
     <p>나가실 때 <strong>전체 끄기</strong>를 한 번 눌러 주시면 큰 도움이 돼요.</p>
   </div>
@@ -269,13 +285,54 @@
     return (d.capabilities || []).indexOf('power') !== -1;
   }
 
+  function tempRange(d){
+    if((d.capabilities || []).indexOf('temp') === -1) return null;
+    return (d.constraints && d.constraints.temp) || null;
+  }
+
+  /* 화면에서 온도가 움직이는 폭. 기기 프로파일의 step(에어컨은 0.5)은 **서버 검증의 기준으로
+     그대로 두고**, 여기서는 한 번 눌렀을 때 가는 거리만 1도로 잡는다. 1은 0.5의 배수라
+     서버의 (값-min)/step 정수 검증을 그대로 통과한다. admin.html과 같은 규칙이다 — 이 레포는
+     빌드 단계가 없어 공유 파일 대신 양쪽에 두었고, 한쪽만 고치면 같은 기기가 두 페이지에서
+     다르게 움직인다. */
+  function tempStep(t){ return Math.max(1, t.step || 1); }
+
+  /* 사람이 준 값을 기기가 받는 격자에 맞춘다. 범위 밖은 자르고 step 격자에 스냅한다.
+     0.5 격자에서 부동소수 꼬리(25.700000000000003)가 남으면 서버 검증이 그걸로 떨어진다. */
+  function snapTemp(t, v){
+    v = Math.min(t.max, Math.max(t.min, v));
+    if(t.step) v = t.min + Math.round((v - t.min) / t.step) * t.step;
+    return Math.round(v * 100) / 100;
+  }
+
+  function tempNudge(t, base, dir){ return snapTemp(t, base + dir * tempStep(t)); }
+
+  function tempRowHtml(d, t, attrs){
+    var cur = Number(attrs.target_temp);
+    var base = isFinite(cur) ? cur : t.min;
+    var id = escapeHtml(d.id);
+    return '<div class="dev-row temp-row">' +
+      '<button type="button" data-dev="' + id + '" data-cmd="set_temp"' +
+      ' data-val="' + tempNudge(t, base, -1) + '" aria-label="온도 내림">−</button>' +
+      '<input type="number" class="temp-input" data-temp-dev="' + id + '"' +
+      ' value="' + (isFinite(cur) ? cur : '') + '" placeholder="—"' +
+      ' min="' + t.min + '" max="' + t.max + '" step="' + tempStep(t) + '"' +
+      ' inputmode="decimal" aria-label="목표온도">' +
+      '<button type="button" data-dev="' + id + '" data-cmd="set_temp"' +
+      ' data-val="' + tempNudge(t, base, 1) + '" aria-label="온도 올림">+</button>' +
+      '</div>' +
+      '<p class="temp-hint">희망 온도 ' + t.min + '~' + t.max + t.unit +
+      '. 숫자를 직접 적고 Enter를 눌러도 바뀌어요.</p>';
+  }
+
   function deviceCardHtml(d){
     var s = d.state || {};
+    var attrs = s.attrs || {};
     var meta = [powerLabel(s.power)];
     var tail = stateLabel(s);
     if(tail) meta.push(tail);
-    if(s.attrs && s.attrs.current_temp !== undefined){
-      meta.push('현재 ' + s.attrs.current_temp + (s.attrs.unit || ''));
+    if(attrs.current_temp !== undefined){
+      meta.push('현재 ' + attrs.current_temp + (attrs.unit || ''));
     }
 
     var body = canPower(d)
@@ -284,6 +341,10 @@
           '<button type="button" class="' + (s.power === 'OFF' ? 'on' : '') + '" data-dev="' + escapeHtml(d.id) + '" data-cmd="power_off">끄기</button>' +
         '</div>'
       : '<p class="dev-note">이 기기는 여기서 켜고 끌 수 없어요.</p>';
+
+    // 온도는 에어컨만 가진 상태다. 조명은 capabilities가 ['power']뿐이라 이 줄이 안 붙는다.
+    var t = tempRange(d);
+    if(t) body += tempRowHtml(d, t, attrs);
 
     return '<div class="dev-card">' +
       '<div class="dev-name">' + escapeHtml(d.name) + '</div>' +
@@ -354,13 +415,45 @@
   document.getElementById('list').addEventListener('click', function(e){
     var el = e.target.closest('button[data-dev]');
     if(!el) return;
+    // set_temp만 값을 가진다. 전원은 명령 자체가 값이라 undefined로 둠 — 서버가 무시한다.
+    var value = el.dataset.val === undefined ? undefined : Number(el.dataset.val);
     el.disabled = true;
-    controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd })
+    controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd, value: value })
       .then(function(){
         return refreshDevices().then(scheduleLateRefresh);
       })
       .catch(function(err){ notice(err.message, true); })
       .then(function(){ el.disabled = false; });
+  });
+
+  /* 온도 직접 입력. 타이핑 중간값(25를 치는 중간의 2)으로 명령이 나가면 안 돼서
+     input이 아니라 **change(=포커스 이탈)**에서만 보낸다. Enter는 blur로 그걸 유도한다 —
+     여기서도 보내면 같은 명령이 두 번 간다. */
+  document.getElementById('list').addEventListener('change', function(e){
+    var el = e.target;
+    if(!el.dataset || !el.dataset.tempDev) return;
+
+    var dev = devicesCache.filter(function(d){ return d.id === el.dataset.tempDev; })[0];
+    var t = dev && tempRange(dev);
+    var raw = Number(el.value);
+    // 빈 칸·숫자 아닌 값은 명령으로 보내지 않고 현재 상태로 되돌린다.
+    if(!t || !isFinite(raw)){ refreshDevices(); return; }
+
+    var value = snapTemp(t, raw);
+    el.value = value;  // 27.2를 적으면 27이 간다는 걸 보내기 전에 보여준다.
+    el.disabled = true;
+    controlCall('command', { device_id: el.dataset.tempDev, command: 'set_temp', value: value })
+      .then(function(){
+        return refreshDevices().then(scheduleLateRefresh);
+      })
+      .catch(function(err){ notice(err.message, true); })
+      .then(function(){ el.disabled = false; });
+  });
+
+  document.getElementById('list').addEventListener('keydown', function(e){
+    if(e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.tempDev) return;
+    e.preventDefault();
+    e.target.blur();
   });
 
   document.getElementById('pw').addEventListener('keydown', function(e){

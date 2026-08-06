@@ -8,7 +8,7 @@
  * 등급이 다른 사고다.
  *
  * 그래서 손님 페이지는 **별도 비밀번호(`GUEST_PASSWORD`)**를 쓰고, 그 역할로는 목록 조회와
- * 켜기/끄기만 할 수 있다. 이 판정이 **서버에 있어야 하는 이유**도 같다 — `guest-control.html`도
+ * 켜기/끄기·온도 조절만 할 수 있다. 이 판정이 **서버에 있어야 하는 이유**도 같다 — `guest-control.html`도
  * 소스가 그대로 공개되므로, 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다.
  * 누구나 `fetch`로 `delete`·`camera_credentials`를 직접 부를 수 있다.
  */
@@ -22,9 +22,17 @@ const GUEST_ACTIONS = new Set(["list", "command"]);
 
 /**
  * 손님이 보낼 수 있는 명령. `command` action만 열어서는 부족하다 —
- * 같은 action이 `set_temp`·`set_mode`·`set_wind`도 태우기 때문이다.
+ * 같은 action이 `set_mode`·`set_wind`도 태우기 때문이다.
+ *
+ * **`set_temp`를 여는 것은 의도적이다.** 손님은 이미 물리 리모컨으로 같은 일을 할 수
+ * 있어서 여기서 막아도 새로 막히는 게 없고, 값은 `thinq/commands.ts`가 **기기 프로파일의
+ * min/max/step에 대고** 검증한다 — 임의의 숫자를 받아주는 게 아니다.
+ *
+ * 반면 `set_mode`·`set_wind`는 닫은 채로 둔다. 손님 화면이 안 쓰는 축이기도 하지만,
+ * 난방 중인 기기를 냉방으로 되돌리는 것처럼 **다음 손님까지 남는 상태**를 만들기 때문이다.
+ * 온도는 그에 비해 되돌리기 쉽고, 범위를 벗어나는 값은 서버가 이미 자른다.
  */
-const GUEST_COMMANDS = new Set(["power_on", "power_off"]);
+const GUEST_COMMANDS = new Set(["power_on", "power_off", "set_temp"]);
 
 /**
  * 비밀번호 → 역할. 어느 것과도 맞지 않으면 `null`(=401).
@@ -58,7 +66,7 @@ export function resolveRole(supplied: string): Role | null {
 export function assertAllowed(role: Role, action: string, body: Record<string, unknown>): void {
   if (role !== "guest") return;
 
-  const denied = new HandlerError(403, "이 페이지에서는 켜기/끄기만 할 수 있어요");
+  const denied = new HandlerError(403, "이 페이지에서는 켜기/끄기와 온도 조절만 할 수 있어요");
   if (!GUEST_ACTIONS.has(action)) throw denied;
   if (action === "command" && !GUEST_COMMANDS.has(String(body.command ?? ""))) throw denied;
 }

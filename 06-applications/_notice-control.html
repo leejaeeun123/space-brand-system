@@ -17,13 +17,18 @@
   .qr .fail{font-weight:700;font-size:24px;color:#E2531E;text-align:center;line-height:1.5;}
   .url{font-weight:700;font-size:28px;letter-spacing:.01em;text-align:center;}
   .info{font-weight:500;font-size:26px;line-height:1.5;text-align:center;margin-top:16px;}
+  /* 수동 조작 경고. 이 안내판이 붙는 자리가 바로 벽 스위치 옆이라 여기서 못 읽히면
+     안내판이 있으나 마나다. `.qr`이 flex:1이라 이 블록은 QR 여백을 줄일 뿐 넘치지 않는다. */
+  .warn{font-weight:700;font-size:22px;line-height:1.45;text-align:center;color:#E2531E;
+    width:100%;margin-top:16px;padding-top:16px;border-top:2px solid #E2531E;}
 </style></head><body>
 <div class="poster">
   <div class="title">조명 · 냉난방</div>
   <div class="lead">휴대폰으로 켜고 끌 수 있어요</div>
   <div class="qr" id="qr"></div>
   <div class="url" id="url"></div>
-  <div class="info">비밀번호는 <strong>현관 비밀번호</strong>와 같아요<br>온도는 흰색 리모컨으로 바꿔 주세요</div>
+  <div class="info">비밀번호는 <strong>현관 비밀번호</strong>와 같아요</div>
+  <div class="warn">벽 스위치를 손으로 조작하지 말아 주세요<br>고장의 원인이 되며 복구 비용이 청구될 수 있어요</div>
 </div>
 <script>
   var CONTROL_URL = 'https://typelounge.vercel.app/control';

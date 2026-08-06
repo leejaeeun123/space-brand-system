@@ -59,10 +59,11 @@ Deno.test("역할 판정", () => {
   });
 });
 
-Deno.test("손님은 목록 조회와 켜기/끄기만 가능하다", () => {
+Deno.test("손님은 목록 조회와 켜기/끄기·온도 조절을 할 수 있다", () => {
   assertAllowed("guest", "list", {});
   assertAllowed("guest", "command", { command: "power_on" });
   assertAllowed("guest", "command", { command: "power_off" });
+  assertAllowed("guest", "command", { command: "set_temp" });
 });
 
 Deno.test("손님은 등록·해제·CCTV를 부를 수 없다", () => {
@@ -83,10 +84,18 @@ Deno.test("손님은 등록·해제·CCTV를 부를 수 없다", () => {
 });
 
 Deno.test("command action을 열어주는 것만으로는 부족하다 — 명령까지 검사한다", () => {
-  // 같은 action이 온도·모드·풍량도 태운다. 손님 화면에 버튼이 없어도 직접 부를 수 있다.
-  for (const command of ["set_temp", "set_mode", "set_wind", "", "power_toggle"]) {
+  // 같은 action이 모드·풍량도 태운다. 손님 화면에 버튼이 없어도 직접 부를 수 있다.
+  // 모드·풍량은 다음 손님까지 남는 상태라 온도를 열어둔 뒤에도 닫혀 있어야 한다.
+  for (const command of ["set_mode", "set_wind", "", "power_toggle"]) {
     assertThrows(() => assertAllowed("guest", "command", { command }), HandlerError);
   }
+});
+
+Deno.test("온도를 열어도 값 검증은 여기 일이 아니다", () => {
+  // `auth.ts`는 '어떤 명령을 보낼 수 있나'만 본다. 범위를 벗어난 온도를 여기서 막지
+  // 않는 건 구멍이 아니라, 기기 프로파일을 아는 쪽(`thinq/commands.ts`)이 자를 수 있기
+  // 때문이다. 두 계층을 혼동해 여기에 min/max를 복사해 두면 기기가 바뀔 때 조용히 어긋난다.
+  assertAllowed("guest", "command", { command: "set_temp", value: 9999 });
 });
 
 Deno.test("admin은 무엇이든 통과한다", () => {
