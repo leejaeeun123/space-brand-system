@@ -21,11 +21,11 @@ html = re.sub(r'(href="assets/[^"]*/([^"/]+\.svg)")(\s+)download\b(?!=)',
 # ---------- 2) 에셋 → data URI (SVG 원본, PNG 사진은 JPEG 압축) ----------
 from PIL import Image
 MIME = {".svg": "image/svg+xml", ".png": "image/png"}
-asset_paths = sorted(set(re.findall(r'(assets/[^"]+\.(?:svg|png))', html)))
+asset_paths = sorted(set(re.findall(r'(assets/[^"]+\.(?:svg|png|jpe?g))', html)))
 for rel in asset_paths:
     fp = os.path.join(BOOK, rel)
     ext = os.path.splitext(rel)[1].lower()
-    if ext == ".png":  # 목업 사진 → JPEG(용량 대폭 축소; 업로드 크기 제한 대응)
+    if ext in (".png", ".jpg", ".jpeg"):  # 목업·설치 사진 → JPEG(용량 축소; 업로드 크기 제한 대응)
         im = Image.open(fp).convert("RGB")
         if im.width > 1400:
             im = im.resize((1400, round(im.height * 1400 / im.width)), Image.LANCZOS)
@@ -61,9 +61,15 @@ def subset_woff_b64(ttf_path, text):
     font.save(buf)
     return base64.b64encode(buf.getvalue()).decode()
 
+                      # 폰트는 설치본에서 읽는다(레포에 TTF를 두지 않는다).
+FONTDIR = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts")
+
 faces = []
 for weight, ttf in [(400, "Paperlogy-4Regular.ttf"), (600, "Paperlogy-6SemiBold.ttf")]:
-    b64 = subset_woff_b64(os.path.join(SCR, ttf), text)
+    src_ttf = os.path.join(SCR, ttf)
+    if not os.path.exists(src_ttf):
+        src_ttf = os.path.join(FONTDIR, ttf)
+    b64 = subset_woff_b64(src_ttf, text)
     faces.append(
         "@font-face{font-family:'Paperlogy';font-style:normal;font-weight:%d;"
         "font-display:swap;src:url(data:font/woff;base64,%s) format('woff');}" % (weight, b64))
@@ -76,7 +82,7 @@ html = html.replace("<style>", "<style>\n" + fontcss, 1)
 
 open(OUT, "w", encoding="utf-8").write(html)
 kb = len(html.encode("utf-8")) // 1024
-print(f"\n✅ {OUT}\n   최종 크기 {kb} KB ({kb/1024:.1f} MB)")
+print(f"\n[OK] {OUT}\n   최종 크기 {kb} KB ({kb/1024:.1f} MB)")
 # 잔여 외부/상대 참조 점검
 leftover = re.findall(r'(?:src|href)="(?!data:|#)([^"]+)"', html)
-print("   잔여 비-data 참조:", leftover if leftover else "없음 ✓")
+print("   잔여 비-data 참조:", leftover if leftover else "없음")
