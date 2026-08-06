@@ -210,7 +210,16 @@ PICTOS = {
     ("path", "M64,57 Q60,63 64,69 Q68,75 64,80")]},
 }
 
+# 2026-08-06: 아래 5종은 **Figma 확정본이 정본**이 되었다(`figma_to_picto.py`).
+# 레포 세트를 2026-07-26에 개정(선 3.0→2.7)했는데 Figma 안내문은 그 전 버전으로
+# 만들어져 있었고, 실제 인쇄·부착된 것은 Figma 쪽이다. 이 스크립트를 다시 돌려
+# 옛 기하로 덮어쓰지 않도록 건너뛴다. 여기 정의는 최초 작도 이력으로 보존한다.
+FIGMA_OWNED = {"tv", "aircon", "speaker", "trash", "shoe"}
+
 for name, spec in PICTOS.items():
+    if name in FIGMA_OWNED:
+        print(f"skip picto-{name}.svg — Figma 정본 (figma_to_picto.py 로 생성)")
+        continue
     c = spec.get('coarse')                      # 저해상도 flatten(각짐) 옵션
     globals()['QN'] = c if c else 18
     globals()['CN'] = c if c else 24

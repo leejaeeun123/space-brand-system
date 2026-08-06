@@ -99,6 +99,8 @@ shoe  trash  toilet  room  stairs  coffee  bbq  umbrella  extinguisher  nosmoke
 - viewBox 100×100 · 각진 모노라인 · square 캡 · miter 조인 · 선 두께 2.7.
 - 납품 SVG는 **stroke를 아웃라인(면)으로 변환** — 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.
 - 기본 파일은 리터럴 잉크(`#16130F`). 디자인 툴이 `currentColor`를 검정으로 떨구는 문제를 피하려는 선택이다.
+- **`tv · aircon · speaker · trash · shoe` 5종은 Figma 확정본이 정본**(2026-08-06). 레포 세트 개정이 Figma에 반영되지 않아 어긋나 있었고, 실제 부착된 것이 Figma라 그쪽으로 맞췄다 — `04-signage/figma_to_picto.py`.
+- 안내문에 쓰는 픽토는 **이름이 아니라 실물을 따른다** — "블루투스 스피커" 안내문의 픽토는 `bluetooth`(룬)가 아니라 `speaker`(박스+우퍼)다.
 - **라벨 없이 단독 사용 금지** (KWCAG — 색·기호만으로 정보 전달 금지).
 - 세트에 없는 주제가 필요하면 **먼저 픽토를 만든다** — `04-signage/gen_new_pictos.py`에 정의를 추가하고 3색으로 출력, `pictograms.md`에 등재.
 
