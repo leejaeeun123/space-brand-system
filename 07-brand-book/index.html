@@ -504,14 +504,14 @@
 
   <section>
     <div class="snum">01 — PRINCIPLES</div>
-    <h2>사이니지 5원칙</h2>
+    <h2>컴포넌트 작성 원칙</h2>
     <ul>
-      <li><strong>자가안내 우선</strong> — 무인 운영. 사인이 곧 안내 데스크.</li>
-      <li><strong>도형이 글자보다 먼저</strong> — 도형·컬러블록 직관 길찾기.</li>
-      <li><strong>소수·정밀·절제</strong> — 52.49㎡ 작은 공간, 꼭 필요한 사인만.</li>
-      <li><strong>레이어 분리</strong> — 외부 컬러블록, 실내 물성 중심.</li>
-      <li><strong>낮은 층고(약 2m)</strong> — 시선 1.4~1.6m, 천장 행잉 지양.</li>
+      <li><strong>Atom 먼저</strong> — Molecule/Organism은 Atom 조합으로만 정의한다.</li>
+      <li><strong>이름은 실제 클래스·토큰을 그대로</strong> — <code>.panel .mode .floor .logo .arrow</code> · <code>--spine-*</code>. 새 이름을 발명하지 않는다.</li>
+      <li><strong>색·크기는 토큰으로 지시</strong> — "버튼은 파란색" ❌ → <code>.mode</code> active, <code>var(--spine-orange)</code> ✅.</li>
+      <li><strong>추정 금지</strong> — 실제 화면·Figma가 생기면 그때의 이름을 그대로 채운다.</li>
     </ul>
+    <div class="note"><strong>사이니지 6원칙</strong>(자가안내 · 찾아오게 만들기 · 도형이 글자보다 먼저 · 소수·정밀·절제 · 레이어 분리 · 낮은 층고)은 <strong>Signage 탭</strong>이 정본이다. 양쪽에 복사해두면 한쪽만 고쳐져 조용히 어긋난다.</div>
   </section>
 
   <section>
