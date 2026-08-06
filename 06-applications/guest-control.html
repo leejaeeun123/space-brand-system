@@ -7,12 +7,12 @@
 <meta name="robots" content="noindex">
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <!--
-  손님용 공간 제어. admin.html의 '공간 제어' 탭에서 켜기/끄기와 냉난방 온도만 남기고 줄인 것이다.
+  손님용 공간 제어. admin.html의 '공간 제어' 탭에서 기기 등록·해제와 CCTV를 뺀 것이다.
 
   ⚠️ **admin.html의 코드를 그대로 복사해 오면 안 된다.** admin이 쓰는 비밀번호는 기기뿐 아니라
   예약자 이름·연락처를 여는 admin_* RPC까지 여는 열쇠라, 이 공개 페이지에 들어가면 개인정보가
   통째로 새어 나간다. 이 페이지는 **별도 비밀번호(현관 비밀번호)**를 쓰고, 서버(auth.ts)가
-  그 역할에 목록 조회와 켜기/끄기·온도 조절만 허용한다. 모드·풍량은 다음 손님까지 남는 상태라 닫혀 있다.
+  그 역할에 목록 조회와 조명·냉난방 조작만 허용한다. 기기 등록·해제와 CCTV는 서버가 자른다.
 
   이 파일의 버튼을 감추는 것으로는 아무것도 막지 못한다는 점이 설계의 전제다 — 소스가 공개되므로
   누구나 fetch로 다른 action을 부를 수 있고, 그걸 잘라내는 건 서버뿐이다.
@@ -114,6 +114,12 @@
   .temp-input[type=number]{-moz-appearance:textfield;}
   .temp-hint{font-size:12px;color:var(--mute);margin-top:8px;}
 
+  /* 모드·바람 세기 줄. 버튼이 4개라 좌우 여백 48px를 뺄 320px 화면에서 하나가 ~62px다 —
+     그대로는 글자가 넘쳐서 패딩을 줄이고 줄바꿈을 허용한다. 48px 높이는 지킨다. */
+  .dev-sub{font-size:12px;color:var(--mute);margin-top:14px;margin-bottom:6px;}
+  .enum-row{flex-wrap:wrap;}
+  .enum-row button{padding:12px 4px;min-width:0;}
+
   .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:24px;}
   .foot p{font-size:13px;color:var(--mute);}
   .foot p + p{margin-top:10px;}
@@ -151,7 +157,7 @@
   <button type="button" class="refresh" onclick="refreshDevices()">상태 새로고침</button>
 
   <div class="foot">
-    <p>냉난방은 여기서 켜고 끄고 <strong>온도</strong>까지 맞추실 수 있어요. 바람 세기와 모드는 거울 선반 위 작은 흰색 리모컨으로 바꿔 주세요.</p>
+    <p>냉난방은 여기서 <strong>온도 · 모드 · 바람 세기</strong>까지 맞추실 수 있어요. 거울 선반 위 작은 흰색 리모컨을 쓰셔도 돼요.</p>
     <p>조명은 명령을 보낸 뒤 실제로 반영되기까지 몇 초 걸릴 수 있어요. 바로 안 바뀌어도 잠시 기다려 주세요.</p>
     <p>나가실 때 <strong>전체 끄기</strong>를 한 번 눌러 주시면 큰 도움이 돼요.</p>
   </div>
@@ -325,6 +331,26 @@
       '. 숫자를 직접 적고 Enter를 눌러도 바뀌어요.</p>';
   }
 
+  /* enum → 사람말. 손님에게 `AIR_DRY`를 보여줄 수는 없다(admin은 원값을 그대로 보여준다 —
+     거긴 기기가 뭐라고 대답했는지 그대로 보여야 하는 화면이다).
+
+     모르는 값은 **원값 그대로 보여준다.** 목록은 기기 프로파일에서 오므로 여기 없는 모드가
+     생길 수 있고, 그때 버튼을 숨기면 기기가 할 수 있는 일을 손님만 못 하게 된다. */
+  var MODE_LABEL = { COOL: '냉방', HEAT: '난방', FAN: '송풍', AIR_DRY: '제습', AIR_CLEAN: '공기청정' };
+  var WIND_LABEL = { LOW: '약', MID: '중', HIGH: '강', AUTO: '자동', POWER: '강력' };
+
+  /* 모드·풍량은 문자열 enum이다. 값을 그대로(data-val) 실어 보내고 라벨만 바꾼다 —
+     한글을 보내면 서버가 enum 검증에서 자른다. */
+  function enumRowHtml(d, label, cmd, values, current, labels){
+    var id = escapeHtml(d.id);
+    return '<p class="dev-sub">' + label + '</p><div class="dev-row enum-row">' +
+      values.map(function(v){
+        return '<button type="button" class="' + (current === v ? 'on' : '') + '"' +
+          ' data-dev="' + id + '" data-cmd="' + cmd + '" data-val="' + escapeHtml(v) + '">' +
+          escapeHtml(labels[v] || v) + '</button>';
+      }).join('') + '</div>';
+  }
+
   function deviceCardHtml(d){
     var s = d.state || {};
     var attrs = s.attrs || {};
@@ -342,9 +368,18 @@
         '</div>'
       : '<p class="dev-note">이 기기는 여기서 켜고 끌 수 없어요.</p>';
 
-    // 온도는 에어컨만 가진 상태다. 조명은 capabilities가 ['power']뿐이라 이 줄이 안 붙는다.
+    // 아래 세 줄은 에어컨만 붙는다. 조명은 capabilities가 ['power']뿐이라 전부 건너뛴다.
+    var caps = d.capabilities || [];
+    var c = d.constraints || {};
+
     var t = tempRange(d);
     if(t) body += tempRowHtml(d, t, attrs);
+    if(caps.indexOf('mode') !== -1 && (c.modes || []).length){
+      body += enumRowHtml(d, '모드', 'set_mode', c.modes, attrs.mode, MODE_LABEL);
+    }
+    if(caps.indexOf('wind') !== -1 && (c.wind || []).length){
+      body += enumRowHtml(d, '바람 세기', 'set_wind', c.wind, attrs.wind, WIND_LABEL);
+    }
 
     return '<div class="dev-card">' +
       '<div class="dev-name">' + escapeHtml(d.name) + '</div>' +
@@ -415,8 +450,10 @@
   document.getElementById('list').addEventListener('click', function(e){
     var el = e.target.closest('button[data-dev]');
     if(!el) return;
-    // set_temp만 값을 가진다. 전원은 명령 자체가 값이라 undefined로 둠 — 서버가 무시한다.
-    var value = el.dataset.val === undefined ? undefined : Number(el.dataset.val);
+    // set_temp만 숫자다. 모드·풍량은 문자열 enum이라 Number()를 태우면 NaN이 가고
+    // 서버는 "모드 값(문자열)이 필요합니다" 400을 준다. 전원은 값 자체가 없다.
+    var value = el.dataset.val;
+    if(value !== undefined && el.dataset.cmd === 'set_temp') value = Number(value);
     el.disabled = true;
     controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd, value: value })
       .then(function(){

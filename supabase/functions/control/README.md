@@ -23,7 +23,7 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 | 역할 | 비밀번호 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
 | `admin` | `ADMIN_PASSWORD` | `admin.html` | 10개 action 전부 |
-| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command`의 `power_on`·`power_off`·`set_temp` |
+| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command` 5종 (등록·해제·CCTV 제외) |
 
 **비밀번호를 하나로 둘 수 없는 이유가 있다.** admin 비밀번호는 이 함수만 여는 열쇠가 아니라
 `reservations`의 `admin_*` RPC — 예약자 이름·전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이
@@ -31,12 +31,18 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 예약 개인정보를 통째로 조회한다. 조명이 꺼지는 것과는 등급이 다르다.
 
 판정은 전부 [`auth.ts`](./auth.ts)에 있고, **서버에 있어야 한다** — `guest-control.html`도 소스가
-공개되므로 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다. `command` action만 열어주는
-것으로도 부족하다: 같은 action이 `set_mode`·`set_wind`도 태우기 때문에 명령까지 검사한다.
+공개되므로 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다 — 누구나 `fetch`로
+`delete`나 `camera_credentials`를 직접 부를 수 있다.
 
-**`set_temp`를 손님에게 열어둔 것은 의도적이다.** 손님은 이미 물리 리모컨으로 같은 일을 할 수
-있어 여기서 막아도 새로 막히는 게 없고, 값은 `thinq/commands.ts`가 기기 프로파일의 min/max/step에
-대고 검증한다. 반면 모드·풍량은 **다음 손님까지 남는 상태**라 닫은 채로 둔다.
+**냉난방 명령 다섯 가지는 손님에게 전부 열려 있다.** 손님은 이미 물리 리모컨으로
+온도·모드·풍량을 다 바꿀 수 있어서 여기서 막아도 새로 막힐 게 없다. 값은
+`thinq/commands.ts`가 기기 프로파일에 대고 검증한다 — 온도는 min/max/step, 모드·풍량은
+프로파일이 준 enum 목록.
+
+그래도 `command` action을 통째로 열지 **않았다.** 명령이 하나 추가될 때(기기 초기화
+같은 것) 기본값은 '손님은 못 한다'여야 하고, `GUEST_COMMANDS`에 한 줄 적는 일이 그
+결정을 한 번 거치게 한다. 손님에게 닫힌 경계는 이제 명령이 아니라 **action**이다 —
+기기 등록·해제와 CCTV는 기기를 잡는 게 아니라 구성과 영상을 잡는 일이라 등급이 다르다.
 
 `GUEST_PASSWORD` 미설정은 손님 경로만 닫는다(401). `ADMIN_PASSWORD` 미설정은 예전처럼 전면
 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게 낫다. 두 값이 같으면 설정 실수로 보고
