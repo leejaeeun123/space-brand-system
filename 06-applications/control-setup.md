@@ -240,47 +240,30 @@ tail -f agent.log
 
 ## G. 손님 제어 페이지
 
-손님이 `/control`에서 조명·냉난방을 **켜고 끄기만** 할 수 있는 페이지다(`guest-control.html`).
-등록·해제·CCTV는 서버가 잘라낸다.
+손님이 `/control`에서 조명·냉난방을 조작할 수 있는 페이지다(`guest-control.html`).
+비밀번호 게이트는 없다 — 현관 비밀번호가 사이트 루트(`guest-guide.html`)에 이미 평문 공개돼
+있어 별도 장벽이 아니었다. 대신 등록·해제·CCTV는 서버(`auth.ts`)가 여전히 잘라낸다:
+손님(비밀번호 미제출)이 부를 수 있는 건 목록 조회와 조명·냉난방 조작뿐이다.
 
-### G-1. 손님 비밀번호를 서버에 넣기
-
-**현관 비밀번호와 같은 값**을 넣는다. 손님이 이미 아는 번호라 따로 안내할 게 없다.
-
-```bash
-supabase secrets set GUEST_PASSWORD=<현관 비밀번호>
-```
-
-> ⚠️ **admin 비밀번호를 넣지 않는다.** admin 비밀번호는 기기뿐 아니라 예약자 이름·연락처를 여는
-> `admin_*` RPC의 열쇠이기도 하다. 손님 페이지에 그 값이 들어가면 소스를 본 사람이 anon 키만으로
-> 예약 개인정보를 통째로 조회한다. 두 값이 같으면 서버가 손님 경로를 아예 닫는다(`auth.ts`).
-
-**재배포는 필요 없다.** 다음 호출부터 적용된다.
-
-### G-2. 현관 비밀번호를 바꿨을 때
-
-`GUEST_PASSWORD`를 같이 바꾼다. 안 바꾸면 손님이 새 현관 번호로는 페이지에 못 들어간다.
-바꿔야 하는 곳은 두 군데다 — 이 시크릿과 `guest-guide.html`의 현관 비밀번호 표기.
-
-### G-3. 확인
+### G-1. 확인
 
 ```bash
-# 손님 비밀번호로 목록은 되고
+# 비밀번호 없이 list는 되고
 curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" \
   -H "Authorization: Bearer <anon key>" -H "Content-Type: application/json" \
-  -d '{"action":"list","password":"<현관 비밀번호>"}'
+  -d '{"action":"list"}'
 
 # 등록 해제는 403이어야 한다
 curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" \
   -H "Authorization: Bearer <anon key>" -H "Content-Type: application/json" \
-  -d '{"action":"delete","password":"<현관 비밀번호>","device_id":"아무거나"}'
+  -d '{"action":"delete","device_id":"아무거나"}'
 ```
 
 - [ ] `list`는 기기 목록이 온다 (`address` 필드는 없는 게 정상이다 — 손님에겐 안 내린다)
 - [ ] `delete`는 `"이 페이지에서는 조명·냉난방 조작만 할 수 있어요"` 403
-- [ ] `/control`에서 현관 비밀번호로 들어가 켜기/끄기가 실제 기기에 반영된다
+- [ ] `/control`에서 켜기/끄기·온도·모드·풍량이 실제 기기에 반영된다
 
-### G-4. 손님에게 알리기
+### G-2. 손님에게 알리기
 
 - `guest-guide.html`의 **조명 · 냉난방** 항목에 `/control` 링크가 이미 들어 있다
 - 현장 안내판은 `_notice-control.html`(QR 시안)을 인쇄한다. QR은 열 때 만들어지므로
@@ -293,7 +276,6 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 | 증상 | 확인 |
 |---|---|
 | A-4에서 `thinq_configured:false` | 시크릿 3개가 다 들어갔나. 하나라도 비면 미설정으로 본다 |
-| `/control`에서 현관 비밀번호가 안 먹는다 | `GUEST_PASSWORD` 설정 여부. admin과 같은 값이면 일부러 막는다(G-1) |
 | `/control`이 404 | `public/control.html` 심링크와 배포 워크플로 경로(`deploy.yml`) |
 | A-5에서 `ThinQ 인증 실패` | PAT 만료. **재시도해도 소용없다** — 재발급이 유일한 길이다 |
 | B-4에서 `SUBSCRIBED`가 안 뜬다 | service_role 키, 인터넷. 이게 없으면 명령이 안 온다 |

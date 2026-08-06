@@ -8,11 +8,14 @@
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <!--
   손님용 공간 제어. admin.html의 '공간 제어' 탭에서 기기 등록·해제와 CCTV를 뺀 것이다.
+  비밀번호 게이트가 없다 — 이 페이지가 지키던 현관 비밀번호는 사이트 루트(guest-guide.html)에
+  이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 그래도 손님이 부를 수 있는 action·command는
+  서버(auth.ts)가 여전히 자른다: 목록 조회와 조명·냉난방 조작만 허용한다. 기기 등록·해제와
+  CCTV는 서버가 자른다.
 
   ⚠️ **admin.html의 코드를 그대로 복사해 오면 안 된다.** admin이 쓰는 비밀번호는 기기뿐 아니라
   예약자 이름·연락처를 여는 admin_* RPC까지 여는 열쇠라, 이 공개 페이지에 들어가면 개인정보가
-  통째로 새어 나간다. 이 페이지는 **별도 비밀번호(현관 비밀번호)**를 쓰고, 서버(auth.ts)가
-  그 역할에 목록 조회와 조명·냉난방 조작만 허용한다. 기기 등록·해제와 CCTV는 서버가 자른다.
+  통째로 새어 나간다.
 
   이 파일의 버튼을 감추는 것으로는 아무것도 막지 못한다는 점이 설계의 전제다 — 소스가 공개되므로
   누구나 fetch로 다른 action을 부를 수 있고, 그걸 잘라내는 건 서버뿐이다.
@@ -43,26 +46,8 @@
   button:disabled{opacity:.5;cursor:default;}
   input:focus-visible, button:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
 
-  /* 게이트 */
-  #gate{
-    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:18px;padding:24px;text-align:center;
-  }
-  #gate .wordmark{font-weight:600;font-size:32px;letter-spacing:-.02em;line-height:1;}
-  #gate .hint{font-size:14px;color:var(--mute);max-width:280px;}
-  #gate input{
-    font-family:inherit;font-size:16px;text-align:center;letter-spacing:.1em;
-    border:1px solid var(--ink);border-radius:8px;padding:14px 16px;width:200px;min-height:48px;
-  }
-  #gate button{
-    font-weight:600;font-size:15px;
-    background:var(--ink);color:var(--white);border:0;border-radius:8px;
-    padding:14px 24px;cursor:pointer;min-height:48px;
-  }
-  #gate .error{color:var(--orange);font-size:13px;min-height:18px;}
-
   /* 본문 */
-  #app{display:none;max-width:520px;margin:0 auto;padding:0 24px 72px;}
+  #app{max-width:520px;margin:0 auto;padding:0 24px 72px;}
   .hero{text-align:center;padding:48px 0 28px;}
   .hero .wordmark{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;}
   .hero .sub{font-size:15px;color:var(--mute);margin-top:10px;}
@@ -131,14 +116,6 @@
 </head>
 <body>
 
-<div id="gate">
-  <div class="wordmark">TYPE LOUNGE</div>
-  <p class="hint">현관 비밀번호를 넣으시면 조명과 냉난방을 켜고 끌 수 있어요.</p>
-  <input type="password" id="pw" inputmode="numeric" placeholder="현관 비밀번호" maxlength="12" autocomplete="off">
-  <button type="button" onclick="tryUnlock()">들어가기</button>
-  <div class="error" id="pwError"></div>
-</div>
-
 <div id="app">
   <div class="hero">
     <div class="wordmark">TYPE LOUNGE</div>
@@ -168,11 +145,10 @@
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
   var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
 
-  var UNLOCK_KEY = "typelounge_guest_password";   // admin.html과 다른 키다. 같이 쓰면 한쪽 로그아웃이 다른 쪽을 끊는다.
-  var currentPassword = '';
   var devicesCache = [];
   var pollTimer = null;
   var lateTimer = null;
+  var loaded = false;
 
   /* 조명은 이 요청이 끝나도 아직 안 켜졌다 — 서버는 큐에 넣기만 하고, 현장 에이전트가 받아
      발행한 뒤 기기가 보고해야 상태가 바뀐다. 그래서 명령 직후 한 번, 몇 초 뒤 또 한 번 읽는다. */
@@ -180,7 +156,7 @@
   var POLL_MS = 30000;
 
   function controlCall(action, extra){
-    var body = { action: action, password: currentPassword };
+    var body = { action: action };
     if(extra) Object.keys(extra).forEach(function(k){ body[k] = extra[k]; });
     return fetch(CONTROL_URL, {
       method: 'POST',
@@ -198,32 +174,17 @@
     });
   }
 
-  /* ── 게이트 ───────────────────────────────────────────────────────────────── */
+  /* ── 초기 로드 ─────────────────────────────────────────────────────────────── */
 
-  function tryUnlock(){
-    var val = document.getElementById('pw').value.trim();
-    if(!val){ document.getElementById('pwError').textContent = '비밀번호를 넣어 주세요.'; return; }
-    document.getElementById('pwError').textContent = '확인 중...';
-    var prev = currentPassword;
-    currentPassword = val;
+  function init(){
     controlCall('list').then(function(data){
-      sessionStorage.setItem(UNLOCK_KEY, val);
-      document.getElementById('pwError').textContent = '';
-      showApp(data);
+      loaded = true;
+      devicesCache = data.devices || [];
+      render(data);
+      startPolling();
     }).catch(function(err){
-      currentPassword = prev;
-      document.getElementById('pwError').textContent = err.status === 401
-        ? '비밀번호가 맞지 않아요.'
-        : ('연결하지 못했어요: ' + err.message);
+      notice('연결하지 못했어요: ' + err.message, true);
     });
-  }
-
-  function showApp(data){
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    devicesCache = data.devices || [];
-    render(data);
-    startPolling();
   }
 
   /* 화면을 안 보고 있으면 읽지 않는다 — 손님 휴대폰 배터리와 데이터를 조용히 태울 이유가 없다. */
@@ -237,7 +198,7 @@
     if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
   }
   document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible' && currentPassword) refreshDevices();
+    if(document.visibilityState === 'visible' && loaded) refreshDevices();
   });
 
   /* ── 목록 ─────────────────────────────────────────────────────────────────── */
@@ -493,20 +454,7 @@
     e.target.blur();
   });
 
-  document.getElementById('pw').addEventListener('keydown', function(e){
-    if(e.key === 'Enter') tryUnlock();
-  });
-
-  /* 세션에 남은 비밀번호로 자동 입장. 틀리면(비번이 바뀐 경우) 조용히 지우고 게이트를 보여준다. */
-  (function(){
-    var saved = sessionStorage.getItem(UNLOCK_KEY);
-    if(!saved) return;
-    currentPassword = saved;
-    controlCall('list').then(showApp).catch(function(){
-      sessionStorage.removeItem(UNLOCK_KEY);
-      currentPassword = '';
-    });
-  })();
+  init();
 </script>
 </body>
 </html>

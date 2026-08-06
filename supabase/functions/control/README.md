@@ -18,17 +18,22 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 다르게 간 이유는 위험의 등급이 다르기 때문이다: 예약은 읽혀도 정보가 새는 정도지만, 기기 제어는
 소스만 본 사람이 **손님 이용 중에 냉난방을 끌 수 있다**.
 
-## 부르는 쪽이 둘이다 — 그래서 비밀번호도 둘이다
+## 부르는 쪽이 둘이다 — 그래서 권한도 둘이다
 
-| 역할 | 비밀번호 | 부르는 화면 | 할 수 있는 일 |
+| 역할 | 판정 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
-| `admin` | `ADMIN_PASSWORD` | `admin.html` | 10개 action 전부 |
-| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command` 5종 (등록·해제·CCTV 제외) |
+| `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 10개 action 전부 |
+| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 (등록·해제·CCTV 제외) |
 
-**비밀번호를 하나로 둘 수 없는 이유가 있다.** admin 비밀번호는 이 함수만 여는 열쇠가 아니라
-`reservations`의 `admin_*` RPC — 예약자 이름·전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이
-같은 값을 양쪽에 쓴다). 그 값이 손님용 공개 페이지에 들어가면 소스를 본 사람이 anon 키만으로
-예약 개인정보를 통째로 조회한다. 조명이 꺼지는 것과는 등급이 다르다.
+**손님 경로에는 비밀번호가 없다.** 예전엔 `GUEST_PASSWORD`(=현관 비밀번호)로 게이트를 걸었지만,
+그 값은 사이트 루트(`guest-guide.html`)에 이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 지금은
+`password`를 안 보낸 요청이 곧 guest다 — 그 대신 guest가 부를 수 있는 action·command는 그대로
+서버가 잘라낸다.
+
+admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의 `admin_*` RPC — 예약자 이름·
+전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이 같은 값을 양쪽에 쓴다). 그래서 admin 판정은
+여전히 비밀번호가 정확히 일치해야 하고, 틀린 값(빈 값 아님)은 guest로 낮추지 않고 401로 막는다 —
+그렇지 않으면 `admin.html`의 오타가 "비밀번호가 맞지 않아요" 대신 알 수 없는 403으로 보인다.
 
 판정은 전부 [`auth.ts`](./auth.ts)에 있고, **서버에 있어야 한다** — `guest-control.html`도 소스가
 공개되므로 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다 — 누구나 `fetch`로
@@ -44,9 +49,8 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 결정을 한 번 거치게 한다. 손님에게 닫힌 경계는 이제 명령이 아니라 **action**이다 —
 기기 등록·해제와 CCTV는 기기를 잡는 게 아니라 구성과 영상을 잡는 일이라 등급이 다르다.
 
-`GUEST_PASSWORD` 미설정은 손님 경로만 닫는다(401). `ADMIN_PASSWORD` 미설정은 예전처럼 전면
-거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게 낫다. 두 값이 같으면 설정 실수로 보고
-손님 경로를 닫는다.
+`ADMIN_PASSWORD` 미설정은 예전처럼 전면 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게
+낫다.
 
 이 파일은 이 레포에서 유일하게 테스트가 붙어 있다(`auth.test.ts`). 나머지 핸들러의 실수는
 기능이 안 되는 정도지만, 여기 실수는 조용히 열린 채로 잘 돌아간다.
@@ -70,7 +74,7 @@ deno test --allow-env supabase/functions/control/auth.test.ts
 ## 확인
 
 ```bash
-# 비밀번호 틀리면 401
+# admin 비밀번호 틀리면 401 (guest면 password를 아예 뺀다)
 curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" \
   -H "Authorization: Bearer <anon key>" -H "Content-Type: application/json" \
   -d '{"action":"list","password":"<비밀번호>"}'
@@ -115,10 +119,12 @@ CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-s
 - **PAT 401은 재시도하지 말 것.** 자동 재발급 경로가 없다 — 만료되면 사람이 갱신하는 수밖에 없고,
   재시도는 계정 잠금 위험만 만든다.
 - **capabilities를 클라이언트가 주는 값으로 쓰지 말 것.** ThinQ는 프로파일에서만 파생한다.
-- **`GUEST_PASSWORD`에 admin 비밀번호를 넣지 말 것.** 그 값은 예약자 개인정보를 여는 열쇠이기도
-  하다. 손님 페이지는 소스가 공개된다.
 - **손님 허용 목록을 클라이언트로 옮기지 말 것.** `guest-control.html`에서 버튼을 감추는 건
-  방어가 아니다 — 누구나 `fetch`로 `delete`를 직접 부를 수 있다.
+  방어가 아니다 — 누구나 `fetch`로 `delete`를 직접 부를 수 있다. 비밀번호 게이트가 없는 지금은
+  이 서버측 검사가 손님 경로의 **유일한** 방어선이다.
+- **틀린(비어 있지 않은) 비밀번호를 guest로 조용히 낮추지 말 것.** `resolveRole`이 그렇게
+  하면 `admin.html`의 오타가 401이 아니라 알 수 없는 403으로 보인다. guest는 `password`를
+  아예 안 보낸 경우로만 판정한다.
 
 ## 조명은 여기서 큐에만 넣는다
 

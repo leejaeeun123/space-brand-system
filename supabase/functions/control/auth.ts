@@ -1,14 +1,16 @@
 /**
  * 역할 판정과 손님 권한 — 이 함수의 유일한 인증 정책.
  *
- * **비밀번호를 하나로 두면 안 되는 이유가 있다.** admin 비밀번호는 이 함수만 여는 열쇠가
- * 아니라 `reservations`의 `admin_*` RPC(예약자 이름·연락처·전화번호 전체)까지 여는 열쇠다 —
- * `admin.html`이 같은 값을 양쪽에 쓴다. 그 값이 손님용 공개 페이지에 들어가는 순간, 소스를
- * 본 사람이 anon 키만으로 예약자 개인정보를 통째로 조회할 수 있다. 조명이 꺼지는 것과는
- * 등급이 다른 사고다.
+ * 손님 경로는 비밀번호가 없다 — 이 페이지가 지키던 현관 비밀번호는 어차피 사이트 루트
+ * (`guest-guide.html`)에 평문으로 공개돼 있어 별도 장벽이 아니었다. 대신 손님(비밀번호
+ * 미제출)이 부를 수 있는 action·command는 서버가 여전히 자른다 — 기기 목록 조회와
+ * 조명·냉난방 조작만 할 수 있다. 기기 등록·해제와 CCTV는 못 부른다.
  *
- * 그래서 손님 페이지는 **별도 비밀번호(`GUEST_PASSWORD`)**를 쓰고, 그 역할로는 기기 목록
- * 조회와 조명·냉난방 조작만 할 수 있다 — 기기 등록·해제와 CCTV는 못 부른다.
+ * admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의 `admin_*` RPC
+ * (예약자 이름·연락처·전화번호 전체)까지 여는 열쇠다 — `admin.html`이 같은 값을 양쪽에
+ * 쓴다. 그래서 admin만 비밀번호로 판정한다. `password`를 아예 안 보낸 요청만 guest —
+ * **뭔가 보냈는데 admin과 안 맞으면 여전히 401이다.** 여기서 guest로 조용히 낮추면
+ * admin.html의 오타가 "비밀번호가 맞지 않아요"가 아니라 알 수 없는 403으로 보인다.
  *
  * 이 판정이 **서버에 있어야 하는 이유**도 같다 — `guest-control.html`도 소스가 그대로
  * 공개되므로, 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다.
@@ -40,11 +42,11 @@ const GUEST_ACTIONS = new Set(["list", "command"]);
 const GUEST_COMMANDS = new Set(["power_on", "power_off", "set_temp", "set_mode", "set_wind"]);
 
 /**
- * 비밀번호 → 역할. 어느 것과도 맞지 않으면 `null`(=401).
+ * 비밀번호 → 역할. admin과 맞으면 `admin`, 아예 안 보냈으면 `guest`,
+ * 뭔가 보냈는데 admin과 안 맞으면 `null`(=401).
  *
  * `ADMIN_PASSWORD` 미설정은 예전과 같이 **전면 거부**다(503). 무인증 제어로 열리는 것보다
- * 닫혀 있는 게 낫다. 반대로 `GUEST_PASSWORD` 미설정은 손님 경로만 닫는다 — 손님 페이지를
- * 아직 안 켠 상태일 뿐이고, 그것 때문에 어드민까지 멈추면 안 된다.
+ * 닫혀 있는 게 낫다.
  */
 export function resolveRole(supplied: string): Role | null {
   const admin = Deno.env.get("ADMIN_PASSWORD");
@@ -53,17 +55,7 @@ export function resolveRole(supplied: string): Role | null {
     throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
   if (supplied === admin) return "admin";
-
-  const guest = Deno.env.get("GUEST_PASSWORD");
-  if (!guest) return null;
-
-  // 둘이 같은 값이면 손님 페이지가 admin 비밀번호를 들고 있다는 뜻이다 = 예약 개인정보가
-  // 공개된 것과 같다. 설정 실수를 조용히 통과시키지 않고 손님 경로를 닫는다.
-  if (guest === admin) {
-    console.error("GUEST_PASSWORD가 ADMIN_PASSWORD와 같습니다 — 손님 경로를 닫습니다");
-    return null;
-  }
-  if (supplied === guest) return "guest";
+  if (supplied === "") return "guest";
   return null;
 }
 

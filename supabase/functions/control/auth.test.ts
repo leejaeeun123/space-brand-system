@@ -30,32 +30,25 @@ function withEnv(vars: Record<string, string | null>, fn: () => void): void {
 }
 
 Deno.test("ADMIN_PASSWORD 미설정이면 전면 거부(503)", () => {
-  withEnv({ ADMIN_PASSWORD: null, GUEST_PASSWORD: "123100" }, () => {
-    // 손님 비밀번호가 있어도 열리면 안 된다 — 서버가 반쯤 설정된 상태다.
-    assertThrows(() => resolveRole("123100"), HandlerError, "서버 설정");
+  withEnv({ ADMIN_PASSWORD: null }, () => {
+    // 빈 값(=손님 경로)이 와도 열리면 안 된다 — 서버가 반쯤 설정된 상태다.
+    assertThrows(() => resolveRole(""), HandlerError, "서버 설정");
   });
 });
 
-Deno.test("GUEST_PASSWORD 미설정은 손님 경로만 닫는다", () => {
-  withEnv({ ADMIN_PASSWORD: "adminpw", GUEST_PASSWORD: null }, () => {
-    assertEquals(resolveRole("adminpw"), "admin");
-    assertEquals(resolveRole("123100"), null);
-  });
-});
-
-Deno.test("두 비밀번호가 같으면 손님 경로를 닫는다", () => {
-  // 같으면 손님 페이지가 admin 비밀번호를 들고 있다는 뜻 = 예약 개인정보가 공개된 것과 같다.
-  withEnv({ ADMIN_PASSWORD: "same", GUEST_PASSWORD: "same" }, () => {
-    assertEquals(resolveRole("same"), "admin");
+Deno.test("비밀번호를 안 보내면 guest다", () => {
+  withEnv({ ADMIN_PASSWORD: "adminpw" }, () => {
+    assertEquals(resolveRole(""), "guest");
   });
 });
 
 Deno.test("역할 판정", () => {
-  withEnv({ ADMIN_PASSWORD: "adminpw", GUEST_PASSWORD: "123100" }, () => {
+  withEnv({ ADMIN_PASSWORD: "adminpw" }, () => {
     assertEquals(resolveRole("adminpw"), "admin");
-    assertEquals(resolveRole("123100"), "guest");
+    assertEquals(resolveRole(""), "guest");
+    // 뭔가 보냈는데 admin과 안 맞으면 여전히 401이다 — guest로 조용히 낮추면
+    // admin.html의 오타가 "비밀번호가 맞지 않아요" 대신 알 수 없는 403으로 보인다.
     assertEquals(resolveRole("틀린값"), null);
-    assertEquals(resolveRole(""), null);
   });
 });
 
