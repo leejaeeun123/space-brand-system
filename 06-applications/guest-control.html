@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>TYPE LOUNGE — 조명·냉난방</title>
+<meta name="robots" content="noindex">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<!--
+  손님용 공간 제어. admin.html의 '공간 제어' 탭을 켜기/끄기만 남기고 줄인 것이다.
+
+  ⚠️ **admin.html의 코드를 그대로 복사해 오면 안 된다.** admin이 쓰는 비밀번호는 기기뿐 아니라
+  예약자 이름·연락처를 여는 admin_* RPC까지 여는 열쇠라, 이 공개 페이지에 들어가면 개인정보가
+  통째로 새어 나간다. 이 페이지는 **별도 비밀번호(현관 비밀번호)**를 쓰고, 서버(auth.ts)가
+  그 역할에 목록 조회와 켜기/끄기만 허용한다.
+
+  이 파일의 버튼을 감추는 것으로는 아무것도 막지 못한다는 점이 설계의 전제다 — 소스가 공개되므로
+  누구나 fetch로 다른 action을 부를 수 있고, 그걸 잘라내는 건 서버뿐이다.
+
+  admin.html과 스타일·헬퍼가 일부 겹친다. 이 레포는 빌드 단계가 없고 각 HTML이 단독 배포물이라
+  (guest-guide.html도 같은 토큰을 복사해 쓴다) 공유 파일을 만들지 않았다. 토큰 값이 바뀌면
+  03-identity/design-tokens.md가 정본이고 각 파일이 따라온다.
+-->
+<style>
+  :root{
+    --ink:#16130F;
+    --white:#ffffff;
+    --orange:#E2531E;
+    --hair: rgba(22,19,15,.12);
+    --mute:#6b665c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  html, body{overflow-x:hidden;max-width:100%;}
+  body{
+    font-family:'Paperlogy', sans-serif;
+    background:var(--white);
+    color:var(--ink);
+    line-height:1.6;
+  }
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit;}
+  button:active{opacity:.7;}
+  button:disabled{opacity:.5;cursor:default;}
+  input:focus-visible, button:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+
+  /* 게이트 */
+  #gate{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;padding:24px;text-align:center;
+  }
+  #gate .wordmark{font-weight:600;font-size:32px;letter-spacing:-.02em;line-height:1;}
+  #gate .hint{font-size:14px;color:var(--mute);max-width:280px;}
+  #gate input{
+    font-family:inherit;font-size:16px;text-align:center;letter-spacing:.1em;
+    border:1px solid var(--ink);border-radius:8px;padding:14px 16px;width:200px;min-height:48px;
+  }
+  #gate button{
+    font-weight:600;font-size:15px;
+    background:var(--ink);color:var(--white);border:0;border-radius:8px;
+    padding:14px 24px;cursor:pointer;min-height:48px;
+  }
+  #gate .error{color:var(--orange);font-size:13px;min-height:18px;}
+
+  /* 본문 */
+  #app{display:none;max-width:520px;margin:0 auto;padding:0 24px 72px;}
+  .hero{text-align:center;padding:48px 0 28px;}
+  .hero .wordmark{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;}
+  .hero .sub{font-size:15px;color:var(--mute);margin-top:10px;}
+
+  h2{
+    font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--orange);margin:0 0 14px;
+  }
+
+  .all-row{display:flex;gap:8px;margin-bottom:14px;}
+  .all-row button{
+    font-weight:600;font-size:15px;flex:1;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
+    padding:15px;cursor:pointer;min-height:52px;
+  }
+
+  .notice{
+    border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:12px;
+    font-size:13px;color:var(--mute);line-height:1.6;
+  }
+  .notice.warn{color:var(--orange);}
+
+  .dev-card{border:1px solid var(--hair);border-radius:8px;padding:16px;margin-bottom:10px;}
+  .dev-name{font-weight:600;font-size:16px;}
+  .dev-meta{font-size:12px;color:var(--mute);margin:4px 0 12px;}
+  .dev-meta.warn{color:var(--orange);}
+  .dev-row{display:flex;gap:8px;}
+  .dev-row button{
+    font-weight:600;font-size:14px;flex:1;cursor:pointer;
+    border:1px solid var(--hair);border-radius:999px;padding:12px;min-height:48px;
+    background:var(--white);color:var(--mute);
+  }
+  .dev-row button.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .dev-note{font-size:12px;color:var(--mute);}
+
+  .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:24px;}
+  .foot p{font-size:13px;color:var(--mute);}
+  .foot p + p{margin-top:10px;}
+  .refresh{
+    font-size:13px;color:var(--mute);background:none;border:1px solid var(--hair);
+    border-radius:8px;padding:11px 14px;cursor:pointer;margin-top:16px;width:100%;min-height:44px;
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="wordmark">TYPE LOUNGE</div>
+  <p class="hint">현관 비밀번호를 넣으시면 조명과 냉난방을 켜고 끌 수 있어요.</p>
+  <input type="password" id="pw" inputmode="numeric" placeholder="현관 비밀번호" maxlength="12" autocomplete="off">
+  <button type="button" onclick="tryUnlock()">들어가기</button>
+  <div class="error" id="pwError"></div>
+</div>
+
+<div id="app">
+  <div class="hero">
+    <div class="wordmark">TYPE LOUNGE</div>
+    <p class="sub">조명 · 냉난방</p>
+  </div>
+
+  <h2>전체</h2>
+  <div class="all-row">
+    <button type="button" id="allOnBtn" onclick="allPower('power_on')">전체 켜기</button>
+    <button type="button" id="allOffBtn" onclick="allPower('power_off')">전체 끄기</button>
+  </div>
+
+  <h2>기기</h2>
+  <div id="notice" class="notice" style="display:none;"></div>
+  <div id="list"></div>
+  <button type="button" class="refresh" onclick="refreshDevices()">상태 새로고침</button>
+
+  <div class="foot">
+    <p>냉난방 <strong>온도</strong>는 거울 선반 위 작은 흰색 리모컨으로 바꿔 주세요. 여기서는 켜고 끄는 것만 돼요.</p>
+    <p>조명은 명령을 보낸 뒤 실제로 반영되기까지 몇 초 걸릴 수 있어요. 바로 안 바뀌어도 잠시 기다려 주세요.</p>
+    <p>나가실 때 <strong>전체 끄기</strong>를 한 번 눌러 주시면 큰 도움이 돼요.</p>
+  </div>
+</div>
+
+<script>
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
+
+  var UNLOCK_KEY = "typelounge_guest_password";   // admin.html과 다른 키다. 같이 쓰면 한쪽 로그아웃이 다른 쪽을 끊는다.
+  var currentPassword = '';
+  var devicesCache = [];
+  var pollTimer = null;
+  var lateTimer = null;
+
+  /* 조명은 이 요청이 끝나도 아직 안 켜졌다 — 서버는 큐에 넣기만 하고, 현장 에이전트가 받아
+     발행한 뒤 기기가 보고해야 상태가 바뀐다. 그래서 명령 직후 한 번, 몇 초 뒤 또 한 번 읽는다. */
+  var LATE_REFRESH_MS = 4000;
+  var POLL_MS = 30000;
+
+  function controlCall(action, extra){
+    var body = { action: action, password: currentPassword };
+    if(extra) Object.keys(extra).forEach(function(k){ body[k] = extra[k]; });
+    return fetch(CONTROL_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if(!res.ok){
+          var err = new Error(data.error || ('요청 실패 (' + res.status + ')'));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  /* ── 게이트 ───────────────────────────────────────────────────────────────── */
+
+  function tryUnlock(){
+    var val = document.getElementById('pw').value.trim();
+    if(!val){ document.getElementById('pwError').textContent = '비밀번호를 넣어 주세요.'; return; }
+    document.getElementById('pwError').textContent = '확인 중...';
+    var prev = currentPassword;
+    currentPassword = val;
+    controlCall('list').then(function(data){
+      sessionStorage.setItem(UNLOCK_KEY, val);
+      document.getElementById('pwError').textContent = '';
+      showApp(data);
+    }).catch(function(err){
+      currentPassword = prev;
+      document.getElementById('pwError').textContent = err.status === 401
+        ? '비밀번호가 맞지 않아요.'
+        : ('연결하지 못했어요: ' + err.message);
+    });
+  }
+
+  function showApp(data){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    devicesCache = data.devices || [];
+    render(data);
+    startPolling();
+  }
+
+  /* 화면을 안 보고 있으면 읽지 않는다 — 손님 휴대폰 배터리와 데이터를 조용히 태울 이유가 없다. */
+  function startPolling(){
+    stopPolling();
+    pollTimer = setInterval(function(){
+      if(document.visibilityState === 'visible') refreshDevices();
+    }, POLL_MS);
+  }
+  function stopPolling(){
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible' && currentPassword) refreshDevices();
+  });
+
+  /* ── 목록 ─────────────────────────────────────────────────────────────────── */
+
+  function notice(msg, isWarn){
+    var el = document.getElementById('notice');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+    el.classList.toggle('warn', !!isWarn);
+  }
+
+  function refreshDevices(){
+    return controlCall('list').then(function(data){
+      devicesCache = data.devices || [];
+      render(data);
+    }).catch(function(err){
+      notice('기기 상태를 불러오지 못했어요: ' + err.message, true);
+    });
+  }
+
+  function escapeHtml(s){
+    var div = document.createElement('div');
+    div.textContent = s || '';
+    return div.innerHTML;
+  }
+
+  function timeAgo(iso){
+    var sec = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+    if(sec < 60) return sec + '초 전';
+    if(sec < 3600) return Math.round(sec/60) + '분 전';
+    return Math.round(sec/3600) + '시간 전';
+  }
+
+  /* ⚠ '모름'을 '꺼짐'으로 합치지 않는다. 합치면 꺼진 줄 알았는데 실제로는 켜져 있는 상황 —
+     즉 냉난방이 밤새 도는 상황 — 이 조용히 숨는다. 손님 화면이라고 다르지 않다. */
+  function powerLabel(p){
+    if(p === 'ON') return '켜짐';
+    if(p === 'OFF') return '꺼짐';
+    return '상태 모름';
+  }
+
+  function stateLabel(s){
+    if(s.never_seen) return '아직 상태를 받은 적 없어요';
+    var parts = [];
+    if(!s.online) parts.push('연결 끊김');
+    if(s.updated_at) parts.push(timeAgo(s.updated_at));
+    return parts.join(' · ');
+  }
+
+  function canPower(d){
+    return (d.capabilities || []).indexOf('power') !== -1;
+  }
+
+  function deviceCardHtml(d){
+    var s = d.state || {};
+    var meta = [powerLabel(s.power)];
+    var tail = stateLabel(s);
+    if(tail) meta.push(tail);
+    if(s.attrs && s.attrs.current_temp !== undefined){
+      meta.push('현재 ' + s.attrs.current_temp + (s.attrs.unit || ''));
+    }
+
+    var body = canPower(d)
+      ? '<div class="dev-row">' +
+          '<button type="button" class="' + (s.power === 'ON' ? 'on' : '') + '" data-dev="' + escapeHtml(d.id) + '" data-cmd="power_on">켜기</button>' +
+          '<button type="button" class="' + (s.power === 'OFF' ? 'on' : '') + '" data-dev="' + escapeHtml(d.id) + '" data-cmd="power_off">끄기</button>' +
+        '</div>'
+      : '<p class="dev-note">이 기기는 여기서 켜고 끌 수 없어요.</p>';
+
+    return '<div class="dev-card">' +
+      '<div class="dev-name">' + escapeHtml(d.name) + '</div>' +
+      '<div class="dev-meta' + (s.never_seen || s.is_stale || !s.online ? ' warn' : '') + '">' +
+      escapeHtml(meta.join(' · ')) + '</div>' + body + '</div>';
+  }
+
+  function render(data){
+    var list = document.getElementById('list');
+    if(!devicesCache.length){
+      list.innerHTML = '';
+      notice('아직 연결된 기기가 없어요. 조명·냉난방은 리모컨과 벽 스위치로 쓰실 수 있어요.');
+      return;
+    }
+    notice('');
+    list.innerHTML = devicesCache.map(deviceCardHtml).join('');
+  }
+
+  /* ── 명령 ─────────────────────────────────────────────────────────────────── */
+
+  function allButtons(){
+    return [document.getElementById('allOnBtn'), document.getElementById('allOffBtn')];
+  }
+
+  /* 일부가 실패해도 나머지는 계속 보낸다 — 반쯤 꺼진 채로 포기하면 손님이 뭐가 남았는지 모른다. */
+  function runCommands(jobs, successMsg){
+    var btns = allButtons();
+    btns.forEach(function(b){ b.disabled = true; });
+
+    return Promise.all(jobs.map(function(job){
+      return controlCall('command', { device_id: job.device.id, command: job.command })
+        .then(function(){ return { name: job.device.name, ok: true }; })
+        .catch(function(err){ return { name: job.device.name, ok: false, message: err.message }; });
+    })).then(function(results){
+      var failed = results.filter(function(r){ return !r.ok; });
+      // render()가 성공 시 notice('')로 알림을 지운다 — 그래서 메시지는 새로고침 뒤에 세팅한다.
+      return refreshDevices().then(function(){
+        if(!failed.length) notice(successMsg);
+        else notice('일부는 안 됐어요: ' + failed.map(function(r){ return r.name; }).join(', '), true);
+        scheduleLateRefresh();
+      });
+    }).then(function(){
+      btns.forEach(function(b){ b.disabled = false; });
+    });
+  }
+
+  /* 조명의 응답은 '보냈다'지 '켜졌다'가 아니다. 몇 초 뒤 한 번 더 읽어 실제 반영을 비춘다. */
+  function scheduleLateRefresh(){
+    if(lateTimer) clearTimeout(lateTimer);
+    lateTimer = setTimeout(function(){
+      lateTimer = null;
+      refreshDevices();
+    }, LATE_REFRESH_MS);
+  }
+
+  function allPower(cmd){
+    var targets = devicesCache.filter(canPower);
+    if(!targets.length){ notice('켜고 끌 수 있는 기기가 없어요.', true); return; }
+    // 끄기만 확인을 받는다. 아직 쓰는 사람이 있는데 눌리면 곤란한 쪽은 이쪽이다.
+    if(cmd === 'power_off' && !confirm('기기 ' + targets.length + '개를 모두 끌까요?')) return;
+
+    runCommands(
+      targets.map(function(d){ return { device: d, command: cmd }; }),
+      cmd === 'power_on' ? '모두 켰어요.' : '모두 껐어요. 이용해 주셔서 고맙습니다.'
+    );
+  }
+
+  document.getElementById('list').addEventListener('click', function(e){
+    var el = e.target.closest('button[data-dev]');
+    if(!el) return;
+    el.disabled = true;
+    controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd })
+      .then(function(){
+        return refreshDevices().then(scheduleLateRefresh);
+      })
+      .catch(function(err){ notice(err.message, true); })
+      .then(function(){ el.disabled = false; });
+  });
+
+  document.getElementById('pw').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryUnlock();
+  });
+
+  /* 세션에 남은 비밀번호로 자동 입장. 틀리면(비번이 바뀐 경우) 조용히 지우고 게이트를 보여준다. */
+  (function(){
+    var saved = sessionStorage.getItem(UNLOCK_KEY);
+    if(!saved) return;
+    currentPassword = saved;
+    controlCall('list').then(showApp).catch(function(){
+      sessionStorage.removeItem(UNLOCK_KEY);
+      currentPassword = '';
+    });
+  })();
+</script>
+</body>
+</html>

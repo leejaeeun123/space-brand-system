@@ -41,7 +41,8 @@ PLAN.md            초기 구축 계획 (이력 — 현재 상태는 이 README�
                    + 로고 SVG · 탐색 시안 HTML(v2~v18)
 04-signage/        signage-system · exterior-signage · interior-wayfinding · pictograms · notice-copy
 05-design-system/  README (우산 문서) · concept-keywords
-06-applications/   admin.html · guest-guide.html · 사이니지 시안 · 목업 PNG · 설치 체크리스트(control/cctv/onsite)
+06-applications/   admin.html · guest-guide.html · guest-control.html · 사이니지 시안 · 목업 PNG
+                   설치 체크리스트(control/cctv/onsite)
                    automation/     스페이스클라우드 예약 자동 반영 (파트너 API + Gmail)
                    control-agent/  합정 상주 맥 에이전트 (MQTT 중계 + MediaMTX 관찰)
 07-brand-book/     brand · bx · product (+ 렌더 HTML) — 위 정본에서 파생된 문서
@@ -58,6 +59,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 | 영역 | 무엇 | 어디 |
 |---|---|---|
 | 게스트 가이드 | 이용 안내 + 영상정보처리기기 법정 고지 | `06-applications/guest-guide.html` → `/` |
+| 손님 제어 | 조명·냉난방 **켜기/끄기만** (현관 비밀번호로 입장) | `06-applications/guest-control.html` → `/control` |
 | 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV | `06-applications/admin.html` → `/admin` |
 | 예약 자동 반영 | 파트너 API(주) + Gmail 15분 트리거(백업) → Supabase RPC | [`automation/`](./06-applications/automation/README.md) |
 | 냉난방 | LG ThinQ Cloud API (HTTPS) — 현장 장비 불필요 | [`functions/control/`](./supabase/functions/control/README.md) |
@@ -71,7 +73,9 @@ assets/            무드보드 · 레퍼런스 · 목업
 ### 배포
 
 `main`에 머지되면 GitHub Actions가 Vercel로 올린다(`public/**` · `admin.html` · `guest-guide.html` ·
-`vercel.json` 변경 시). `public/`은 `06-applications/`를 가리키는 **심링크**라 원본만 고치면 된다.
+`guest-control.html` · `vercel.json` 변경 시). `public/`은 `06-applications/`를 가리키는 **심링크**라
+원본만 고치면 된다. 배포되는 페이지를 새로 추가하면 **`deploy.yml`의 `paths`에도 넣는다** —
+빠뜨리면 파일은 머지됐는데 사이트만 그대로다.
 
 ## 남은 일
 

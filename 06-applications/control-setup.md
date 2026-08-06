@@ -13,6 +13,9 @@
 |---|---|---|---|
 | **A. 냉난방 (LG ThinQ)** | 어디서나 | ~5분 | ❌ |
 | **B. 조명 (Tasmota)** | 합정 현장 | ~40분 | ✅ 상주 |
+| **G. 손님 제어 페이지** | 어디서나 | ~2분 | ❌ |
+
+> **G는 A나 B가 끝난 뒤에 한다.** 켤 기기가 없으면 손님 화면에 빈 목록만 뜬다.
 
 > **CCTV(C)는 [`cctv-setup.md`](./cctv-setup.md)에 따로 있다.** 같은 맥을 쓰지만 여기와 독립이라
 > 절차를 섞지 않았다 — 영상은 서버를 지나가지 않아서 경로가 통째로 다르고, 무엇보다 카메라는
@@ -235,11 +238,63 @@ tail -f agent.log
 
 ---
 
+## G. 손님 제어 페이지
+
+손님이 `/control`에서 조명·냉난방을 **켜고 끄기만** 할 수 있는 페이지다(`guest-control.html`).
+등록·해제·CCTV는 서버가 잘라낸다.
+
+### G-1. 손님 비밀번호를 서버에 넣기
+
+**현관 비밀번호와 같은 값**을 넣는다. 손님이 이미 아는 번호라 따로 안내할 게 없다.
+
+```bash
+supabase secrets set GUEST_PASSWORD=<현관 비밀번호>
+```
+
+> ⚠️ **admin 비밀번호를 넣지 않는다.** admin 비밀번호는 기기뿐 아니라 예약자 이름·연락처를 여는
+> `admin_*` RPC의 열쇠이기도 하다. 손님 페이지에 그 값이 들어가면 소스를 본 사람이 anon 키만으로
+> 예약 개인정보를 통째로 조회한다. 두 값이 같으면 서버가 손님 경로를 아예 닫는다(`auth.ts`).
+
+**재배포는 필요 없다.** 다음 호출부터 적용된다.
+
+### G-2. 현관 비밀번호를 바꿨을 때
+
+`GUEST_PASSWORD`를 같이 바꾼다. 안 바꾸면 손님이 새 현관 번호로는 페이지에 못 들어간다.
+바꿔야 하는 곳은 두 군데다 — 이 시크릿과 `guest-guide.html`의 현관 비밀번호 표기.
+
+### G-3. 확인
+
+```bash
+# 손님 비밀번호로 목록은 되고
+curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" \
+  -H "Authorization: Bearer <anon key>" -H "Content-Type: application/json" \
+  -d '{"action":"list","password":"<현관 비밀번호>"}'
+
+# 등록 해제는 403이어야 한다
+curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" \
+  -H "Authorization: Bearer <anon key>" -H "Content-Type: application/json" \
+  -d '{"action":"delete","password":"<현관 비밀번호>","device_id":"아무거나"}'
+```
+
+- [ ] `list`는 기기 목록이 온다 (`address` 필드는 없는 게 정상이다 — 손님에겐 안 내린다)
+- [ ] `delete`는 `"이 페이지에서는 켜기/끄기만 할 수 있어요"` 403
+- [ ] `/control`에서 현관 비밀번호로 들어가 켜기/끄기가 실제 기기에 반영된다
+
+### G-4. 손님에게 알리기
+
+- `guest-guide.html`의 **조명 · 냉난방** 항목에 `/control` 링크가 이미 들어 있다
+- 현장 안내판은 `_notice-control.html`(QR 시안)을 인쇄한다. QR은 열 때 만들어지므로
+  주소를 바꾸려면 파일 안 `CONTROL_URL` 한 줄만 고친다
+
+---
+
 ## 막혔을 때
 
 | 증상 | 확인 |
 |---|---|
 | A-4에서 `thinq_configured:false` | 시크릿 3개가 다 들어갔나. 하나라도 비면 미설정으로 본다 |
+| `/control`에서 현관 비밀번호가 안 먹는다 | `GUEST_PASSWORD` 설정 여부. admin과 같은 값이면 일부러 막는다(G-1) |
+| `/control`이 404 | `public/control.html` 심링크와 배포 워크플로 경로(`deploy.yml`) |
 | A-5에서 `ThinQ 인증 실패` | PAT 만료. **재시도해도 소용없다** — 재발급이 유일한 길이다 |
 | B-4에서 `SUBSCRIBED`가 안 뜬다 | service_role 키, 인터넷. 이게 없으면 명령이 안 온다 |
 | 조명 카드가 "아직 상태를 받은 적 없음" | 기기가 브로커에 못 붙음. Console에서 `MqttHost`·`MqttUser` 확인 |
@@ -259,9 +314,21 @@ tail -f agent.log
   즉 **냉난방이 밤새 도는 상황**이 조용히 숨는다.
 - **키를 브라우저에 두지 않는다.** ThinQ PAT와 service_role 키는 Edge Function과 합정 맥에만
   있다. `admin.html`은 소스가 공개되므로 거기 들어가면 계정 전체가 노출된다.
+- **손님이 할 수 있는 일은 서버가 자른다.** `guest-control.html`에서 버튼을 감추는 건 방어가
+  아니다 — 소스가 공개되므로 누구나 `fetch`로 `delete`를 부를 수 있다. 실제로 막는 곳은
+  `auth.ts` 한 군데다.
 
 ## 아직 검증 안 된 것
 
 **실기기로는 확인하지 못했다.** 냉난방은 PAT가 없어 ThinQ 왕복을 못 돌렸고, 조명은 가짜
 Tasmota로 프로토콜만 확인했다. 실기기 펌웨어·실제 mosquitto 동작은 이 절차를 밟으면서
 처음 확인된다. B-5에서 막히면 `Backlog` 대신 한 줄씩 넣어본다.
+
+**손님 페이지(G)는 서버까지만 확인됐다.** 2026-08-06 배포 후 G-3의 세 가지는 실제 함수에
+대고 통과했다 — 현관 비밀번호로 `list` 200(기기 6개, `address` 없음) · `delete` 403 ·
+틀린 비번 401. 하지만 **`/control`에서 켠 것이 실기기에 반영되는지는 확인하지 못했다.**
+조명의 `sent`는 브로커에 발행했다는 뜻일 뿐이라(위 '알아둘 것') 응답이 성공이어도 실제로
+켜졌다는 증거가 아니다. 현장 맥과 실기기 앞에서 G-3의 마지막 체크박스를 직접 밟아야 한다.
+
+그때까지 **현장 안내판(`_notice-control.html`) QR은 인쇄하지 않는다.** 붙인 안내판을
+되돌리려면 사람이 현장에 다시 가야 한다.

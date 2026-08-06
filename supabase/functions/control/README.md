@@ -1,6 +1,7 @@
 # 공간 제어 (냉난방 · 조명 큐 · CCTV 목록)
 
-`admin.html`의 **공간 제어**·**CCTV** 탭이 쓰는 Edge Function. 세 가지를 다룬다 —
+`admin.html`의 **공간 제어**·**CCTV** 탭과 손님용 `guest-control.html`이 쓰는 Edge Function.
+세 가지를 다룬다 —
 **냉난방(LG ThinQ)** 직접 제어, **조명(Tasmota)** 명령 큐잉, **CCTV** 목록·자격증명 발급.
 영상 자체는 여기를 지나가지 않는다(→ `handlers/cameras.ts`).
 
@@ -17,9 +18,37 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 다르게 간 이유는 위험의 등급이 다르기 때문이다: 예약은 읽혀도 정보가 새는 정도지만, 기기 제어는
 소스만 본 사람이 **손님 이용 중에 냉난방을 끌 수 있다**.
 
+## 부르는 쪽이 둘이다 — 그래서 비밀번호도 둘이다
+
+| 역할 | 비밀번호 | 부르는 화면 | 할 수 있는 일 |
+|---|---|---|---|
+| `admin` | `ADMIN_PASSWORD` | `admin.html` | 10개 action 전부 |
+| `guest` | `GUEST_PASSWORD` | `guest-control.html` (`/control`) | `list` + `command`의 `power_on`·`power_off` |
+
+**비밀번호를 하나로 둘 수 없는 이유가 있다.** admin 비밀번호는 이 함수만 여는 열쇠가 아니라
+`reservations`의 `admin_*` RPC — 예약자 이름·전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이
+같은 값을 양쪽에 쓴다). 그 값이 손님용 공개 페이지에 들어가면 소스를 본 사람이 anon 키만으로
+예약 개인정보를 통째로 조회한다. 조명이 꺼지는 것과는 등급이 다르다.
+
+판정은 전부 [`auth.ts`](./auth.ts)에 있고, **서버에 있어야 한다** — `guest-control.html`도 소스가
+공개되므로 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다. `command` action만 열어주는
+것으로도 부족하다: 같은 action이 `set_temp`·`set_mode`·`set_wind`도 태우기 때문에 명령까지 검사한다.
+
+`GUEST_PASSWORD` 미설정은 손님 경로만 닫는다(401). `ADMIN_PASSWORD` 미설정은 예전처럼 전면
+거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게 낫다. 두 값이 같으면 설정 실수로 보고
+손님 경로를 닫는다.
+
+이 파일은 이 레포에서 유일하게 테스트가 붙어 있다(`auth.test.ts`). 나머지 핸들러의 실수는
+기능이 안 되는 정도지만, 여기 실수는 조용히 열린 채로 잘 돌아간다.
+
+```bash
+deno test --allow-env supabase/functions/control/auth.test.ts
+```
+
 ## 설치 절차
 
 **→ [`06-applications/control-setup.md`](../../../06-applications/control-setup.md) 의 A 단계를 따른다.**
+손님 페이지를 여는 것은 같은 문서의 **G 단계**다.
 
 절차를 그쪽 한 군데에만 둔 이유: 냉난방과 조명 절차를 나눠두면 한쪽만 고쳐졌을 때 조용히 어긋난다.
 이 문서는 **왜 그렇게 만들었는지**와 구조를 다룬다.
@@ -44,7 +73,8 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 
 | 파일 | 책임 |
 |---|---|
-| `index.ts` | HTTP 표면 — CORS·비밀번호 검증·라우팅 |
+| `index.ts` | HTTP 표면 — CORS·라우팅 |
+| `auth.ts` | 역할 판정(admin/guest) + 손님 허용 범위 |
 | `handlers/list.ts` | 목록 조회 + ThinQ 상태 갱신(TTL 30초) |
 | `handlers/command.ts` | 명령 1건 검증·발행 |
 | `handlers/registry.ts` | 기기 등록/해제, ThinQ 계정 기기 목록 |
@@ -59,7 +89,7 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 | `types.ts` | 공유 타입 |
 | `tasmota/topics.ts` | 조명 MQTT 토픽 문법 + 기기 ID 검증 |
 
-action은 10개다.
+action은 10개다. **그중 손님이 부를 수 있는 건 2개**(`list` · `command`)뿐이다.
 
 - 기기 제어 6개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete`
 - CCTV 4개: `cameras` · `camera_credentials` · `camera_register` · `camera_delete`
@@ -75,6 +105,10 @@ CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-s
 - **PAT 401은 재시도하지 말 것.** 자동 재발급 경로가 없다 — 만료되면 사람이 갱신하는 수밖에 없고,
   재시도는 계정 잠금 위험만 만든다.
 - **capabilities를 클라이언트가 주는 값으로 쓰지 말 것.** ThinQ는 프로파일에서만 파생한다.
+- **`GUEST_PASSWORD`에 admin 비밀번호를 넣지 말 것.** 그 값은 예약자 개인정보를 여는 열쇠이기도
+  하다. 손님 페이지는 소스가 공개된다.
+- **손님 허용 목록을 클라이언트로 옮기지 말 것.** `guest-control.html`에서 버튼을 감추는 건
+  방어가 아니다 — 누구나 `fetch`로 `delete`를 직접 부를 수 있다.
 
 ## 조명은 여기서 큐에만 넣는다
 

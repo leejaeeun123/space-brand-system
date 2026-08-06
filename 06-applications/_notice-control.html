@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<!-- QR은 렌더할 때 만든다. 주소를 아래 CONTROL_URL 한 군데만 고치면 QR과 인쇄된 주소가
+     같이 따라온다 — 이미지를 박아두면 둘 중 하나만 고쳐져 손님이 죽은 QR을 찍게 된다. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:560px;height:770px;overflow:hidden;background:transparent;}
+  .poster{width:560px;height:770px;background:#ffffff;border:3px solid #16130F;
+    display:flex;flex-direction:column;align-items:center;font-family:'Paperlogy';color:#16130F;
+    padding:60px 40px 50px;}
+  .title{font-weight:900;font-size:62px;letter-spacing:.01em;line-height:1.1;text-align:center;}
+  .lead{font-weight:500;font-size:30px;margin-top:14px;text-align:center;line-height:1.4;}
+  .qr{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 0;}
+  .qr svg{width:280px;height:280px;display:block;}
+  .qr .fail{font-weight:700;font-size:24px;color:#E2531E;text-align:center;line-height:1.5;}
+  .url{font-weight:700;font-size:28px;letter-spacing:.01em;text-align:center;}
+  .info{font-weight:500;font-size:26px;line-height:1.5;text-align:center;margin-top:16px;}
+</style></head><body>
+<div class="poster">
+  <div class="title">조명 · 냉난방</div>
+  <div class="lead">휴대폰으로 켜고 끌 수 있어요</div>
+  <div class="qr" id="qr"></div>
+  <div class="url" id="url"></div>
+  <div class="info">비밀번호는 <strong>현관 비밀번호</strong>와 같아요<br>온도는 흰색 리모컨으로 바꿔 주세요</div>
+</div>
+<script>
+  var CONTROL_URL = 'https://typelounge.vercel.app/control';
+
+  document.getElementById('url').textContent = CONTROL_URL.replace(/^https:\/\//, '');
+
+  // 실패를 비워두지 않는다. 인쇄물은 한 번 붙으면 몇 달을 가는데, 빈 칸으로 나가면
+  // 아무도 모르는 채 손님만 찍히지 않는 QR을 만난다.
+  try {
+    var qr = qrcode(0, 'M');           // 0 = 자동 버전, M = 25% 오류정정(인쇄물 표준)
+    qr.addData(CONTROL_URL);
+    qr.make();
+    document.getElementById('qr').innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
+  } catch (e) {
+    document.getElementById('qr').innerHTML =
+      '<div class="fail">QR을 만들지 못했습니다<br>인쇄하지 마세요</div>';
+  }
+</script>
+</body></html>
