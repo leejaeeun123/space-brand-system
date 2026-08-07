@@ -144,3 +144,27 @@ Deno.test("묶음의 순서 기준은 그 묶음의 마지막 이벤트다", () 
   // 첫 이벤트로 정렬했다면 remote_guest(00:00)가 먼저지만, 마지막 기준이면 sweep(00:05)이 먼저다.
   assertEquals(orderGroups(byKind).map(([k]) => k), ["sweep", "remote_guest"]);
 });
+
+Deno.test("조명의 '큐에만 넣음'을 매번 적지 않는다", () => {
+  // 조명 명령엔 항상 붙어 있어서 정보가 되지 않았다. 정말 안 된 경우는
+  // 스윕 창 종료 시 실패 이벤트로 따로 드러난다.
+  const msg = buildMessage("shutdown", [
+    ev({ device_id: "l1", action: "power_off", detail: "sent" }),
+  ], NAMES);
+  assertEquals(msg.includes("반영 미확인"), false);
+  assertStringIncludes(msg, "| 메인 조명 | 끄기 |");
+});
+
+Deno.test("반영되지 않은 것은 실패로 드러난다", () => {
+  const msg = buildMessage("sweep", [
+    ev({
+      device_id: "l1",
+      kind: "sweep",
+      action: "power_off",
+      status: "failed",
+      detail: "퇴실 후 10분간 껐는데도 켜져 있습니다",
+    }),
+  ], NAMES);
+  assertStringIncludes(msg, "⚠️");
+  assertStringIncludes(msg, "껐는데도 켜져 있습니다");
+});
