@@ -1,0 +1,98 @@
+/**
+ * `windows.ts` 테스트 — 자동화에서 유일하게 순수한 층이자, 틀리면 가장 조용한 층이다.
+ *
+ * **모든 단언을 `toISOString()`(UTC 절대시각)으로 한다.** `getHours()` 같은 로컬 게터로
+ * 검증하면 개발 맥(KST)에서는 통과하고 배포 런타임(UTC)에서는 9시간 어긋난 채로 통과한다 —
+ * 실제로 이 테스트의 첫 판이 그 함정에 빠져 KST 파싱 버그를 못 잡았다.
+ *
+ * 실행: `deno test supabase/functions/control/automation/windows.test.ts`
+ */
+
+import { assertEquals } from "jsr:@std/assert@1";
+import {
+  dueState,
+  endTime,
+  isOccupied,
+  isSweeping,
+  kstDay,
+  prepTime,
+  targetTime,
+  type ReservationWindow,
+} from "./windows.ts";
+
+/** 테스트용 KST 시각. 런타임 타임존과 무관하게 같은 순간을 가리킨다. */
+function kst(iso: string): Date {
+  return new Date(`${iso}+09:00`);
+}
+
+/** 14:00~18:00 KST 예약 하나. */
+const RES: ReservationWindow = {
+  date: "2026-08-10",
+  start_time: "14:00:00",
+  end_time: "18:00:00",
+};
+
+Deno.test("targetTime — 예약 시각을 KST로 해석한다 (런타임 타임존 무관)", () => {
+  // 14:30 KST = 05:30 UTC. 오프셋 없이 파싱했다면 UTC 런타임에서 14:30Z가 나온다.
+  assertEquals(
+    targetTime("2026-08-10", "14:30:00").toISOString(),
+    "2026-08-10T05:30:00.000Z",
+  );
+});
+
+Deno.test("kstDay — UTC 날짜가 아니라 KST 달력 날짜다", () => {
+  // 2026-08-10 00:30 KST는 UTC로는 아직 08-09다. UTC 기준으로 자르면 어제로 조회된다.
+  assertEquals(kstDay(kst("2026-08-10T00:30:00")), "2026-08-10");
+  assertEquals(kstDay(kst("2026-08-10T23:30:00")), "2026-08-10");
+});
+
+Deno.test("prepTime — 입실 15분 전", () => {
+  assertEquals(prepTime(RES).toISOString(), kst("2026-08-10T13:45:00").toISOString());
+});
+
+Deno.test("endTime — 퇴실 시각 그대로", () => {
+  assertEquals(endTime(RES).toISOString(), kst("2026-08-10T18:00:00").toISOString());
+});
+
+Deno.test("dueState — 전이면 wait, 그 순간과 캐치업 창 안이면 fire, 넘기면 expired", () => {
+  const target = kst("2026-08-10T13:45:00");
+  assertEquals(dueState(target, kst("2026-08-10T13:44:00")), "wait");
+  assertEquals(dueState(target, target), "fire");
+  assertEquals(dueState(target, kst("2026-08-10T13:54:59")), "fire");
+  assertEquals(dueState(target, kst("2026-08-10T13:56:00")), "expired");
+});
+
+Deno.test("isOccupied — 준비 시작부터 퇴실 직전까지", () => {
+  assertEquals(isOccupied([RES], kst("2026-08-10T13:44:00")), false); // 준비 전
+  assertEquals(isOccupied([RES], kst("2026-08-10T13:45:00")), true); // 준비 시작
+  assertEquals(isOccupied([RES], kst("2026-08-10T16:00:00")), true); // 이용 중
+  assertEquals(isOccupied([RES], kst("2026-08-10T17:59:59")), true);
+  assertEquals(isOccupied([RES], kst("2026-08-10T18:00:00")), false); // 퇴실 시각은 제외
+});
+
+Deno.test("isSweeping — 퇴실 후 10분 동안만", () => {
+  assertEquals(isSweeping([RES], kst("2026-08-10T17:59:00")), false); // 아직 이용 중
+  assertEquals(isSweeping([RES], kst("2026-08-10T18:00:00")), true);
+  assertEquals(isSweeping([RES], kst("2026-08-10T18:09:59")), true);
+  assertEquals(isSweeping([RES], kst("2026-08-10T18:10:00")), false); // 창이 닫혔다
+});
+
+Deno.test("isSweeping — 다음 예약이 바로 붙어 있으면 스윕하지 않는다", () => {
+  // 18:15 시작 예약의 준비 시각은 18:00 — 앞 예약의 스윕 창과 정확히 겹친다.
+  // 여기서 스윕이 돌면 다음 손님을 위해 켠 조명·냉난방을 도로 끈다.
+  const next: ReservationWindow = {
+    date: "2026-08-10",
+    start_time: "18:15:00",
+    end_time: "20:00:00",
+  };
+  assertEquals(isSweeping([RES, next], kst("2026-08-10T18:00:00")), false);
+  assertEquals(isSweeping([RES, next], kst("2026-08-10T18:05:00")), false);
+  // 다음 예약이 충분히 뒤면(준비 19:45) 스윕 창은 정상적으로 열린다.
+  const later: ReservationWindow = { ...next, start_time: "20:00:00", end_time: "22:00:00" };
+  assertEquals(isSweeping([RES, later], kst("2026-08-10T18:05:00")), true);
+});
+
+Deno.test("예약이 없으면 어느 창도 열리지 않는다", () => {
+  assertEquals(isOccupied([], kst("2026-08-10T18:05:00")), false);
+  assertEquals(isSweeping([], kst("2026-08-10T18:05:00")), false);
+});

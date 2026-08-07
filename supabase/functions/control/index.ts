@@ -19,6 +19,7 @@ import { assertAllowed, resolveRole, scrubDevices, type Role } from "./auth.ts";
 import { HandlerError } from "./handlers/shared.ts";
 import { list } from "./handlers/list.ts";
 import { command } from "./handlers/command.ts";
+import { automate } from "./handlers/automation.ts";
 import { registerLight, registerThinq, remove, thinqDevices } from "./handlers/registry.ts";
 import {
   cameraCredentials,
@@ -83,6 +84,8 @@ Deno.serve(async (req) => {
         return json(await command(sb, body));
       case "delete":
         return json(await remove(sb, body));
+      case "automate":
+        return json(await automate(sb));
 
       // ── CCTV. 영상은 여기를 지나가지 않는다 — 목록·자격증명만 다룬다. ──
       case "cameras":

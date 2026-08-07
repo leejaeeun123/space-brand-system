@@ -21,8 +21,14 @@ import { HandlerError } from "./handlers/shared.ts";
 
 export type Role = "admin" | "guest";
 
-/** 손님이 부를 수 있는 action. 등록·해제·CCTV는 여기 없다. */
-const GUEST_ACTIONS = new Set(["list", "command"]);
+/** 손님이 부를 수 있는 action. 등록·해제·CCTV는 여기 없다.
+ *
+ *  `automate`는 pg_cron이 1분마다 찌르는 예약 자동화 트리거다(handlers/automation.ts). 대상
+ *  예약도 호출자가 고르지 못하고 서버가 지금 시각으로 직접 계산하며, 발행하는 명령도 guest가
+ *  이미 command로 직접 부를 수 있는 것들이라(전원·온도·모드) 이 action이 새로 여는 권한은
+ *  없다 — 그래서 pg_cron이 anon key만으로 부를 수 있게 guest에 둔다. ADMIN_PASSWORD를
+ *  스케줄러 쪽에 심을 필요가 없어진다. */
+const GUEST_ACTIONS = new Set(["list", "command", "automate"]);
 
 /**
  * 손님이 보낼 수 있는 명령. 지금은 냉난방 제어 다섯 가지가 전부 열려 있다 —

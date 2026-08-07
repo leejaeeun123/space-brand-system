@@ -22,8 +22,8 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 
 | 역할 | 판정 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
-| `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 10개 action 전부 |
-| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 (등록·해제·CCTV 제외) |
+| `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 11개 action 전부 |
+| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 + `automate` (등록·해제·CCTV 제외) |
 
 **손님 경로에는 비밀번호가 없다.** 예전엔 `GUEST_PASSWORD`(=현관 비밀번호)로 게이트를 걸었지만,
 그 값은 사이트 루트(`guest-guide.html`)에 이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 지금은
@@ -83,6 +83,46 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 `{"thinq_configured":true, ...}` 가 나오면 시크릿이 제대로 들어간 것이다.
 로그는 Supabase 대시보드 → Edge Functions → control → Logs.
 
+## 예약 자동화 (automate)
+
+pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000_reservation_automation.sql`).
+진입점은 [`handlers/automation.ts`](./handlers/automation.ts), 로직은 [`automation/`](./automation/)에 있다.
+
+하는 일이 **두 종류**다 — 이 구분이 파일 분리의 기준이다.
+
+| | 언제 | 몇 번 | 파일 |
+|---|---|---|---|
+| **예정된 전환** | 입실 15분 전 · 퇴실 시각 | 예약당 한 번(기록으로 닫힌다) | `automation/schedule.ts` |
+| **지속 강제** | 창이 열려 있는 동안 | 매 틱(반복이 곧 기능이다) | `automation/enforce.ts` |
+
+**예정된 전환** — 입실 15분 전엔 냉난방을 전원→냉방→26도 **순서대로** 넣고(모드를 바꾸면
+목표온도가 기본값으로 되돌아가는 기종이 있다), 조명은 나이트모드와 같은 SiHAS on/off 조합으로
+맞춘다. 퇴실 시각엔 전원 가능한 기기를 전부 끈다.
+
+**지속 강제** — 두 가지다:
+
+- **퇴실 후 스윕(10분)**: 퇴실 직후 10분 동안 켜지는 기기를 매 틱 다시 끈다. **다음 예약의
+  준비 시각이 이미 지났으면 돌지 않는다**(`isOccupied`가 `isSweeping`보다 우선) — 바로 붙은
+  예약을 위해 켠 기기를 도로 끄면 손님이 들어왔을 때 불이 꺼져 있다.
+- **온도 하한(24도)**: 24도 미만으로 **5분 넘게 가동**하면 24도로 되돌린다. 잠깐 세게 트는 것
+  자체는 막지 않는다. 시계는 `device_temp_floor` 테이블이 잡고, 전원이 꺼지면 해제된다
+  (요구사항이 "5분간 **가동**하다"이기 때문).
+
+준비 온도(26)는 하한(24)보다 **높아야 한다** — 낮게 잡으면 준비하자마자 하한 강제가 되돌려
+두 자동화가 서로 싸운다.
+
+호출자가 어떤 예약을 대상으로 할지 고르지 않는다 — 서버가 매번 지금 시각으로 다시 계산한다.
+그래서 guest 권한으로 열어도(`GUEST_ACTIONS`) 새로 여는 권한이 없다: 발행하는 명령은 손님이
+이미 `command`로 직접 부를 수 있는 것들이고, pg_cron은 ADMIN_PASSWORD 없이 anon key만으로
+부른다.
+
+**캐치업 창은 10분이다.** control-agent의 60초 TTL과 같은 철학 — 스케줄러가 밀렸다가 뒤늦게
+재생하면 엉뚱한 시각에 냉난방이 켜진다. 창을 넘긴 예약은 실행하지 않고 `*_automation_at`을
+채워 건너뛴 채로 표시한다(무한 재시도 방지).
+
+**전환이 방금 일어난 틱엔 강제를 건너뛴다.** 방금 보낸 명령이 상태 캐시에 반영되기 전이라
+(조명은 아직 큐에도 안 나갔다) 지금 읽은 상태로 판단하면 방금 켠 것을 도로 끄는 수가 있다.
+
 ## 구조
 
 | 파일 | 책임 |
@@ -91,6 +131,11 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 | `auth.ts` | 역할 판정(admin/guest) + 손님 허용 범위 |
 | `handlers/list.ts` | 목록 조회 + ThinQ 상태 갱신(TTL 30초) |
 | `handlers/command.ts` | 명령 1건 검증·발행 |
+| `handlers/automation.ts` | 자동화 진입점 — 틱당 판정과 실행을 이어 붙임 |
+| `automation/windows.ts` | 순수 시각 판정(KST) — 준비/퇴실/스윕 창 |
+| `automation/schedule.ts` | 예정된 전환 — 입실 준비 · 퇴실 종료 명령 |
+| `automation/enforce.ts` | 지속 강제 — 퇴실 후 스윕 · 온도 하한 |
+| `automation/store.ts` | 예약 조회·자동화 기록 Postgres 접근 |
 | `handlers/registry.ts` | 기기 등록/해제, ThinQ 계정 기기 목록 |
 | `handlers/cameras.ts` | 카메라 목록·등록·해제 + 스트림 자격증명·보관기간 발급 |
 | `handlers/shared.ts` | 핸들러 공통 — 에러 타입·입력 검증 |
@@ -103,9 +148,9 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 | `types.ts` | 공유 타입 |
 | `tasmota/topics.ts` | 조명 MQTT 토픽 문법 + 기기 ID 검증 |
 
-action은 10개다. **그중 손님이 부를 수 있는 건 2개**(`list` · `command`)뿐이다.
+action은 11개다. **그중 손님이 부를 수 있는 건 3개**(`list` · `command` · `automate`)뿐이다.
 
-- 기기 제어 6개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete`
+- 기기 제어 7개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete` · `automate`
 - CCTV 4개: `cameras` · `camera_credentials` · `camera_register` · `camera_delete`
 
 CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-setup.md)에 있다.
@@ -125,6 +170,12 @@ CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-s
 - **틀린(비어 있지 않은) 비밀번호를 guest로 조용히 낮추지 말 것.** `resolveRole`이 그렇게
   하면 `admin.html`의 오타가 401이 아니라 알 수 없는 403으로 보인다. guest는 `password`를
   아예 안 보낸 경우로만 판정한다.
+- **예약 시각을 오프셋 없이 파싱하지 말 것.** `new Date("2026-08-10T14:00:00")`은 **로컬** 시각이다 —
+  배포 런타임(Deno Deploy)은 UTC라 예약이 **9시간 어긋난 채로 조용히** 돌아간다. 개발 맥은 KST라
+  같은 코드가 우연히 맞게 나오고, `getHours()`로 검증하는 테스트도 그걸 못 잡는다(실제로 한 번
+  이렇게 틀렸다). `windows.ts`가 `+09:00`을 명시하고, 테스트는 `toISOString()`으로 단언한다.
+- **스윕이 `power = null`을 끄게 하지 말 것.** '모름'을 'ON'으로 보면 상태를 한 번도 못 받은 기기에
+  10분 내내 매 틱 명령이 나간다. 퇴실 시각의 '전체 끄기'는 `schedule.ts`가 이미 한 번 보냈다.
 
 ## 조명은 여기서 큐에만 넣는다
 
