@@ -23,16 +23,20 @@ const TITLE: Record<EventKind, string> = {
   onsite: "현장 조작",
 };
 
-/** 알림에 나갈 순서. 사람이 먼저 봐야 하는 것이 위로. */
-const ORDER: EventKind[] = [
-  "onsite",
-  "temp_floor",
-  "prep",
-  "shutdown",
-  "sweep",
-  "remote_guest",
-  "remote_admin",
-];
+/**
+ * 묶음의 대표 시각 — 그 종류의 **마지막** 이벤트. 발송 순서와 표시 시각이 같은 값을 써야
+ * 채널이 앞뒤가 맞게 읽힌다. `fetchPending`이 오름차순이라 마지막이 가장 늦다.
+ */
+function groupTime(rows: EventRow[]): number {
+  return Date.parse(rows[rows.length - 1].at);
+}
+
+/** 종류별 묶음을 일어난 순서대로. 채널이 앞뒤가 맞게 읽히는 유일한 근거라 따로 뺐다. */
+export function orderGroups(
+  byKind: Map<EventKind, EventRow[]>,
+): Array<[EventKind, EventRow[]]> {
+  return [...byKind.entries()].sort((a, b) => groupTime(a[1]) - groupTime(b[1]));
+}
 
 const ACTION_LABEL: Record<string, string> = {
   power_on: "켜기",
@@ -188,22 +192,17 @@ export async function flush(
 
   let sent = 0;
   const failed: number[] = [];
-  const seen = new Set<EventKind>();
 
-  for (const kind of ORDER) {
-    const rows = byKind.get(kind);
-    if (!rows?.length) continue;
-    seen.add(kind);
+  // **일어난 순서대로 올린다.** 예전엔 종류별 고정 순서(중요도순)로 보냈는데, 채널은
+  // 발송 순서가 곧 타임라인이라 그러면 시간이 거꾸로 보인다 — 손님이 조명을 켜고(00:59:41)
+  // 스윕이 끈 것(01:00:01)이 위에 올라왔다(2026-08-08 형운 지적). 채널은 우선순위
+  // 목록이 아니라 타임라인이다. 급한 것은 순서가 아니라 제목의 ⚠️가 드러낸다.
+  //
+  // 종류를 열거하지 않게 된 덕분에, 새 EventKind가 생겨도 목록 갱신을 빠뜨려 조용히
+  // 안 나가는 일이 원천적으로 없어졌다.
+  for (const [kind, rows] of orderGroups(byKind)) {
     if (await post(buildMessage(kind, rows, names))) sent += rows.length;
     else failed.push(...rows.map((r) => r.id));
-  }
-
-  // ORDER에 없는 종류는 발송 대상이 아니었다 — 선점만 해두고 영영 안 보내면 조용히 유실된다.
-  // 되돌려서 다음 틱이 다시 잡게 하되, 로그로 드러낸다(ORDER 갱신을 빠뜨렸다는 뜻이다).
-  for (const [kind, rows] of byKind) {
-    if (seen.has(kind)) continue;
-    console.error("발송 순서에 없는 이벤트 종류 — ORDER에 추가해야 한다", kind);
-    failed.push(...rows.map((r) => r.id));
   }
 
   await events.release(sb, failed);

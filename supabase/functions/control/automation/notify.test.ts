@@ -8,7 +8,7 @@
  */
 
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
-import { buildMessage } from "./notify.ts";
+import { buildMessage, orderGroups } from "./notify.ts";
 import type { EventRow } from "./events.ts";
 
 const NAMES = new Map([
@@ -118,4 +118,29 @@ Deno.test("이름을 모르는 기기도 줄이 사라지지 않는다", () => {
     ev({ device_id: "gone", kind: "onsite", action: "observed", value: "전원 켜짐 → 꺼짐" }),
   ], NAMES);
   assertStringIncludes(msg, "알 수 없는 기기");
+});
+
+Deno.test("알림은 종류 중요도가 아니라 일어난 순서로 나간다", () => {
+  // 채널은 발송 순서가 곧 타임라인이다. 중요도순으로 보내면 손님이 조명을 켠 것(먼저)보다
+  // 스윕이 끈 것(나중)이 위에 올라와 시간이 거꾸로 읽힌다 — 실제로 이렇게 나갔다(2026-08-08).
+  const byKind = new Map([
+    ["sweep", [ev({ device_id: "l1", kind: "sweep", at: "2026-08-08T01:00:01.000Z" })]],
+    ["remote_guest", [ev({ device_id: "l1", kind: "remote_guest", at: "2026-08-08T00:59:41.000Z" })]],
+  ] as const) as Map<Parameters<typeof buildMessage>[0], EventRow[]>;
+
+  assertEquals(orderGroups(byKind).map(([k]) => k), ["remote_guest", "sweep"]);
+});
+
+Deno.test("묶음의 순서 기준은 그 묶음의 마지막 이벤트다", () => {
+  // 표시 시각도 마지막 이벤트를 쓴다. 둘이 다른 값을 쓰면 발송 순서와 화면의 시각이 어긋난다.
+  const byKind = new Map([
+    ["remote_guest", [
+      ev({ device_id: "ac", kind: "remote_guest", at: "2026-08-08T00:00:00.000Z" }),
+      ev({ device_id: "ac", kind: "remote_guest", at: "2026-08-08T00:10:00.000Z" }), // 늦음
+    ]],
+    ["sweep", [ev({ device_id: "l1", kind: "sweep", at: "2026-08-08T00:05:00.000Z" })]],
+  ] as const) as Map<Parameters<typeof buildMessage>[0], EventRow[]>;
+
+  // 첫 이벤트로 정렬했다면 remote_guest(00:00)가 먼저지만, 마지막 기준이면 sweep(00:05)이 먼저다.
+  assertEquals(orderGroups(byKind).map(([k]) => k), ["sweep", "remote_guest"]);
 });
