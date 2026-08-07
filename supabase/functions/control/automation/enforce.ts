@@ -11,9 +11,9 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { list } from "../handlers/list.ts";
 import { issue } from "./dispatch.ts";
-import { recordMany } from "./events.ts";
+import { fetchSweptSince, recordMany } from "./events.ts";
 import { SWEEP_WINDOW_MINUTES } from "./windows.ts";
-import { clearTempFloor, fetchWatch, startTempFloor, type Watch } from "./store.ts";
+import { clearTempFloor, fetchWatch, startTempFloor } from "./store.ts";
 
 type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
 
@@ -32,19 +32,27 @@ const SWEEP_LAST_TICK_MINUTES = SWEEP_WINDOW_MINUTES - 1;
  * 이 레포의 규칙이고, 상태를 한 번도 못 받은 기기에 10분 내내 매 틱 명령을 쏘면 조명 큐만
  * 쌓인다. 퇴실 시각의 '전체 끄기'는 `schedule.ts`가 이미 한 번 보냈다.
  *
- * **명령은 매 틱 계속 보내되, 알림은 '방금 켜진' 것만 낸다**(형운 결정, 2026-08-07).
+ * **명령은 매 틱 계속 보내되, 알림은 창당 기기별 한 번만 낸다**(형운 결정, 2026-08-07).
  * 기기가 응답하지 않아 상태가 계속 'ON'으로 남으면 10분 내내 매 분 알림이 가는데, 하필
- * 그때가 채널이 조용해야 할 때다. 직전 관측도 'ON'이었다면 이미 알린 상태의 연장이므로
- * 조용히 보낸다 — 명령을 멈추는 게 아니라 알림만 멈춘다.
+ * 그때가 채널이 조용해야 할 때다. 명령을 멈추는 게 아니라 알림만 멈춘다.
+ *
+ * 판단 근거는 **장부**다. 예전엔 `device_watch`의 직전 관측값을 썼는데, 전환이 일어난 틱은
+ * 관측을 건너뛰므로 퇴실 종료 직후 기준선이 낡은 채로 남아 **스윕 알림이 한 건도 안 나갔다**
+ * (2026-08-08 실측). 장부는 낡지 않는다.
  */
 export async function sweepIdleDevices(
   sb: SupabaseClient,
   devices: DeviceList,
-  previous: Map<string, Watch>,
   elapsedMinutes: number,
+  now: Date,
 ): Promise<number> {
   const on = devices.filter((d) => d.capabilities.includes("power") && d.state?.power === "ON");
   if (!on.length) return 0;
+
+  // 이번 창이 시작된 시각. 여기서부터의 스윕 이력이 '이미 알렸나'를 말해준다.
+  // 30초 여유를 두는 이유는 틱이 정확히 창 시작에 맞춰 돌지 않기 때문이다.
+  const windowStart = new Date(now.getTime() - (elapsedMinutes * 60 + 30) * 1000);
+  const alreadySwept = await fetchSweptSince(sb, windowStart);
 
   // 창의 마지막 틱. 여기서도 켜져 있다 = 10분간 매 분 껐는데 안 꺼졌다는 뜻이다.
   // 조명 명령은 큐에 넣기만 하므로(`command.ts`) 성공 응답이 곧 소등이 아니다 — 이 신호가
@@ -66,8 +74,8 @@ export async function sweepIdleDevices(
   const results = await Promise.allSettled(
     on.map((d) =>
       issue(sb, { device_id: d.id, command: "power_off" }, "sweep", {
-        // 직전에도 켜져 있었다 = 새 사건이 아니다. 꺼졌다가 다시 켜진 것만 알린다.
-        silent: previous.get(d.id)?.lastPower === "ON",
+        // 이번 창에서 이미 이 기기에 스윕을 보냈다 = 이미 알린 사건의 연장이다.
+        silent: alreadySwept.has(d.id),
       })
     ),
   );

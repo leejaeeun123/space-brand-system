@@ -135,7 +135,7 @@ export async function automate(sb: SupabaseClient) {
     onsite = observed.onsite;
 
     if (isSweeping(reservations, now)) {
-      swept = await sweepIdleDevices(sb, current, observed.previous, sweepElapsedMinutes(reservations, now) ?? 0);
+      swept = await sweepIdleDevices(sb, current, sweepElapsedMinutes(reservations, now) ?? 0, now);
     } else if (isOccupied(reservations, now)) {
       // 이용 중일 때만 온도를 본다 — 빈 시간의 냉난방은 스윕이 어차피 끈다.
       tempCorrected = await enforceTempFloor(sb, current, now);

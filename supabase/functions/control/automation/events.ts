@@ -106,6 +106,35 @@ export async function fetchRecentCommands(
 }
 
 /**
+ * 이번 스윕 창에서 이미 스윕 명령을 보낸 기기들.
+ *
+ * 스윕 알림을 창당 기기별 한 번으로 묶는 근거다. 예전엔 `device_watch`의 직전 관측값
+ * (`lastPower`)으로 '방금 켜졌는지'를 판단했는데, **전환이 일어난 틱은 관측을 건너뛰므로
+ * 그 값이 낡는다** — 퇴실 종료 직후엔 기준선이 '이용 중 켜져 있던 상태' 그대로라,
+ * 스윕이 매번 "계속 켜져 있던 것"으로 오판해 **알림이 한 건도 안 나갔다**
+ * (2026-08-08 실측으로 발견 — 스윕은 동작했는데 채널에만 안 떴다).
+ *
+ * 장부는 낡지 않는다 — 보냈으면 행이 있고, 안 보냈으면 없다.
+ */
+export async function fetchSweptSince(
+  sb: SupabaseClient,
+  since: Date,
+): Promise<Set<string>> {
+  const { data, error } = await sb
+    .from("device_events")
+    .select("device_id")
+    .eq("kind", "sweep")
+    .gte("at", since.toISOString());
+  if (error) {
+    // 조회에 실패하면 **알리는 쪽**으로 기운다. 중복 알림은 시끄러울 뿐이지만,
+    // 놓친 알림은 조명이 밤새 켜져 있는 걸 아무도 모르게 만든다.
+    console.warn("스윕 이력 조회 실패 — 이번엔 알리는 쪽으로 간다", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => (r as { device_id: string }).device_id));
+}
+
+/**
  * 아직 알리지 않은 것. 틱이 이걸 모아 한 건으로 보낸다.
  *
  * **상한을 둔다.** 웹훅이 오래 죽어 있다 살아나면 수천 건이 한 메시지가 되고, 그건 길이로
