@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>TYPE LOUNGE — 조명·냉난방</title>
 <meta name="robots" content="noindex">
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <!--
   손님용 공간 제어. admin.html의 '공간 제어' 탭에서 기기 등록·해제와 CCTV를 뺀 것이다.
@@ -32,6 +40,12 @@
     --hair: rgba(22,19,15,.12);
     --mute:#6b665c;
   }
+  :root[data-theme="dark"]{
+    --ink:#F2EDE6;
+    --white:#16130F;
+    --hair: rgba(242,237,230,.14);
+    --mute:#A39D90;
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;}
   html, body{overflow-x:hidden;max-width:100%;}
@@ -50,6 +64,7 @@
   #app{max-width:520px;margin:0 auto;padding:0 24px 72px;}
   .hero{text-align:center;padding:48px 0 28px;}
   .hero .wordmark{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;}
+  .eIcon{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:.08em;}
   .hero .sub{font-size:15px;color:var(--mute);margin-top:10px;}
 
   h2{
@@ -112,13 +127,33 @@
     font-size:13px;color:var(--mute);background:none;border:1px solid var(--hair);
     border-radius:8px;padding:11px 14px;cursor:pointer;margin-top:16px;width:100%;min-height:44px;
   }
+  .theme-toggle{
+    position:fixed;top:16px;right:16px;z-index:10;
+    width:40px;height:40px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--hair);background:var(--white);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .theme-toggle svg{width:20px;height:20px;color:var(--ink);}
+  .theme-toggle .icon-sun{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-moon{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-sun{display:block;}
+
+  @media (prefers-reduced-motion: no-preference){
+    body, .dev-card, .notice, .all-row button, .dev-row button, .temp-input, .refresh, .theme-toggle{
+      transition: background-color .12s ease-out, color .12s ease-out, border-color .12s ease-out;
+    }
+  }
 </style>
 </head>
 <body>
+<button type="button" id="themeToggle" class="theme-toggle" aria-label="다크 모드로 전환" onclick="toggleTheme()">
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.742 13.045a8.088 8.088 0 0 1-2.077.277c-4.508 0-8.16-3.653-8.16-8.16 0-.712.09-1.404.264-2.064a.75.75 0 0 0-.988-.869A10.098 10.098 0 0 0 3 12.1C3 17.523 7.477 22 12.9 22a10.098 10.098 0 0 0 9.716-6.804.75.75 0 0 0-1.874-.151Z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+</button>
 
 <div id="app">
   <div class="hero">
-    <div class="wordmark">TYPE LOUNGE</div>
+    <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
     <p class="sub">조명 · 냉난방</p>
   </div>
 
@@ -144,6 +179,15 @@
   var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
   var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
+
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    try{ localStorage.setItem('theme', t); }catch(e){}
+    document.getElementById('themeToggle').setAttribute('aria-label', t === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환');
+  }
+  function toggleTheme(){ applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); }
+  applyTheme(currentTheme());
 
   var devicesCache = [];
   var pollTimer = null;

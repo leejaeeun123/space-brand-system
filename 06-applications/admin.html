@@ -34,6 +34,7 @@
     gap:20px;padding:24px;text-align:center;
   }
   #gate .wordmark{font-weight:600;font-size:32px;letter-spacing:-.02em;}
+  .eIcon{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:.08em;}
   #gate input{
     font-family:inherit;font-size:16px;text-align:center;letter-spacing:.1em;
     border:1px solid var(--ink);border-radius:8px;padding:14px 16px;width:200px;min-height:48px;
@@ -242,7 +243,7 @@
 <body>
 
 <div id="gate">
-  <div class="wordmark">TYPE LOUNGE</div>
+  <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
   <div>
     <input type="password" id="pw" inputmode="numeric" placeholder="비밀번호" maxlength="12">
   </div>
@@ -252,7 +253,7 @@
 
 <div id="app">
   <aside id="sidebar">
-    <div class="side-brand">TYPE LOUNGE</div>
+    <div class="side-brand">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
     <nav class="side-nav">
       <button type="button" class="side-link" data-view="reservations">예약관리</button>
       <button type="button" class="side-link" data-view="control">공간 제어</button>
