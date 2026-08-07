@@ -162,6 +162,9 @@
     <button type="button" id="allOnBtn" onclick="allPower('power_on')">전체 켜기</button>
     <button type="button" id="allOffBtn" onclick="allPower('power_off')">전체 끄기</button>
   </div>
+  <div class="all-row">
+    <button type="button" id="nightModeBtn" onclick="nightMode()">나이트모드</button>
+  </div>
 
   <h2>기기</h2>
   <div id="notice" class="notice" style="display:none;"></div>
@@ -406,7 +409,7 @@
   /* ── 명령 ─────────────────────────────────────────────────────────────────── */
 
   function allButtons(){
-    return [document.getElementById('allOnBtn'), document.getElementById('allOffBtn')];
+    return [document.getElementById('allOnBtn'), document.getElementById('allOffBtn'), document.getElementById('nightModeBtn')];
   }
 
   /* 일부가 실패해도 나머지는 계속 보낸다 — 반쯤 꺼진 채로 포기하면 손님이 뭐가 남았는지 모른다. */
@@ -449,6 +452,29 @@
     runCommands(
       targets.map(function(d){ return { device: d, command: cmd }; }),
       cmd === 'power_on' ? '모두 켰어요.' : '모두 껐어요. 이용해 주셔서 고맙습니다.'
+    );
+  }
+
+  /* SiHAS 조명만 끄고 나머지 조명은 켠다. 냉난방은 손대지 않는다 — admin.html의 nightMode()와
+     같은 규칙(형운 지시, 2026-08-04). DB에는 kind='light'만 있고 벤더 구분이 없어 이름의
+     'sihas'를 유일한 표식으로 삼는다. */
+  function isSihasLight(d){ return /sihas/i.test(d.name); }
+
+  function nightMode(){
+    var lights = devicesCache.filter(function(d){ return d.kind === 'light'; });
+    if(!lights.length){ notice('등록된 조명이 없어요.', true); return; }
+
+    var sihas = lights.filter(isSihasLight);
+    var others = lights.filter(function(d){ return !isSihasLight(d); });
+    if(!confirm(
+      '나이트모드로 바꿀까요?\nSiHAS 조명 ' + sihas.length + '개는 끄고, ' +
+      '나머지 조명 ' + others.length + '개는 켭니다.\n냉난방은 그대로 둬요.'
+    )) return;
+
+    runCommands(
+      sihas.map(function(d){ return { device: d, command: 'power_off' }; })
+        .concat(others.map(function(d){ return { device: d, command: 'power_on' }; })),
+      '나이트모드로 전환했어요.'
     );
   }
 
