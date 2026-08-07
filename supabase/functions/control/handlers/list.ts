@@ -12,11 +12,12 @@ import { ThinQClient, ThinQError } from "../thinq/client.ts";
 import { toDeviceState } from "../thinq/state.ts";
 import { thinqClient, thinqConfigured } from "./shared.ts";
 
+/** 기본 신선도. 사람이 화면을 보고 있는 조회의 기준이다. */
 const THINQ_TTL_SECONDS = 30;
 
-function fresh(s: DeviceState): boolean {
+function fresh(s: DeviceState, maxAgeSeconds: number): boolean {
   if (s.updated_at === null) return false;
-  return (Date.now() - Date.parse(s.updated_at)) / 1000 < THINQ_TTL_SECONDS;
+  return (Date.now() - Date.parse(s.updated_at)) / 1000 < maxAgeSeconds;
 }
 
 /**
@@ -30,8 +31,9 @@ async function refreshThinq(
   d: Device,
   cur: DeviceState,
   client: ThinQClient,
+  maxAgeSeconds: number,
 ): Promise<DeviceState> {
-  if (fresh(cur)) return cur;
+  if (fresh(cur, maxAgeSeconds)) return cur;
   try {
     const next = toDeviceState(d.id, await client.getState(d.address), true);
     await db.upsertState(sb, next);
@@ -42,7 +44,14 @@ async function refreshThinq(
   }
 }
 
-export async function list(sb: SupabaseClient) {
+/**
+ * `thinqMaxAgeSeconds` — 이 나이를 넘은 ThinQ 상태만 다시 물어본다.
+ *
+ * 자동화 틱은 보는 사람이 없어 기본값(30초)보다 느슨해도 된다 — 예약 없는 시간엔
+ * 10분을 넘겨 ThinQ 호출을 1/10로 줄인다. 조명(Tasmota)은 MQTT로 상태가 밀려 올라와
+ * 이 값과 무관하게 항상 최신이다.
+ */
+export async function list(sb: SupabaseClient, thinqMaxAgeSeconds = THINQ_TTL_SECONDS) {
   let pairs = await db.listDevices(sb);
   const configured = thinqConfigured();
 
@@ -50,7 +59,10 @@ export async function list(sb: SupabaseClient) {
     const client = thinqClient();
     const out: Array<[Device, DeviceState]> = [];
     for (const [d, s] of pairs) {
-      out.push([d, d.adapter === "thinq" ? await refreshThinq(sb, d, s, client) : s]);
+      out.push([
+        d,
+        d.adapter === "thinq" ? await refreshThinq(sb, d, s, client, thinqMaxAgeSeconds) : s,
+      ]);
     }
     pairs = out;
   }

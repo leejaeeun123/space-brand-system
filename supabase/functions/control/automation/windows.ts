@@ -76,6 +76,23 @@ export function isOccupied(reservations: ReservationWindow[], now: Date): boolea
  * 이용 중이면 무조건 false다 — 붙어 있는 다음 예약의 준비를 스윕이 되돌리면
  * 손님이 들어왔을 때 불이 꺼져 있다.
  */
+/**
+ * 스윕 창이 시작된 지 몇 분 지났나. 스윕 중이 아니면 null.
+ *
+ * 창이 끝나갈 때 "아직도 켜져 있다"를 **한 번** 알리기 위해 필요하다 — 매 틱 알리면 시끄럽고,
+ * 아예 안 알리면 조명이 밤새 켜져 있어도 채널엔 '퇴실 종료 성공'만 남는다.
+ */
+export function sweepElapsedMinutes(
+  reservations: ReservationWindow[],
+  now: Date,
+): number | null {
+  if (!isSweeping(reservations, now)) return null;
+  const elapsed = reservations
+    .map((r) => minutesBetween(endTime(r), now))
+    .filter((m) => m >= 0 && m < SWEEP_WINDOW_MINUTES);
+  return elapsed.length ? Math.min(...elapsed) : null;
+}
+
 export function isSweeping(reservations: ReservationWindow[], now: Date): boolean {
   if (isOccupied(reservations, now)) return false;
   return reservations.some((r) => {

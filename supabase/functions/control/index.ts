@@ -18,7 +18,7 @@ import { dbClient } from "./devices.ts";
 import { assertAllowed, resolveRole, scrubDevices, type Role } from "./auth.ts";
 import { HandlerError } from "./handlers/shared.ts";
 import { list } from "./handlers/list.ts";
-import { command } from "./handlers/command.ts";
+import { issue } from "./automation/dispatch.ts";
 import { automate } from "./handlers/automation.ts";
 import { registerLight, registerThinq, remove, thinqDevices } from "./handlers/registry.ts";
 import {
@@ -81,7 +81,9 @@ Deno.serve(async (req) => {
       case "register_light":
         return json(await registerLight(sb, body));
       case "command":
-        return json(await command(sb, body));
+        // 사람이 원격에서 누른 것. 역할이 그대로 알림의 출처가 된다 — 어드민이 누른 것과
+        // 손님이 누른 것은 읽는 사람에게 전혀 다른 정보다.
+        return json(await issue(sb, body, role === "admin" ? "remote_admin" : "remote_guest"));
       case "delete":
         return json(await remove(sb, body));
       case "automate":

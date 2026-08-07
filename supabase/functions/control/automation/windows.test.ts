@@ -16,6 +16,7 @@ import {
   isSweeping,
   kstDay,
   prepTime,
+  sweepElapsedMinutes,
   targetTime,
   type ReservationWindow,
 } from "./windows.ts";
@@ -95,4 +96,18 @@ Deno.test("isSweeping — 다음 예약이 바로 붙어 있으면 스윕하지 
 Deno.test("예약이 없으면 어느 창도 열리지 않는다", () => {
   assertEquals(isOccupied([], kst("2026-08-10T18:05:00")), false);
   assertEquals(isSweeping([], kst("2026-08-10T18:05:00")), false);
+});
+
+Deno.test("sweepElapsedMinutes — 스윕 중이 아니면 null, 맞으면 경과 분", () => {
+  assertEquals(sweepElapsedMinutes([RES], kst("2026-08-10T17:59:00")), null); // 이용 중
+  assertEquals(sweepElapsedMinutes([RES], kst("2026-08-10T18:00:00")), 0);
+  assertEquals(sweepElapsedMinutes([RES], kst("2026-08-10T18:09:00")), 9);
+  assertEquals(sweepElapsedMinutes([RES], kst("2026-08-10T18:10:00")), null); // 창이 닫혔다
+});
+
+Deno.test("sweepElapsedMinutes — 마지막 틱(9분)이 잔존 기기 알림의 기준이다", () => {
+  // 이 값이 9 이상이어야 "10분간 껐는데 안 꺼졌다"를 한 번 알린다. 창이 닫힌 뒤엔 아무도
+  // 안 보므로, 여기서 못 잡으면 조명이 밤새 켜져 있어도 채널엔 아무것도 안 남는다.
+  const last = sweepElapsedMinutes([RES], kst("2026-08-10T18:09:30"));
+  assertEquals(last !== null && last >= 9, true);
 });

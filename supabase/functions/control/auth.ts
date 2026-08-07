@@ -23,11 +23,18 @@ export type Role = "admin" | "guest";
 
 /** 손님이 부를 수 있는 action. 등록·해제·CCTV는 여기 없다.
  *
- *  `automate`는 pg_cron이 1분마다 찌르는 예약 자동화 트리거다(handlers/automation.ts). 대상
- *  예약도 호출자가 고르지 못하고 서버가 지금 시각으로 직접 계산하며, 발행하는 명령도 guest가
- *  이미 command로 직접 부를 수 있는 것들이라(전원·온도·모드) 이 action이 새로 여는 권한은
- *  없다 — 그래서 pg_cron이 anon key만으로 부를 수 있게 guest에 둔다. ADMIN_PASSWORD를
- *  스케줄러 쪽에 심을 필요가 없어진다. */
+ *  `automate`는 pg_cron이 1분마다 찌르는 예약 자동화 트리거다(handlers/automation.ts).
+ *  대상 예약을 호출자가 고르지 못하고 서버가 지금 시각으로 직접 계산하므로, 아무나 불러도
+ *  '엉뚱한 예약을 실행시키는' 일은 없다. 그래서 pg_cron이 anon key만으로 부를 수 있게 둔다.
+ *
+ *  ⚠️ **다만 이 action은 guest가 `command`로는 못 하는 일도 한다** — 외부 웹훅 발송,
+ *  `device_events`·`device_watch` 쓰기, 무조건적인 `list()` 호출. anon key는 소스에 공개돼
+ *  있으므로 누구나 반복 호출할 수 있다. 실제 피해는 두 가지가 막는다:
+ *    · ThinQ는 상태 TTL이 있어 호출을 늘려도 벤더 왕복이 비례해 늘지 않는다.
+ *    · 알림은 보내기 전에 선점하므로(`events.claimPending`) 동시 호출해도 한 번만 간다.
+ *  더 조이려면 이 목록에서 빼고 pg_cron에 전용 토큰을 심어야 하는데, 그러면 시크릿을
+ *  마이그레이션 밖(Vault)에 둬야 한다 — 지금은 위 두 방어로 충분하다고 봤다
+ *  (형운 결정, 2026-08-07). */
 const GUEST_ACTIONS = new Set(["list", "command", "automate"]);
 
 /**

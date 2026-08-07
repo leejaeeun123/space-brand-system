@@ -6,7 +6,7 @@
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { list } from "../handlers/list.ts";
-import { command } from "../handlers/command.ts";
+import { issue } from "./dispatch.ts";
 
 type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
 type Device = DeviceList[number];
@@ -31,12 +31,12 @@ function isSihasLight(name: string): boolean {
  */
 async function prepareHvac(sb: SupabaseClient, d: Device): Promise<void> {
   if (d.capabilities.includes("power")) {
-    await command(sb, { device_id: d.id, command: "power_on" });
+    await issue(sb, { device_id: d.id, command: "power_on" }, "prep");
   }
   if (d.capabilities.includes("mode")) {
     const modes = d.constraints?.modes ?? [];
     if (modes.includes(PREP_MODE)) {
-      await command(sb, { device_id: d.id, command: "set_mode", value: PREP_MODE });
+      await issue(sb, { device_id: d.id, command: "set_mode", value: PREP_MODE }, "prep");
     } else {
       // 냉방은 요구사항이라 조용히 넘기지 않는다 — 프로파일에 없다면 실기기 등록이 잘못됐거나
       // 기기가 바뀐 것이고, 사람이 봐야 한다.
@@ -44,7 +44,7 @@ async function prepareHvac(sb: SupabaseClient, d: Device): Promise<void> {
     }
   }
   if (d.capabilities.includes("temp")) {
-    await command(sb, { device_id: d.id, command: "set_temp", value: PREP_TEMP });
+    await issue(sb, { device_id: d.id, command: "set_temp", value: PREP_TEMP }, "prep");
   }
 }
 
@@ -57,10 +57,10 @@ export async function firePrep(sb: SupabaseClient, devices: DeviceList): Promise
     if (d.kind === "hvac") {
       jobs.push(prepareHvac(sb, d));
     } else if (d.kind === "light") {
-      jobs.push(command(sb, {
+      jobs.push(issue(sb, {
         device_id: d.id,
         command: isSihasLight(d.name) ? "power_off" : "power_on",
-      }));
+      }, "prep"));
     }
   }
 
@@ -73,7 +73,7 @@ export async function firePrep(sb: SupabaseClient, devices: DeviceList): Promise
 export async function fireShutdown(sb: SupabaseClient, devices: DeviceList): Promise<void> {
   const targets = devices.filter((d) => d.capabilities.includes("power"));
   const results = await Promise.allSettled(
-    targets.map((d) => command(sb, { device_id: d.id, command: "power_off" })),
+    targets.map((d) => issue(sb, { device_id: d.id, command: "power_off" }, "shutdown")),
   );
   for (const r of results) {
     if (r.status === "rejected") console.warn("퇴실 종료 — 기기 명령 실패", r.reason);
