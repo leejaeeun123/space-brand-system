@@ -9,7 +9,7 @@
  * `handlers/sms.ts`가 그 자리에서 보낸다.
  */
 
-import { targetTime } from "../automation/windows.ts";
+import { endTime, targetTime } from "../automation/windows.ts";
 import type { SmsKind } from "./templates.ts";
 
 /** 시각을 어디에 붙여 재는가. 입실 기준과 퇴실 기준이 섞이므로 명시한다. */
@@ -47,10 +47,13 @@ export interface ScheduleWindow {
   end_time: string;
 }
 
+/**
+ * 퇴실 기준 시각은 **반드시 `windows.endTime`을 통한다.** 직접 `targetTime(date, end_time)`을
+ * 쓰면 자정을 넘기는 예약(18:00~00:00)에서 종료가 시작보다 이르게 나와, 퇴실 안내가
+ * **하루 전날** 나간다. 기기 자동화와 같은 함수를 봐야 둘이 어긋나지 않는다.
+ */
 export function dueAt(r: ScheduleWindow, timing: Timing): Date {
-  const base = timing.anchor === "start"
-    ? targetTime(r.date, r.start_time)
-    : targetTime(r.date, r.end_time);
+  const base = timing.anchor === "start" ? targetTime(r.date, r.start_time) : endTime(r);
   return new Date(base.getTime() + timing.offsetMinutes * 60000);
 }
 

@@ -135,3 +135,19 @@ Deno.test("자정 직후 예약의 준비 시각은 전날이다 — 조회 범�
   // 그래서 통째 누락은 00:00~00:05 구간이고, 그 밖은 '늦게 돌았다'가 된다.
   assertEquals(dueState(prepTime({ ...r, start_time: "00:06:00" }), firstTick), "fire");
 });
+
+Deno.test("자정 종료 예약 — 퇴실 시각이 시작보다 이르면 안 된다", () => {
+  // 이걸 놓치면 퇴실 종료가 시작 18시간 전에 돌아 checkout_automation_at이 찍히고,
+  // 진짜 퇴실에는 '이미 했다'고 보고 아무것도 안 꺼진다 — 냉난방이 밤새 돈다.
+  const late = { date: "2026-08-23", start_time: "18:00:00", end_time: "00:00:00" };
+  assertEquals(endTime(late).toISOString(), kst("2026-08-24T00:00:00").toISOString());
+  assertEquals(endTime(late) > prepTime(late), true);
+
+  const overnight = { date: "2026-08-23", start_time: "22:00:00", end_time: "02:00:00" };
+  assertEquals(endTime(overnight).toISOString(), kst("2026-08-24T02:00:00").toISOString());
+
+  // 이용 중 판정도 따라와야 한다 — 안 그러면 손님 머리 위로 스윕이 돈다
+  assertEquals(isOccupied([late], kst("2026-08-23T23:00:00")), true);
+  assertEquals(isOccupied([overnight], kst("2026-08-24T01:00:00")), true);
+  assertEquals(isOccupied([late], kst("2026-08-24T01:00:00")), false);
+});

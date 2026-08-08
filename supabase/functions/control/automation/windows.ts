@@ -45,9 +45,24 @@ export function prepTime(r: ReservationWindow): Date {
   return new Date(targetTime(r.date, r.start_time).getTime() - PREP_LEAD_MINUTES * 60000);
 }
 
-/** 퇴실 시각. */
+/**
+ * 퇴실 시각.
+ *
+ * ⚠️ **자정을 넘기는 예약은 종료가 다음 날이다.** 예약 행은 날짜 하나에 시각 둘을 들고 있어서
+ * `18:00~00:00`이나 `22:00~02:00`을 그대로 읽으면 종료가 시작보다 **이르게** 나온다.
+ *
+ * 2026-08-08에 `18:00~00:00` 예약(8/23)에서 실제로 확인한 결과가 이랬다:
+ *   · 8/23 **00:00**(시작 18시간 전)에 퇴실 종료가 돌아 `checkout_automation_at`이 찍힌다
+ *     → 진짜 퇴실(8/24 00:00)엔 '이미 했다'고 보고 **아무것도 안 꺼진다.** 냉난방이 밤새 돈다.
+ *   · 문자도 같이 어긋나 "퇴실 15분 남았어요"가 **하루 전날 23:45**에 나간다.
+ *
+ * 그래서 종료가 시작보다 이르거나 같으면 하루를 더한다. 이 판정이 여기 있어야 하는 이유는
+ * 기기 자동화와 문자 스케줄이 **같은 함수를 봐야** 두 개가 어긋나지 않기 때문이다.
+ */
 export function endTime(r: ReservationWindow): Date {
-  return targetTime(r.date, r.end_time);
+  const start = targetTime(r.date, r.start_time);
+  const end = targetTime(r.date, r.end_time);
+  return end <= start ? new Date(end.getTime() + 24 * 60 * 60 * 1000) : end;
 }
 
 export type DueState = "wait" | "fire" | "expired";

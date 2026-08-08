@@ -82,3 +82,34 @@ Deno.test("보증금·확정 안내는 시각 판정 대상이 아니다", () =>
     assertEquals([...p.fire, ...p.expired].includes("confirm" as never), false);
   }
 });
+
+Deno.test("자정 종료 예약 — 퇴실 안내가 하루 일찍 나가지 않는다", () => {
+  // 실제 예약(노경석, 2026-08-23 18:00~00:00)에서 발견한 것이다. 예약 행은 날짜 하나에
+  // 시각 둘을 들고 있어, 종료를 같은 날로 읽으면 시작보다 18시간 이르게 나온다.
+  // 고치기 전에는 8/22 23:45에 "퇴실 15분 남았어요"가 나갔다.
+  const late: ScheduleWindow = { date: "2026-08-23", start_time: "18:00:00", end_time: "00:00:00" };
+  const at = (s: string) => new Date(s + "+09:00");
+
+  // 하루 전날 밤에는 아무 일도 없어야 한다
+  assertEquals(plan(late, at("2026-08-22T23:45:00")), { fire: [], expired: [] });
+  assertEquals(plan(late, at("2026-08-23T00:00:00")), { fire: [], expired: [] });
+
+  // 입실 10분 전은 그대로
+  assertEquals(plan(late, at("2026-08-23T17:50:00")).fire, ["checkin"]);
+
+  // 진짜 퇴실은 8/24 00:00이다
+  assertEquals(plan(late, at("2026-08-23T23:45:00")).fire, ["checkout_soon"]);
+  assertEquals(plan(late, at("2026-08-24T00:00:00")).fire.includes("checkout"), true);
+});
+
+Deno.test("자정을 넘겨 다음 날 새벽에 끝나는 예약", () => {
+  // 22:00~02:00 — 종료가 다음 날 02:00이다.
+  const overnight: ScheduleWindow = { date: "2026-08-23", start_time: "22:00:00", end_time: "02:00:00" };
+  const at = (s: string) => new Date(s + "+09:00");
+  assertEquals(plan(overnight, at("2026-08-23T21:50:00")).fire, ["checkin"]);
+  // 이용 중(23:00)에는 아무것도 안 나간다. 입실 안내는 유예 30분을 지나 expired인데,
+  // 그건 정상이다 — 이미 보낸 건은 장부가 막고, 못 보낸 건은 여기서 한 번 알린다.
+  assertEquals(plan(overnight, at("2026-08-23T23:00:00")).fire, []);
+  assertEquals(plan(overnight, at("2026-08-24T01:45:00")).fire, ["checkout_soon"]);
+  assertEquals(plan(overnight, at("2026-08-24T02:00:00")).fire.includes("checkout"), true);
+});
