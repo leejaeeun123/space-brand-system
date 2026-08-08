@@ -17,6 +17,7 @@ import { detectOnsite } from "../automation/observe.ts";
 import { firePrep, fireShutdown } from "../automation/schedule.ts";
 import { record } from "../automation/events.ts";
 import { claimTransition, fetchRecent, type Reservation } from "../automation/store.ts";
+import { sweepSms } from "../sms/sweep.ts";
 import {
   CATCHUP_WINDOW_MINUTES,
   dueState,
@@ -172,6 +173,17 @@ export async function automate(sb: SupabaseClient) {
     }
   }
 
+  // 손님 안내 문자. **기기 제어와 완전히 분리한다** — 여기서 예외가 새면 아래 알림이 안 가고,
+  // 반대로 기기 자동화가 실패한 틱에도 문자는 나가야 한다(입실 준비가 실패했다고 손님에게
+  // 길 안내를 안 보낼 이유가 없다). 위의 `prepFired` 스킵 조건에도 걸지 않는다 —
+  // 그건 기기 상태 캐시가 아직 안 따라왔다는 뜻이지, 문자와는 무관하다.
+  let smsResult = { sent: 0, failed: 0, no_phone: 0, expired: 0 };
+  try {
+    smsResult = await sweepSms(sb, reservations, now);
+  } catch (e) {
+    console.error("자동 문자 스윕 실패 — 기기 자동화 결과는 유지한다", e);
+  }
+
   // 알림은 마지막에 한 번 — 이번 틱에 생긴 것까지 모아 종류별로 묶어 보낸다.
   // 이게 실패해도 자동화 결과를 되돌리지 않는다(notify가 예외를 밖으로 던지지 않는다).
   // `devices`는 클로저(getDevices) 안에서 채워져 TS가 여기서는 여전히 null로 본다 —
@@ -194,6 +206,7 @@ export async function automate(sb: SupabaseClient) {
     onsite,
     idle,
     notified,
+    sms: smsResult,
     reservations: reservations.length,
   };
 }

@@ -27,6 +27,7 @@ import {
   registerCamera,
   removeCamera,
 } from "./handlers/cameras.ts";
+import { markManualSent, preview, sendOne, setAuto } from "./handlers/sms.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -88,6 +89,18 @@ Deno.serve(async (req) => {
         return json(await remove(sb, body));
       case "automate":
         return json(await automate(sb));
+
+      // ── 손님 안내 문자. 전부 admin 전용이다(GUEST_ACTIONS에 없다).
+      //    미리보기까지 막는 이유는 문구에 예약 일시가 들어가서다 — 그건 곧 언제 이 공간이
+      //    비는가라는 정보다. ──
+      case "sms_preview":
+        return json(await preview(sb, body));
+      case "sms_send":
+        return json(await sendOne(sb, body));
+      case "sms_mark_manual":
+        return json(await markManualSent(sb, body));
+      case "sms_auto":
+        return json(await setAuto(sb, body));
 
       // ── CCTV. 영상은 여기를 지나가지 않는다 — 목록·자격증명만 다룬다. ──
       case "cameras":

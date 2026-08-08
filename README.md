@@ -65,6 +65,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 | 냉난방 | LG ThinQ Cloud API (HTTPS) — 현장 장비 불필요 | [`functions/control/`](./supabase/functions/control/README.md) |
 | 조명 | Tasmota → 로컬 mosquitto → 상주 에이전트 → Supabase Realtime | [`control-agent/`](./06-applications/control-agent/README.md) |
 | CCTV | Tapo RTSP → MediaMTX(녹화 7일) → cloudflared → 어드민 | [`cctv-setup.md`](./06-applications/cctv-setup.md) |
+| 안내 문자 | SOLAPI LMS — 예약별 자동발송 옵트인, 보증금 유무로 2벌 | [`control-setup.md` J절](./06-applications/control-setup.md) · 문구 [`_sms-templates.html`](./06-applications/_sms-templates.html) |
 
 **합정에 맥 1대가 상주한다** — 조명과 CCTV가 여기에 의존한다(냉난방은 클라우드라 무관).
 **영상은 Supabase를 지나가지 않는다** — 서버는 '카메라가 살아 있나'만 알고, 프레임은

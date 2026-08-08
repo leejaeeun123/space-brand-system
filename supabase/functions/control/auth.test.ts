@@ -76,6 +76,15 @@ Deno.test("손님은 등록·해제·CCTV를 부를 수 없다", () => {
   }
 });
 
+Deno.test("손님은 문자 action을 부를 수 없다 — 미리보기까지", () => {
+  // 발송은 물론이고 `sms_preview`도 막는다. 문구에 예약 일시가 들어가고, 그건 곧
+  // '언제 이 공간이 비는가'라는 정보다. 지금은 GUEST_ACTIONS에 없어서 자동으로 막히는데,
+  // 나중에 누가 편의로 하나만 열어도 여기서 먼저 깨지게 못을 박아둔다.
+  for (const action of ["sms_preview", "sms_send", "sms_mark_manual", "sms_auto"]) {
+    assertThrows(() => assertAllowed("guest", action, {}), HandlerError, "조명·냉난방");
+  }
+});
+
 Deno.test("명령 목록은 여전히 목록이다 — 모르는 명령은 거부한다", () => {
   // 냉난방 다섯 가지를 전부 열었다고 `command` action을 통째로 열어둔 게 아니다.
   // 다음에 명령이 하나 추가되면(기기 초기화 같은 것) 기본값은 '손님은 못 한다'여야 한다.
