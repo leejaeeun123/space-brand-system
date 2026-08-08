@@ -20,43 +20,63 @@ export interface Reservation {
 export type AutomationColumn = "checkin_automation_at" | "checkout_automation_at";
 
 /**
- * 어제~오늘(KST) 중 취소되지 않은 예약 전부.
+ * 어제~내일(KST) 중 취소되지 않은 예약 전부.
  *
  * 이미 자동화가 끝난 예약도 가져온다 — 창 판정(`isOccupied`)은 '실행했는가'가 아니라
  * '지금 쓰이는 중인가'를 물으므로 실행 완료된 예약도 세어야 한다. 여기서 걸러내면
  * 이용 중인 손님 머리 위로 스윕이 돈다.
+ *
+ * **내일까지 가져오는 이유**는 준비가 입실 15분 전이라 자정 직후 예약의 준비 시각이
+ * **전날**이기 때문이다. 오늘까지만 가져오면 23:45~23:59에 그 예약이 안 보이고, 자정을
+ * 넘겨 처음 보일 땐 이미 캐치업 창(10분)을 넘겨 `expired`로 지나간다 — 00:00~00:05 시작
+ * 예약은 **준비가 통째로 안 됐고**(00:06~00:15는 리드타임이 줄어든 채로 늦게 돌았다),
+ * 그 사이 다음 예약이 있다는 사실을 몰라 퇴실 스윕도 안 막혔다.
  */
 export async function fetchRecent(sb: SupabaseClient, now: Date): Promise<Reservation[]> {
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const yesterday = new Date(now.getTime() - DAY_MS);
+  const tomorrow = new Date(now.getTime() + DAY_MS);
   const { data, error } = await sb
     .from("reservations")
     .select("id,date,start_time,end_time,checkin_automation_at,checkout_automation_at")
     .eq("cancelled", false)
     .gte("date", kstDay(yesterday))
-    .lte("date", kstDay(now));
+    .lte("date", kstDay(tomorrow));
   if (error) throw new Error(`예약 조회 실패: ${error.message}`);
   return (data ?? []) as Reservation[];
 }
 
 /**
- * 자동화를 실행했거나 건너뛰었음을 기록한다.
+ * 전환 하나를 **원자적으로 가져온다.** 가져왔으면 true — 이제 실행해도 된다는 뜻이다.
  *
- * `is(column, null)` 조건을 함께 거는 이유: 두 호출이 겹쳐도 먼저 쓴 쪽의 시각이 남는다.
- * 이 실패는 던지지 않고 로그만 남긴다 — 기록에 실패했다고 이미 나간 기기 명령이 되돌아오지
- * 않고, 여기서 던지면 남은 예약들이 통째로 처리되지 못한다.
+ * 표시를 실행 **뒤**에서 앞으로 옮긴 것이다. 예전 순서는 `읽기 → 비었나 확인 → 실행 → 표시`라,
+ * `automate`를 anon key로 누구나 부를 수 있는 이상 두 호출이 나란히 확인을 통과해
+ * **입실 준비를 두 번 쏠 수 있었다** — `is(column, null)` 가드는 그저 표시를 멱등하게
+ * 만들 뿐 실행을 막지 못한다. 조건이 붙은 update는 행 단위로 원자적이라 경쟁하는 쪽
+ * 중 하나만 행을 돌려받는다 — 알림이 `claimPending`으로 중복을 막는 것과 같은 방식이다.
+ *
+ * 대가는 실행에 실패해도 이미 표시돼 재시도하지 않는다는 것인데, 예전에도 실패 시 표시했으므로
+ * 새로 잃은 것은 없다. 대신 그 실패가 조용하지 않도록 호출부가 장부에 남긴다.
  */
-export async function markAutomated(
+export async function claimTransition(
   sb: SupabaseClient,
   id: string,
   column: AutomationColumn,
   now: Date,
-): Promise<void> {
-  const { error } = await sb
+): Promise<boolean> {
+  const { data, error } = await sb
     .from("reservations")
     .update({ [column]: now.toISOString() })
     .eq("id", id)
-    .is(column, null);
-  if (error) console.warn("자동화 기록 실패", id, column, error.message);
+    .is(column, null)
+    .select("id");
+  if (error) {
+    // 던지지 않는다 — 여기서 던지면 남은 예약들이 통째로 처리되지 못한다.
+    // 이번 틱은 건너뛰고, 캐치업 창(10분)이 남았으면 다음 틱이 다시 잡는다.
+    console.warn("자동화 선점 실패", id, column, error.message);
+    return false;
+  }
+  return Boolean(data?.length);
 }
 
 /**
@@ -99,7 +119,22 @@ export async function fetchWatch(sb: SupabaseClient): Promise<Map<string, Watch>
   return out;
 }
 
-/** 마지막으로 본 상태를 기록한다 — 다음 틱이 변화를 재는 기준선이 된다. */
+/**
+ * 마지막으로 본 상태를 기록한다 — 다음 틱이 변화를 재는 기준선이 된다.
+ *
+ * **null('모름')로 기준선을 덮지 않는다.** `observe.ts`의 판정이 `prev.lastPower !== null`을
+ * 요구하므로, 이상 응답 한 번이 기준선을 null로 만들면 **그다음 진짜 변화 한 건이 통째로
+ * 먹힌다** — 끈 것은 안 뜨고 그다음 켜진 것만 뜬다. 못 본 것은 '값이 없다'이지 '값이 바뀌었다'가
+ * 아니다. (실제로 이렇게 유실된 사례가 확인된 건 아니고, 2026-08-08 알림 조사 중 로직에서
+ * 발견한 결함이다 — 이상 응답 한 번이면 성립하므로 고쳐 둔다.)
+ *
+ * 같은 이유로 아무것도 못 읽은 틱은 `seen_at`도 올리지 않는다 — 이 값은 '관측을 시도한
+ * 시각'이 아니라 **'지금 들고 있는 기준선을 언제 떴는가'**이고, `observe.ts`가 대조 창의
+ * 시작점으로 쓴다. 그냥 올리면 창이 실제 변화 구간보다 좁아져 우리 명령을 놓친다.
+ *
+ * 한계: power와 temp가 시각 하나를 공유한다. 한쪽만 읽힌 틱에서는 다른 축의 창이 조금
+ * 좁아지는데, `observe.ts`가 최소 창을 하한으로 두어 덮는다.
+ */
 export async function saveObservation(
   sb: SupabaseClient,
   deviceId: string,
@@ -107,12 +142,16 @@ export async function saveObservation(
   temp: number | null,
   now: Date,
 ): Promise<void> {
+  if (power === null && temp === null) return;
+
   // **upsert가 아니라 update + 없을 때만 insert.** upsert로 두면 payload에 없는
   // `below_since`가 보존되는지가 PostgREST의 병합 규칙에 달리는데, 만약 지워진다면
   // observe가 enforce보다 먼저 도는 탓에 매 틱 온도 하한 시계가 리셋돼 **5분이 영원히
   // 안 차고 하한이 통째로 죽는다.** 에러도 로그도 없는 조용한 고장이라, 규칙에 기대지 않고
   // 건드릴 컬럼만 명시하는 update로 확정한다.
-  const patch = { last_power: power, last_temp: temp, seen_at: now.toISOString() };
+  const patch: Record<string, unknown> = { seen_at: now.toISOString() };
+  if (power !== null) patch.last_power = power;
+  if (temp !== null) patch.last_temp = temp;
   const { data, error } = await sb
     .from("device_watch")
     .update(patch)

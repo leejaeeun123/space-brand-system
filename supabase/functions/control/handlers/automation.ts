@@ -11,12 +11,14 @@
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { list } from "./list.ts";
-import { enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
+import { alertIdleDevices, enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
 import { flush } from "../automation/notify.ts";
 import { detectOnsite } from "../automation/observe.ts";
 import { firePrep, fireShutdown } from "../automation/schedule.ts";
-import { fetchRecent, markAutomated, type Reservation, type Watch } from "../automation/store.ts";
+import { record } from "../automation/events.ts";
+import { claimTransition, fetchRecent, type Reservation } from "../automation/store.ts";
 import {
+  CATCHUP_WINDOW_MINUTES,
   dueState,
   endTime,
   isOccupied,
@@ -37,11 +39,30 @@ type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
 const IDLE_THINQ_MAX_AGE_SECONDS = 600;
 
 /**
+ * 전환이 실패했을 때 장부에 적을 kind와 action — 무엇을 하려던 참이었는지를 남긴다.
+ * 둘을 같은 값으로 둔다 — 기기가 없는 사건이라 적을 명령명이 따로 없다.
+ */
+const TRANSITION_KIND = {
+  checkin_automation_at: "prep",
+  checkout_automation_at: "shutdown",
+} as const;
+
+/**
  * 예정된 전환 하나를 처리한다.
  *
- * 창을 넘겼으면(`expired`) 실행하지 않고 **기록만** 남긴다 — 안 남기면 지난 예약을 매 틱
- * 영원히 다시 시도한다. 실행 실패도 마찬가지로 기록한다: 되돌릴 수 없는 실패를 1분마다
- * 재시도하면 기기에 같은 명령이 쌓이기만 한다.
+ * **선점 먼저, 실행 나중.** `automate`는 anon key로 누구나 부를 수 있어 두 호출이 나란히
+ * 들어올 수 있는데, 예전 순서(`확인 → 실행 → 표시`)는 둘 다 확인을 통과해 **입실 준비를
+ * 두 번 쏠 수 있었다.** 선점이 그걸 막는다 — 알림이 `claimPending`으로 중복을 막는 것과
+ * 같은 방식이다(`store.claimTransition`).
+ *
+ * 창을 넘겼으면(`expired`) 실행하지 않는다 — 지난 예약을 매 틱 영원히 다시 시도하지 않기
+ * 위해서다. **다만 조용히 넘기지 않는다.** 만료도 실패도 장부에 남겨 채널에 뜨게 한다.
+ * 예전엔 `console.warn` 한 줄이 전부였고, 그래서 함수가 10분 넘게 죽어 퇴실 종료를 통째로
+ * 놓친 밤에도 채널은 아무 말이 없었다 — 무인 공간에서 조용한 실패는 실패가 아니라 사고다.
+ *
+ * 이 실패 기록만 `device_id`가 null이다. 전환이 시작조차 못 한 것은 특정 기기의 일이 아니고,
+ * 기기를 하나 골라 적으면 거짓이다. 개별 명령의 실패는 지금처럼 `dispatch.issue`가 기기별로
+ * 남긴다 — 그건 실제로 그 기기의 일이다.
  */
 async function runTransition(
   sb: SupabaseClient,
@@ -54,21 +75,31 @@ async function runTransition(
 ): Promise<boolean> {
   const state = dueState(target, now);
   if (state === "wait") return false;
+  if (!await claimTransition(sb, r.id, column, now)) return false;
 
-  let fired = false;
-  if (state === "fire") {
-    try {
-      await fire();
-      fired = true;
-    } catch (e) {
-      console.error(`${label} 실패`, r.id, e);
-    }
-  } else {
+  const failed = (detail: string) =>
+    record(sb, {
+      device_id: null,
+      kind: TRANSITION_KIND[column],
+      action: TRANSITION_KIND[column],
+      status: "failed",
+      detail,
+    });
+
+  if (state === "expired") {
     console.warn(`${label} 창 만료 — 건너뜀`, r.id);
+    await failed(`${label} 시각을 ${CATCHUP_WINDOW_MINUTES}분 넘겨 실행하지 못했습니다`);
+    return false;
   }
 
-  await markAutomated(sb, r.id, column, now);
-  return fired;
+  try {
+    await fire();
+    return true;
+  } catch (e) {
+    console.error(`${label} 실패`, r.id, e);
+    await failed(e instanceof Error ? e.message : String(e));
+    return false;
+  }
 }
 
 export async function automate(sb: SupabaseClient) {
@@ -114,31 +145,30 @@ export async function automate(sb: SupabaseClient) {
   let swept = 0;
   let tempCorrected = 0;
   let onsite = 0;
+  let idle = 0;
   if (!prepFired && !shutdownFired) {
     const current = await getDevices();
 
     // 관측이 먼저다 — 강제가 먼저 돌면 그것이 만든 변화까지 현장 조작 후보로 잡힌다.
-    // 갱신 전 스냅샷(previous)은 스윕이 '계속 켜져 있던 것'과 '방금 켜진 것'을 가르는 데 쓴다.
     //
     // ⚠️ 여기서 절대 던지지 않는다. 관측은 '알림을 위한 부가 기능'이고 그 아래 스윕·온도 하한은
     // **제어 안전장치**다. 관측이 던지면 그 틱의 냉난방이 안 꺼진다 — 새로 들어온 관심사가
     // 기존 안전장치를 인질로 잡는 구조가 된다. 관측·알림은 제어보다 항상 후순위다.
-    let observed: { onsite: number; previous: Map<string, Watch> } = {
-      onsite: 0,
-      previous: new Map(),
-    };
     try {
-      observed = await detectOnsite(sb, current, now);
+      onsite = await detectOnsite(sb, current, now);
     } catch (e) {
       console.error("현장 조작 판별 실패 — 제어는 계속한다", e);
     }
-    onsite = observed.onsite;
 
     if (isSweeping(reservations, now)) {
       swept = await sweepIdleDevices(sb, current, sweepElapsedMinutes(reservations, now) ?? 0, now);
     } else if (isOccupied(reservations, now)) {
       // 이용 중일 때만 온도를 본다 — 빈 시간의 냉난방은 스윕이 어차피 끈다.
       tempCorrected = await enforceTempFloor(sb, current, now);
+    } else {
+      // 예약도 스윕 창도 없는 시간 — **끄는 규칙이 하나도 안 도는 구간**이다. 여기서만
+      // 유휴 경보가 돈다(왜 끄지 않고 알리기만 하는지는 `enforce.ts`가 설명한다).
+      idle = await alertIdleDevices(sb, current, now);
     }
   }
 
@@ -162,6 +192,7 @@ export async function automate(sb: SupabaseClient) {
     swept,
     temp_corrected: tempCorrected,
     onsite,
+    idle,
     notified,
     reservations: reservations.length,
   };

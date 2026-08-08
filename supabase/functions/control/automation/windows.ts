@@ -81,6 +81,11 @@ export function isOccupied(reservations: ReservationWindow[], now: Date): boolea
  *
  * 창이 끝나갈 때 "아직도 켜져 있다"를 **한 번** 알리기 위해 필요하다 — 매 틱 알리면 시끄럽고,
  * 아예 안 알리면 조명이 밤새 켜져 있어도 채널엔 '퇴실 종료 성공'만 남는다.
+ *
+ * 예약이 겹쳐 창 안에 끝난 예약이 둘 이상이면 **가장 이른 퇴실**을 창의 시작으로 삼는다
+ * (= 경과 분은 Math.max). 호출부가 이 값으로 '이번 창에서 이미 스윕했나'를 조회하므로,
+ * 늦은 쪽을 잡으면 조회 범위가 실제 스윕 시작보다 짧아져 **같은 기기를 다시 알린다.**
+ * "10분간 껐는데도 켜져 있다"는 경고도 가장 오래 끄고 있던 창을 기준으로 해야 참이다.
  */
 export function sweepElapsedMinutes(
   reservations: ReservationWindow[],
@@ -90,7 +95,7 @@ export function sweepElapsedMinutes(
   const elapsed = reservations
     .map((r) => minutesBetween(endTime(r), now))
     .filter((m) => m >= 0 && m < SWEEP_WINDOW_MINUTES);
-  return elapsed.length ? Math.min(...elapsed) : null;
+  return elapsed.length ? Math.max(...elapsed) : null;
 }
 
 export function isSweeping(reservations: ReservationWindow[], now: Date): boolean {

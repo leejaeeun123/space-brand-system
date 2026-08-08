@@ -111,3 +111,27 @@ Deno.test("sweepElapsedMinutes — 마지막 틱(9분)이 잔존 기기 알림�
   const last = sweepElapsedMinutes([RES], kst("2026-08-10T18:09:30"));
   assertEquals(last !== null && last >= 9, true);
 });
+
+Deno.test("sweepElapsedMinutes — 겹친 예약은 가장 이른 퇴실을 창의 시작으로 본다", () => {
+  // 늦은 쪽을 잡으면 호출부의 '이번 창에서 이미 스윕했나' 조회 범위가 실제 스윕 시작보다
+  // 짧아져 같은 기기를 다시 알린다.
+  const reservations: ReservationWindow[] = [
+    { date: "2026-08-10", start_time: "00:00:00", end_time: "01:00:00" },
+    { date: "2026-08-10", start_time: "00:30:00", end_time: "01:02:00" },
+  ];
+  assertEquals(sweepElapsedMinutes(reservations, new Date("2026-08-10T01:06:00+09:00")), 6);
+});
+
+Deno.test("자정 직후 예약의 준비 시각은 전날이다 — 조회 범위가 하루 더 필요한 이유", () => {
+  const r: ReservationWindow = { date: "2026-08-10", start_time: "00:05:00", end_time: "02:00:00" };
+  assertEquals(prepTime(r).toISOString(), new Date("2026-08-09T23:50:00+09:00").toISOString());
+
+  // 자정을 넘겨 처음 보이는 틱에서는 이미 캐치업 창(10분) 밖이다 — 조회에서 빠지면
+  // 입실 준비가 통째로 누락된다.
+  const firstTick = new Date("2026-08-10T00:00:30+09:00");
+  assertEquals(dueState(prepTime(r), firstTick), "expired");
+
+  // 00:06 시작이면 같은 틱에서 아슬하게 살아난다(단 리드타임은 15분이 아니라 9분 남음).
+  // 그래서 통째 누락은 00:00~00:05 구간이고, 그 밖은 '늦게 돌았다'가 된다.
+  assertEquals(dueState(prepTime({ ...r, start_time: "00:06:00" }), firstTick), "fire");
+});

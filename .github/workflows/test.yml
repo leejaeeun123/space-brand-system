@@ -1,0 +1,44 @@
+# 공간 제어 Edge Function 검증.
+#
+# **이 레포에서 자동으로 도는 유일한 검증이다.** 그전엔 워크플로가 `deploy.yml` 하나였고
+# 그건 `public/**`와 HTML 세 개만 트리거라, `supabase/functions` 아래 코드는 테스트가
+# 있어도 아무도 돌리지 않았다 — 실제로 발견된 알림 버그 셋(#29·#30·#31)이 전부 그 아래에서
+# 나왔다. 사람이 기억해서 돌리는 검증은 결국 안 돌아간다.
+#
+# 배포는 여전히 수동이다(`supabase functions deploy control`). 여기서 하지 않는 이유는
+# 배포에 필요한 액세스 토큰을 레포 시크릿에 넣는 결정이 아직 안 됐기 때문이다.
+
+name: control 함수 검증
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/test.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/test.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: supabase/functions/control
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: 린트
+        run: deno lint
+
+      - name: 타입 검사
+        run: deno check index.ts automation/*.ts handlers/*.ts
+
+      # --allow-env: 테스트는 순수 함수만 다루지만, 모듈이 로드되며 Deno.env를 읽는 경로가 있다.
+      - name: 테스트
+        run: deno test --allow-env

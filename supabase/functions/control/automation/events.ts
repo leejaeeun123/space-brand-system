@@ -16,12 +16,29 @@ export type EventKind =
   | "temp_floor" // 온도 하한 강제 (자동)
   | "remote_admin" // 어드민이 원격에서
   | "remote_guest" // 손님이 /control에서
-  | "onsite"; // 현장 조작 (추론)
+  | "onsite" // 현장 조작 (추론)
+  | "idle"; // 예약 없이 켜져 있음 (관측만 — 끄지 않는다)
 
-export const AUTO_KINDS: EventKind[] = ["prep", "shutdown", "sweep", "temp_floor"];
+/**
+ * **우리가 기기에 보낸 명령**인 종류. 현장 조작 대조는 이 목록만 '설명'으로 인정한다.
+ *
+ * 제외 목록이 아니라 **화이트리스트**인 것이 요점이다. 예전엔 `neq('onsite')`로 뺐는데,
+ * 그러면 새 kind가 생길 때마다 아무도 손대지 않아도 '우리 명령' 쪽에 들어간다 — `idle`처럼
+ * 명령을 하나도 안 보낸 관측이 상태 변화를 설명해버리면 **진짜 현장 조작이 조용히 묻힌다.**
+ * 여기 한 줄 적는 일이 그 판단을 반드시 한 번 거치게 만든다.
+ */
+export const COMMAND_KINDS: EventKind[] = [
+  "prep",
+  "shutdown",
+  "sweep",
+  "temp_floor",
+  "remote_admin",
+  "remote_guest",
+];
 
 export interface EventInput {
-  device_id: string;
+  /** null = 특정 기기가 아니라 공간 전체의 사건(전환 만료·전환 자체의 실패). */
+  device_id: string | null;
   kind: EventKind;
   action: string;
   value?: string | null;
@@ -83,10 +100,13 @@ export async function recordMany(sb: SupabaseClient, events: EventInput[]): Prom
 }
 
 /**
- * 대조용 — 최근 N초 안에 **우리가** 보낸 명령들.
+ * 대조용 — `since` 이후 **우리가 기기에 보낸** 명령들.
  *
- * 현장 조작(onsite)은 우리가 보낸 게 아니므로 제외한다. 포함하면 한 번 잡힌 현장 조작이
- * 다음 변화를 설명해버려 연속된 조작을 놓친다.
+ * `COMMAND_KINDS`만 가져온다. 현장 조작(onsite)이 빠지는 건 그 결과다 — 우리가 보낸 게
+ * 아니므로, 포함하면 한 번 잡힌 현장 조작이 다음 변화를 설명해버려 연속된 조작을 놓친다.
+ *
+ * 공간 전체 사건(device_id = null)은 어떤 기기의 변화도 설명하지 않는다 — 호출부가 기기별로
+ * 대조하므로 null은 자연히 아무 기기와도 안 맞는다.
  */
 export async function fetchRecentCommands(
   sb: SupabaseClient,
@@ -96,7 +116,7 @@ export async function fetchRecentCommands(
     .from("device_events")
     .select("id,device_id,at,kind,action,value,status,detail")
     .gte("at", since.toISOString())
-    .neq("kind", "onsite")
+    .in("kind", COMMAND_KINDS)
     // 실패한 명령은 기기를 바꾸지 못했으므로 **어떤 변화도 설명할 수 없다.** 이걸 빼지 않으면
     // PAT가 만료된 동안 매 틱 쌓이는 실패 기록이 그 기기를 영원히 '설명됨'으로 만들어,
     // 손님이 리모컨으로 뭘 하든 현장 조작이 한 건도 안 잡힌다.
@@ -106,32 +126,46 @@ export async function fetchRecentCommands(
 }
 
 /**
- * 이번 스윕 창에서 이미 스윕 명령을 보낸 기기들.
+ * `since` 이후 이 종류의 사건이 있었던 기기들.
  *
- * 스윕 알림을 창당 기기별 한 번으로 묶는 근거다. 예전엔 `device_watch`의 직전 관측값
+ * "이미 알렸나"·"최근에 사람이 만졌나"를 묻는 곳이 셋이라(스윕 중복 억제, 유휴 경보 중복
+ * 억제, 유휴 경보의 사람 면제) 한 함수로 모은다.
+ *
+ * **판단 근거가 장부인 이유**가 여기 있다. 예전엔 스윕이 `device_watch`의 직전 관측값
  * (`lastPower`)으로 '방금 켜졌는지'를 판단했는데, **전환이 일어난 틱은 관측을 건너뛰므로
- * 그 값이 낡는다** — 퇴실 종료 직후엔 기준선이 '이용 중 켜져 있던 상태' 그대로라,
- * 스윕이 매번 "계속 켜져 있던 것"으로 오판해 **알림이 한 건도 안 나갔다**
+ * 그 값이 낡는다** — 퇴실 종료 직후엔 기준선이 '이용 중 켜져 있던 상태' 그대로라, 스윕이
+ * 매번 "계속 켜져 있던 것"으로 오판해 **알림이 한 건도 안 나갔다**
  * (2026-08-08 실측으로 발견 — 스윕은 동작했는데 채널에만 안 떴다).
  *
- * 장부는 낡지 않는다 — 보냈으면 행이 있고, 안 보냈으면 없다.
+ * 장부는 낡지 않는다 — 있었으면 행이 있고, 없었으면 없다.
  */
-export async function fetchSweptSince(
+export async function fetchActedDevices(
   sb: SupabaseClient,
+  kinds: EventKind[],
   since: Date,
 ): Promise<Set<string>> {
   const { data, error } = await sb
     .from("device_events")
     .select("device_id")
-    .eq("kind", "sweep")
+    .in("kind", kinds)
     .gte("at", since.toISOString());
   if (error) {
-    // 조회에 실패하면 **알리는 쪽**으로 기운다. 중복 알림은 시끄러울 뿐이지만,
-    // 놓친 알림은 조명이 밤새 켜져 있는 걸 아무도 모르게 만든다.
-    console.warn("스윕 이력 조회 실패 — 이번엔 알리는 쪽으로 간다", error.message);
+    // 조회에 실패하면 **알리는 쪽**으로 기운다. 중복 알림은 시끄러울 뿐이지만, 놓친 알림은
+    // 조명이 밤새 켜져 있는 걸 아무도 모르게 만든다. 억제 목록으로 쓰든 면제 목록으로 쓰든
+    // 빈 집합의 결과는 '한 번 더 알린다'로 같아서, 이 기울기는 두 쓰임 모두에서 안전하다.
+    console.warn("장부 조회 실패 — 이번엔 알리는 쪽으로 간다", kinds.join(","), error.message);
     return new Set();
   }
-  return new Set((data ?? []).map((r) => (r as { device_id: string }).device_id));
+  const out = new Set<string>();
+  for (const r of (data ?? []) as Array<{ device_id: string | null }>) {
+    if (r.device_id) out.add(r.device_id);
+  }
+  return out;
+}
+
+/** 이번 스윕 창에서 이미 스윕 명령을 보낸 기기들. */
+export function fetchSweptSince(sb: SupabaseClient, since: Date): Promise<Set<string>> {
+  return fetchActedDevices(sb, ["sweep"], since);
 }
 
 /**
@@ -179,7 +213,24 @@ export async function claimPending(sb: SupabaseClient, now: Date): Promise<Event
     console.error("이벤트 선점 실패 — 이번 틱은 알리지 않는다", error.message);
     return [];
   }
-  return (data ?? []) as EventRow[];
+  // **정렬은 여기서 확정한다.** `update ... returning`의 행 순서는 정의돼 있지 않다
+  // (`fetchPending`의 order는 '어느 행을 선점할지'만 고른다). 그런데 `message.ts`의 판단이
+  // 거의 전부 순서에 매달려 있다 — 묶음의 대표 시각, "같은 기기는 마지막 명령이 최종 상태",
+  // 표 헤더의 시각. 지금까지 맞아 보인 건 갓 넣은 행의 물리 순서가 id 순서와 같았을 뿐이고,
+  // 선점→해제로 되돌아온 행과 정리 크론이 회수한 페이지가 그 우연을 깬다.
+  //
+  // `at`만으로는 부족하다 — `recordMany`는 한 statement라 넣은 행의 `at`이 전부 같다.
+  // 같은 시각이면 넣은 순서(id)가 곧 일어난 순서다.
+  return sortByOccurrence((data ?? []) as EventRow[]);
+}
+
+/**
+ * 일어난 순서로 정렬 — `at`이 같으면 넣은 순서(`id`).
+ *
+ * 따로 뺀 이유는 `claimPending`이 보장하는 것이 정확히 이것이기 때문이다 — DB 없이 검증된다.
+ */
+export function sortByOccurrence(rows: EventRow[]): EventRow[] {
+  return [...rows].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.id - b.id);
 }
 
 /** 발송에 실패한 선점을 되돌린다 — 다음 틱이 다시 시도한다. */

@@ -11,7 +11,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { list } from "../handlers/list.ts";
 import { issue } from "./dispatch.ts";
-import { fetchSweptSince, recordMany } from "./events.ts";
+import { fetchActedDevices, fetchSweptSince, recordMany } from "./events.ts";
 import { SWEEP_WINDOW_MINUTES } from "./windows.ts";
 import { clearTempFloor, fetchWatch, startTempFloor } from "./store.ts";
 
@@ -141,4 +141,63 @@ export async function enforceTempFloor(
 
   await clearTempFloor(sb, settled);
   return corrected;
+}
+
+/**
+ * 예약이 없는데 켜져 있다 — **끄지 않고 알린다.**
+ *
+ * 기기를 끄는 길이 지금까지 둘뿐이었고 둘 다 **살아있는 예약 행에 매달려** 있었다 — 퇴실 종료와
+ * 퇴실 후 10분 스윕. 그래서 예약이 사라지거나 창을 놓치면 아무도 안 끈다:
+ *
+ *   · 이용 중 취소·삭제 → `fetchRecent`의 `cancelled = false`에서 빠져 대상 자체가 없어진다
+ *   · 함수가 10분 넘게 죽음 → 종료도 스윕도 `expired`로 지나간다
+ *   · 빈 시간에 사람이 그냥 켬 → 애초에 어떤 창에도 안 걸린다
+ *
+ * 셋 다 냉난방이 밤새 도는 결과가 같은데 채널엔 한 줄도 안 떴다.
+ *
+ * **끄지 않는 이유**: 빈 시간에 사람이 일부러 켜둔 것(청소·예열·촬영 답사)까지 되돌리면
+ * 자동화가 현장에 있는 사람과 싸운다. 그 싸움은 사람이 진다 — 우린 1분마다 도는데 사람은
+ * 손으로 눌러야 하니까. 알리는 것까지가 안전한 경계다(형운 결정, 2026-08-08).
+ *
+ * 같은 이유로 최근에 사람이 만진 기기는 아예 건너뛴다 — 원격이든 현장이든 방금 만졌다면
+ * 켜져 있는 것은 사고가 아니라 의도다.
+ */
+const IDLE_ALERT_QUIET_MINUTES = 60;
+const IDLE_HUMAN_GRACE_MINUTES = 60;
+
+export async function alertIdleDevices(
+  sb: SupabaseClient,
+  devices: DeviceList,
+  now: Date,
+): Promise<number> {
+  const on = devices.filter((d) => d.capabilities.includes("power") && d.state?.power === "ON");
+  if (!on.length) return 0;
+
+  const before = (minutes: number) => new Date(now.getTime() - minutes * 60_000);
+  const [alerted, touched] = await Promise.all([
+    fetchActedDevices(sb, ["idle"], before(IDLE_ALERT_QUIET_MINUTES)),
+    fetchActedDevices(
+      sb,
+      ["remote_admin", "remote_guest", "onsite"],
+      before(IDLE_HUMAN_GRACE_MINUTES),
+    ),
+  ]);
+
+  const targets = on.filter((d) => !alerted.has(d.id) && !touched.has(d.id));
+  if (!targets.length) return 0;
+
+  await recordMany(
+    sb,
+    targets.map((d) => ({
+      device_id: d.id,
+      kind: "idle" as const,
+      action: "observed",
+      // 갱신이 끊긴 상태면 그걸 같이 적는다 — '마지막으로 들은 게 ON이고 그 뒤로 연락이
+      // 끊겼다'는 것과 '지금 켜져 있다'는 다른 문장이고, 사람이 할 일도 다르다.
+      value: d.state?.is_stale ? "켜짐 (상태 갱신 끊김)" : "켜짐",
+      status: "ok" as const,
+    })),
+  );
+  console.warn(`유휴 경보 — 예약 없이 켜져 있는 기기 ${targets.length}대`);
+  return targets.length;
 }

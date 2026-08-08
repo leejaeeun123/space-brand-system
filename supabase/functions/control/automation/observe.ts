@@ -17,16 +17,27 @@ import { fetchWatch, saveObservation, type Watch } from "./store.ts";
 type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
 
 /**
- * 우리 명령이 상태에 반영되기까지 기다려주는 시간.
+ * 대조 창의 **하한**. 실제 창은 기기마다 "마지막으로 기준선을 뜬 시각(`seen_at`) 이후"이고,
+ * 이 값은 그 창이 그보다 짧아지지 않게 막는 바닥이다.
  *
- * 조명은 큐에 들어가고(최대 60초 TTL) → 현장 맥 에이전트가 발행하고 → 기기가 stat으로 보고해야
- * 상태가 바뀐다. 창을 짧게 잡으면 **우리가 켠 조명을 현장 조작으로 오인한다.** 냉난방은 HTTP
- * 동기라 훨씬 짧아도 되지만, 규칙이 하나인 편이 낫다.
+ * **고정 창을 버린 것이 이 파일에서 가장 중요한 수정이다.** 예약이 없는 시간엔 ThinQ 상태를
+ * 10분에 한 번만 물어보는데(`handlers/automation.ts`의 IDLE_THINQ_MAX_AGE_SECONDS = 600),
+ * 창은 120초 고정이었다. 관측 지연이 창보다 5배 길면 **우리가 보낸 명령은 항상 창 밖으로
+ * 나간다** — 빈 시간에 사람이 원격으로 누른 것은 몇 분 뒤 '현장 조작'으로 뜨게 된다.
  *
- * 대가는 반대편이다 — 우리 명령 직후 이 시간 안에 일어난 진짜 현장 조작은 우리 것으로 흡수돼
- * 알리지 않는다. 드물고, 없는 일을 알리는 것보다 낫다.
+ * (이건 상수 둘을 대조해 도출한 것이지 그런 알림을 실제로 본 것은 아니다. 2026-08-08에 오탐이
+ * 의심된 건이 하나 있었는데 그건 확인 결과 **표시가 맞았다** — 시각 표기 문제였고
+ * 그쪽은 `message.ts`의 관측 구간 표기로 따로 고쳤다.)
+ *
+ * 지금 감지한 변화는 정의상 기준선을 뜬 뒤에 일어났다. 그러니 그 구간의 명령이면 무엇이든
+ * 이 변화를 설명할 수 있고, 그 구간 밖의 명령은 설명할 수 없다 — 창을 관측 주기가 정하게
+ * 두면 주기를 바꿔도 여기를 같이 고칠 필요가 없다.
+ *
+ * 바닥을 남기는 이유: 명령 직후의 상태 읽기가 벤더 반영보다 빠를 수 있어(조명은 큐 TTL 60초,
+ * ThinQ도 control 직후 재조회가 옛 값을 주는 일이 있다) 명령이 기준선보다 조금 앞선 시각에
+ * 찍힐 수 있다. 그만큼 뒤로 더 본다.
  */
-const CORRELATION_WINDOW_MS = 120_000;
+const CORRELATION_FLOOR_MS = 120_000;
 
 /** 명령 → 그 명령이 건드리는 축. `handlers/command.ts`의 AXIS와 같은 구분이다. */
 const AXIS: Record<string, string> = {
@@ -64,23 +75,37 @@ export async function detectOnsite(
   sb: SupabaseClient,
   devices: DeviceList,
   now: Date,
-): Promise<{ onsite: number; previous: Map<string, Watch> }> {
+): Promise<number> {
   let watching: Map<string, Watch>;
   try {
     watching = await fetchWatch(sb);
   } catch (e) {
     console.error("기기 감시 조회 실패 — 이번 틱의 현장 조작 판별을 건너뛴다", e);
-    return { onsite: 0, previous: new Map() };
+    return 0;
   }
 
-  const recent = await events.fetchRecentCommands(
-    sb,
-    new Date(now.getTime() - CORRELATION_WINDOW_MS),
-  );
+  // 기기마다 창의 시작이 다르다(그 기기의 기준선을 뜬 시각). 조회는 그중 가장 이른 시각으로
+  // 한 번만 하고, 대조는 기기별 시작으로 다시 좁힌다 — 한 기기의 오래된 기준선이 다른 기기의
+  // 창까지 넓혀 남의 명령이 이 변화를 설명해버리면 안 된다.
+  const floor = new Date(now.getTime() - CORRELATION_FLOOR_MS);
+  const since = (deviceId: string): Date => {
+    const seen = watching.get(deviceId)?.seenAt;
+    return seen && seen < floor ? seen : floor;
+  };
+  const earliest = devices.reduce<Date>((min, d) => (since(d.id) < min ? since(d.id) : min), floor);
+
+  const recent = await events.fetchRecentCommands(sb, earliest);
+
   // **축까지 좁힌다.** 기기 단위로 두면 우리가 set_temp를 보낸 직후 손님이 리모컨으로 전원을
   // 꺼도 "설명됨"으로 삼켜지고, 기준선까지 갱신돼 그 사건은 영영 안 잡힌다. 우리가 온도를
   // 만졌다는 사실이 전원 변화를 설명하지는 않는다.
-  const commanded = new Set(recent.map((e) => `${e.device_id}:${AXIS[e.action] ?? e.action}`));
+  const explains = (deviceId: string, axis: string): boolean => {
+    const from = since(deviceId).getTime();
+    return recent.some((e) =>
+      e.device_id === deviceId && (AXIS[e.action] ?? e.action) === axis &&
+      Date.parse(e.at) >= from
+    );
+  };
 
   const found: events.EventInput[] = [];
 
@@ -100,14 +125,14 @@ export async function detectOnsite(
       // 두 건이 나간다. 알림을 믿을 수 없게 만드는 종류의 오탐이다.
       if (
         prev.lastPower !== power && prev.lastPower !== null && power !== null &&
-        !commanded.has(`${d.id}:power`)
+        !explains(d.id, "power")
       ) {
         changes.push(`전원 ${describe(powerLabel(prev.lastPower), powerLabel(power))}`);
       }
       // 온도는 냉난방만. 조명은 애초에 이 축이 없다.
       if (
         d.kind === "hvac" && prev.lastTemp !== temp && temp !== null && prev.lastTemp !== null &&
-        !commanded.has(`${d.id}:temp`)
+        !explains(d.id, "temp")
       ) {
         changes.push(`온도 ${describe(`${prev.lastTemp}도`, `${temp}도`)}`);
       }
@@ -120,6 +145,13 @@ export async function detectOnsite(
           action: "observed",
           value: changes.join(" · "),
           status: "ok",
+          // **언제 일어났는지는 모른다 — 언제 알아챘는지만 안다.** 이벤트의 `at`은 이 틱의
+          // 시각이고, 빈 시간엔 관측이 10분에 한 번이라 실제 조작보다 한참 뒤일 수 있다.
+          // 채널에서 그게 "방금 일어난 일"로 읽히면 사람이 자기 행동과 대조하다 틀린다 —
+          // 2026-08-08에 '꺼짐 → 켜짐 (08:47)'을 보고 그 시각에 껐던 사람이 방향이 뒤집혔다고
+          // 읽었다. 표시는 맞았고, 08:47이 조작 시각이 아니라 관측 시각이었던 게 원인이다.
+          // 기준선을 뜬 시각을 함께 남겨 표에 '08:37~08:47 사이'로 찍는다.
+          detail: prev.seenAt.toISOString(),
         });
       }
     }
@@ -128,7 +160,5 @@ export async function detectOnsite(
   }
 
   await events.recordMany(sb, found);
-  // 갱신 **전**의 스냅샷을 함께 돌려준다 — 스윕이 '계속 켜져 있던 것'과 '방금 켜진 것'을
-  // 가르려면 이 값이 필요하고, 여기서 이미 saveObservation으로 덮어썼기 때문이다.
-  return { onsite: found.length, previous: watching };
+  return found.length;
 }
