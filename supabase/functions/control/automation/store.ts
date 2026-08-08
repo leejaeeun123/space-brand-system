@@ -15,13 +15,17 @@ export interface Reservation {
   end_time: string;
   checkin_automation_at: string | null;
   checkout_automation_at: string | null;
-  // ── 아래는 기기 자동화가 아니라 문자 자동 발송(`sms/schedule.ts`)이 쓴다.
-  //    같은 조회에 얹은 이유는 대상 예약 집합이 정확히 같아서다 — 따로 조회하면 두 판정이
+  // ── 아래는 기기 자동화가 아니라 문자 발송(`sms/schedule.ts` · `cleaning/sweep.ts`)이 쓴다.
+  //    같은 조회에 얹은 이유는 대상 예약 집합이 정확히 같아서다 — 따로 조회하면 세 판정이
   //    서로 다른 예약 목록을 보게 되는 순간이 생긴다.
   name: string;
   phone: string | null;
   deposit_required: boolean;
   sms_auto: boolean;
+  // 청소 안내 문자만 쓴다. `purpose`는 **자주 비어 있다** — Gmail 동기화 경로가 항상
+  // null로 넣고(메일 본문에 없다), 파트너 API 동기화를 사람이 돌린 예약에만 값이 있다.
+  guests: number | null;
+  purpose: string | null;
 }
 
 export type AutomationColumn = "checkin_automation_at" | "checkout_automation_at";
@@ -47,7 +51,7 @@ export async function fetchRecent(sb: SupabaseClient, now: Date): Promise<Reserv
     .from("reservations")
     // 한 줄 리터럴로 둔다. 문자열을 이어붙이면 supabase-js가 컬럼을 못 읽어내고
     // 반환 타입이 통째로 무너진다(`GenericStringError[]`). 길다고 쪼개지 말 것.
-    .select("id,date,start_time,end_time,checkin_automation_at,checkout_automation_at,name,phone,deposit_required,sms_auto")
+    .select("id,date,start_time,end_time,checkin_automation_at,checkout_automation_at,name,phone,deposit_required,sms_auto,guests,purpose")
     .eq("cancelled", false)
     .gte("date", kstDay(yesterday))
     .lte("date", kstDay(tomorrow));

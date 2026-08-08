@@ -18,6 +18,7 @@ import { firePrep, fireShutdown } from "../automation/schedule.ts";
 import { record } from "../automation/events.ts";
 import { claimTransition, fetchRecent, type Reservation } from "../automation/store.ts";
 import { sweepSms } from "../sms/sweep.ts";
+import { type CleaningSweepResult, sweepCleaning } from "../cleaning/sweep.ts";
 import {
   CATCHUP_WINDOW_MINUTES,
   dueState,
@@ -184,6 +185,16 @@ export async function automate(sb: SupabaseClient) {
     console.error("자동 문자 스윕 실패 — 기기 자동화 결과는 유지한다", e);
   }
 
+  // 청소 담당자 안내. 같은 이유로 또 한 번 격리한다 — 손님 문자가 실패해도 청소 안내는
+  // 나가야 하고, 반대도 마찬가지다. 같은 `reservations` 배열을 쓰는 것이 중요하다 —
+  // 따로 조회하면 기기·손님문자·청소안내가 서로 다른 예약 목록을 보는 순간이 생긴다.
+  let cleaningResult: CleaningSweepResult = { digest: 0, update: 0, quiet: 0, failed: 0 };
+  try {
+    cleaningResult = await sweepCleaning(sb, reservations, now);
+  } catch (e) {
+    console.error("청소 안내 스윕 실패 — 앞의 결과는 유지한다", e);
+  }
+
   // 알림은 마지막에 한 번 — 이번 틱에 생긴 것까지 모아 종류별로 묶어 보낸다.
   // 이게 실패해도 자동화 결과를 되돌리지 않는다(notify가 예외를 밖으로 던지지 않는다).
   // `devices`는 클로저(getDevices) 안에서 채워져 TS가 여기서는 여전히 null로 본다 —
@@ -207,6 +218,7 @@ export async function automate(sb: SupabaseClient) {
     idle,
     notified,
     sms: smsResult,
+    cleaning: cleaningResult,
     reservations: reservations.length,
   };
 }
