@@ -1164,6 +1164,9 @@
     if(result.status === 'sent'){ smsNote(id, label + ' 보냈어요.'); return; }
     if(result.status === 'already'){ smsNote(id, label + '는 이미 보낸 기록이 있어요. 다시 보내려면 "다시"를 누르세요.', true); return; }
     if(result.status === 'no_phone'){ smsNote(id, label + ' — 연락처가 없어요. 번호를 넣거나 문구를 복사해 보내세요.', true); return; }
+    // 이미 입실 시각이 지난 예약에 자동발송을 켰을 때. 보내지 않은 것이지 실패한 게 아니라
+    // 사유를 분명히 적는다 — 뒤이어 나갈 퇴실 안내는 정상이라는 것도 같이 알려야 한다.
+    if(result.status === 'expired'){ smsNote(id, label + '는 보낼 시각이 지나 건너뛰었어요. 남은 안내는 예정대로 나가요.', true); return; }
     if(result.status === 'not_configured'){ smsNote(id, '문자 서비스가 아직 설정되지 않았어요.', true); return; }
     smsNote(id, label + ' 실패: ' + (result.error || '알 수 없는 오류') + ' — 문구를 복사해 직접 보내세요.', true);
   }

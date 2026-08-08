@@ -9,7 +9,8 @@
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { HandlerError } from "./shared.ts";
-import { dispatch, markManual, type SmsReservation, supersede } from "../sms/dispatch.ts";
+import { targetTime } from "../automation/windows.ts";
+import { dispatch, markExpired, markManual, type SmsReservation, supersede } from "../sms/dispatch.ts";
 import { KIND_LABEL, kindsFor, render, SMS_KINDS, type SmsKind } from "../sms/templates.ts";
 import { loadConfig } from "../sms/solapi.ts";
 
@@ -109,6 +110,15 @@ export async function markManualSent(sb: SupabaseClient, body: Record<string, un
  *
  * 첫 통이 실패해도 플래그는 켜진 채로 둔다 — 시각 기반 문자(입실·퇴실)는 계속 나가야 하고,
  * 실패한 한 통은 어드민에서 다시 보내면 된다. 결과를 그대로 돌려주므로 화면이 조용하지 않다.
+ *
+ * **이미 입실 시각이 지났으면 그 첫 통을 보내지 않는다.** 보증금 안내와 예약 확정 안내는
+ * 예약이 시작되기 **전에**만 의미가 있는 문자다 — 다섯 시간 전에 들어온 손님에게
+ * "예약 확정되었습니다! 입실 10분 전에 이용 안내 문자 다시 보내드릴게요"가 가면 안 된다.
+ * 이 경우는 조용히 건너뛰지 않고 `expired`로 남긴다(창을 놓친 게 사실이다). 그래야 이후
+ * 퇴실 안내는 정상적으로 나가면서, 화면과 채널에는 이 한 통이 안 나갔다는 게 남는다.
+ *
+ * 이용 중인 예약에 뒤늦게 연락처를 넣고 자동발송을 켜는 것이 실제 사용 흐름이라
+ * (2026-08-08 형운) 이 분기는 예외 상황이 아니라 정상 경로다.
  */
 export async function setAuto(sb: SupabaseClient, body: Record<string, unknown>) {
   const id = parseId(body);
@@ -125,6 +135,12 @@ export async function setAuto(sb: SupabaseClient, body: Record<string, unknown>)
   if (!value) return { sms_auto: false, immediate: null };
 
   const kind: SmsKind = r.deposit_required ? "deposit" : "confirm";
+
+  if (new Date() >= targetTime(r.date, r.start_time)) {
+    const recorded = await markExpired(sb, r, kind);
+    return { sms_auto: true, immediate: { kind, status: recorded ? "expired" : "already" } };
+  }
+
   const result = await dispatch(sb, r, kind, "admin");
   return { sms_auto: true, immediate: { kind, ...result } };
 }
