@@ -93,3 +93,18 @@ Deno.test("퇴실 15분 전 — 다음 예약 문장은 항상 들어간다 (형
   // 조건부로 바꾸는 변경이 들어오면 이 테스트가 먼저 깨져 결정을 다시 보게 한다.
   assertStringIncludes(render("checkout_soon", reservation()), "바로 다음 시간에 예약하신 분이 계셔서");
 });
+
+Deno.test("퇴실 시간 안내 — 확인하지 않은 것을 확인했다고 말하지 않는다 (형운 결정 2026-08-08)", () => {
+  // 퇴실 정각에 cron이 보내는 문자라 그 시점에 손님이 나갔는지 아무도 모른다.
+  // "정상 퇴실 확인되었습니다"로 되돌리는 변경이 들어오면 여기서 먼저 깨진다.
+  for (const deposit of [true, false]) {
+    const text = render("checkout", reservation({ deposit_required: deposit }));
+    assertStringIncludes(text, "퇴실 시간입니다");
+    assertEquals(text.includes("정상 퇴실 확인되었"), false);
+  }
+
+  // 보증금 반환 조건은 미래형이고, `deposit` 문구와 **같은 말**이어야 한다.
+  const condition = "정상 퇴실 확인 후";
+  assertStringIncludes(render("checkout", reservation({ deposit_required: true })), condition);
+  assertStringIncludes(render("deposit", reservation({ deposit_required: true })), condition);
+});

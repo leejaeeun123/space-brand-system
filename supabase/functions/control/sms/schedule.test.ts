@@ -34,7 +34,7 @@ Deno.test("퇴실 15분 전 — 퇴실 시각을 넘기면 보내지 않는다",
   assertEquals(plan(RES, kst("18:01")).expired.includes("checkout_soon"), true);
 });
 
-Deno.test("퇴실 확인 — 퇴실 시각부터 1시간까지", () => {
+Deno.test("퇴실 시간 안내 — 퇴실 시각 정각부터 1시간까지", () => {
   assertEquals(plan(RES, kst("17:59")).fire.includes("checkout"), false);
   assertEquals(plan(RES, kst("18:00")).fire.includes("checkout"), true);
   assertEquals(plan(RES, kst("19:00")).fire.includes("checkout"), true);
@@ -44,7 +44,7 @@ Deno.test("퇴실 확인 — 퇴실 시각부터 1시간까지", () => {
 
 Deno.test("퇴실 직후에는 두 통이 겹치지 않는다", () => {
   // 18:00 정각 — checkout_soon은 아직 유예 안(17:45+15분)이고 checkout은 막 열렸다.
-  // 둘 다 나가면 손님이 "15분 남았어요"와 "퇴실 확인됐습니다"를 같이 받는다.
+  // 둘 다 나가면 손님이 "15분 남았어요"와 "퇴실 시간입니다"를 같이 받는다.
   // 장부가 이미 checkout_soon을 보냈다고 기록하고 있어 실제로는 한 통만 나가지만,
   // 자동발송을 퇴실 직전에 켰다면 실제로 겹칠 수 있다 — 그 사실을 여기 적어 둔다.
   const both = plan(RES, kst("18:00")).fire;
