@@ -13,6 +13,7 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { list } from "../handlers/list.ts";
 import * as events from "./events.ts";
 import { fetchWatch, saveObservation, type Watch } from "./store.ts";
+import { STALE_AFTER_SECONDS } from "../types.ts";
 
 type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
 
@@ -38,6 +39,25 @@ type DeviceList = Awaited<ReturnType<typeof list>>["devices"];
  * 찍힐 수 있다. 그만큼 뒤로 더 본다.
  */
 const CORRELATION_FLOOR_MS = 120_000;
+
+/**
+ * 이보다 긴 관측 공백은 '주기'가 아니라 '단절'로 본다.
+ *
+ * 가장 느린 정상 관측이 유휴 시간의 ThinQ 폴링(600초 = `STALE_AFTER_SECONDS`)이라 그
+ * 두 배로 잡는다 — 정상 주기로는 절대 안 걸리고, 진짜 단절은 걸린다(2026-08-08 아침
+ * 바닥 조명 두 대는 몇 시간이었다).
+ */
+const CONTACT_GAP_MS = 2 * STALE_AFTER_SECONDS * 1000;
+
+/**
+ * 기준선이 된 판독값과 이번 판독값 사이가 '못 본 구간'인가.
+ *
+ * 순수 함수로 빼 둔 이유는 이게 현장 조작 판정을 통째로 삼키는 문이기 때문이다 —
+ * DB 없이 검증된다(`observe.test.ts`).
+ */
+export function isContactGap(baselineAt: Date, readingAt: Date): boolean {
+  return readingAt.getTime() - baselineAt.getTime() > CONTACT_GAP_MS;
+}
 
 /** 명령 → 그 명령이 건드리는 축. `handlers/command.ts`의 AXIS와 같은 구분이다. */
 const AXIS: Record<string, string> = {
@@ -114,10 +134,24 @@ export async function detectOnsite(
     const temp = tempOf(d);
     const prev = watching.get(d.id);
 
+    // **이 판독값은 언제 것인가.** 틱 시각이 아니라 벤더가 그 값을 준 시각이다 — 빈 시간엔
+    // 바뀌지 않은 캐시를 여러 틱 연속으로 읽으므로 둘은 10분까지 벌어진다.
+    const readAt = d.state?.updated_at ? new Date(d.state.updated_at) : now;
+
     // 상태를 한 번도 받은 적 없는 기기는 비교 자체가 무의미하다('모름'끼리 비교하게 된다).
     const known = d.state?.never_seen === false;
 
-    if (prev?.seenAt && known) {
+    // **끊겼다 돌아온 기기는 변화로 치지 않는다.** 기준선과 이 판독값 사이가 관측 주기로
+    // 설명 안 되는 공백이면, 그 사이의 변화는 '사람이 만졌다'가 아니라 **'우리가 못 봤다'**이다.
+    // `null`을 조작으로 안 치는 것과 같은 이유다.
+    //
+    // 2026-08-08 11:34 실측: 바닥 조명 두 대가 전원 문제로 몇 시간 끊겼다 돌아오면서 자기
+    // 상태(ON)를 보고했고, 기준선(OFF)과 달라 **둘 다 '현장 조작'으로 떴다.** 아무도 안
+    // 만졌는데 만졌다고 알린 것이다.
+    const gap = prev?.seenAt && isContactGap(prev.seenAt, readAt);
+    if (gap) console.warn("관측 공백 — 변화를 조작으로 치지 않고 기준선만 갱신한다", d.id);
+
+    if (prev?.seenAt && known && !gap) {
       const changes: string[] = [];
       // `null`('모름')이 끼는 전이는 현장 조작이 아니다 — 사람이 만진 게 아니라 **우리가 못 본
       // 것**이다. ThinQ가 200을 주면서 payload만 이상해도 power가 null이 되는데, 그걸 조작으로
@@ -145,18 +179,21 @@ export async function detectOnsite(
           action: "observed",
           value: changes.join(" · "),
           status: "ok",
-          // **언제 일어났는지는 모른다 — 언제 알아챘는지만 안다.** 이벤트의 `at`은 이 틱의
-          // 시각이고, 빈 시간엔 관측이 10분에 한 번이라 실제 조작보다 한참 뒤일 수 있다.
-          // 채널에서 그게 "방금 일어난 일"로 읽히면 사람이 자기 행동과 대조하다 틀린다 —
-          // 2026-08-08에 '꺼짐 → 켜짐 (08:47)'을 보고 그 시각에 껐던 사람이 방향이 뒤집혔다고
-          // 읽었다. 표시는 맞았고, 08:47이 조작 시각이 아니라 관측 시각이었던 게 원인이다.
-          // 기준선을 뜬 시각을 함께 남겨 표에 '08:37~08:47 사이'로 찍는다.
+          // **언제 일어났는지는 모른다 — 언제 알아챘는지만 안다.** 빈 시간엔 관측이 10분에
+          // 한 번이라 실제 조작보다 한참 뒤일 수 있다. 채널에서 그게 "방금 일어난 일"로
+          // 읽히면 사람이 자기 행동과 대조하다 틀린다 — 2026-08-08에 '꺼짐 → 켜짐 (08:47)'을
+          // 보고 그 시각에 껐던 사람이 방향이 뒤집혔다고 읽었다. 표시는 맞았고, 08:47이
+          // 조작 시각이 아니라 관측 시각이었던 게 원인이다.
+          // 기준선 판독값의 시각을 함께 남겨 표에 '08:37~08:47 사이'로 찍는다.
           detail: prev.seenAt.toISOString(),
         });
       }
     }
 
-    await saveObservation(sb, d.id, power, temp, now);
+    // **틱 시각이 아니라 판독값의 시각을 기록한다.** 이게 대조 창의 시작점이며, 틱 시각을
+    // 쓰면 창이 항상 1분짜리로 좁아져 고정 120초와 똑같아진다(2026-08-08 배포 직후 실측 —
+    // `seen_at`이 6대 전부 직전 틱 시각이었고, 그래서 이 수정 전까지는 사실상 무용지물이었다).
+    await saveObservation(sb, d.id, power, temp, readAt);
   }
 
   await events.recordMany(sb, found);

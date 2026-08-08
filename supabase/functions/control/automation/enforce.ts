@@ -159,8 +159,17 @@ export async function enforceTempFloor(
  * 자동화가 현장에 있는 사람과 싸운다. 그 싸움은 사람이 진다 — 우린 1분마다 도는데 사람은
  * 손으로 눌러야 하니까. 알리는 것까지가 안전한 경계다(형운 결정, 2026-08-08).
  *
- * 같은 이유로 최근에 사람이 만진 기기는 아예 건너뛴다 — 원격이든 현장이든 방금 만졌다면
- * 켜져 있는 것은 사고가 아니라 의도다.
+ * 같은 이유로 최근에 **사람이 원격으로** 만진 기기는 건너뛴다 — 방금 눌렀다면 켜져 있는 것은
+ * 사고가 아니라 의도다.
+ *
+ * **현장 조작(`onsite`)은 면제 목록에 넣지 않는다.** 처음엔 넣었다가 바로 뺐다 —
+ * `onsite`는 사람이 만졌다는 **관측이 아니라 잔여 추론**이고, 하필 "아무도 없는데 켜져
+ * 있다"의 가장 흔한 원인이 거기로 분류된다 — 재연결·복전·벤더 글리치. 그걸 면제로 쓰면
+ * **경보가 존재하는 바로 그 상황을 경보가 스스로 막는다.**
+ *
+ * 2026-08-08 11:34 실측이 정확히 그랬다 — 바닥 조명 두 대가 끊겼다 돌아오면서 `onsite`로
+ * 잡혔고, 그 이벤트가 바로 그 기기들의 유휴 경보를 1시간 먹었다. 사람이 벽 스위치를
+ * 누른 경우에는 경보가 뜨게 되는데, 그건 맞는 동작이다 — 예약 없이 켜둔 것은 알려야 한다.
  */
 const IDLE_ALERT_QUIET_MINUTES = 60;
 const IDLE_HUMAN_GRACE_MINUTES = 60;
@@ -178,7 +187,7 @@ export async function alertIdleDevices(
     fetchActedDevices(sb, ["idle"], before(IDLE_ALERT_QUIET_MINUTES)),
     fetchActedDevices(
       sb,
-      ["remote_admin", "remote_guest", "onsite"],
+      ["remote_admin", "remote_guest"],
       before(IDLE_HUMAN_GRACE_MINUTES),
     ),
   ]);

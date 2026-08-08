@@ -128,9 +128,13 @@ export async function fetchWatch(sb: SupabaseClient): Promise<Map<string, Watch>
  * 아니다. (실제로 이렇게 유실된 사례가 확인된 건 아니고, 2026-08-08 알림 조사 중 로직에서
  * 발견한 결함이다 — 이상 응답 한 번이면 성립하므로 고쳐 둔다.)
  *
- * 같은 이유로 아무것도 못 읽은 틱은 `seen_at`도 올리지 않는다 — 이 값은 '관측을 시도한
- * 시각'이 아니라 **'지금 들고 있는 기준선을 언제 떴는가'**이고, `observe.ts`가 대조 창의
- * 시작점으로 쓴다. 그냥 올리면 창이 실제 변화 구간보다 좁아져 우리 명령을 놓친다.
+ * `seen_at`은 **이 판독값을 벤더가 준 시각**이다 — 틱 시각이 아니다. 호출부가
+ * `device_state.updated_at`을 넣어준다. 이 값이 `observe.ts` 대조 창의 시작점이라,
+ * 틱 시각을 넣으면 **창이 항상 1분짜리로 좁아져** 고정 120초와 똑같아진다.
+ * (2026-08-08 배포 직후 실측으로 발견 — 6대의 `seen_at`이 전부 직전 틱 시각이었고,
+ * 그래서 대조 창을 넓힌 수정이 사실상 무용지물이었다.)
+ *
+ * 같은 이유로 아무것도 못 읽은 틱은 아예 쓰지 않는다 — 기준선도 그 시각도 바뀌지 않았으니까.
  *
  * 한계: power와 temp가 시각 하나를 공유한다. 한쪽만 읽힌 틱에서는 다른 축의 창이 조금
  * 좁아지는데, `observe.ts`가 최소 창을 하한으로 두어 덮는다.
@@ -140,7 +144,7 @@ export async function saveObservation(
   deviceId: string,
   power: string | null,
   temp: number | null,
-  now: Date,
+  readAt: Date,
 ): Promise<void> {
   if (power === null && temp === null) return;
 
@@ -149,7 +153,7 @@ export async function saveObservation(
   // observe가 enforce보다 먼저 도는 탓에 매 틱 온도 하한 시계가 리셋돼 **5분이 영원히
   // 안 차고 하한이 통째로 죽는다.** 에러도 로그도 없는 조용한 고장이라, 규칙에 기대지 않고
   // 건드릴 컬럼만 명시하는 update로 확정한다.
-  const patch: Record<string, unknown> = { seen_at: now.toISOString() };
+  const patch: Record<string, unknown> = { seen_at: readAt.toISOString() };
   if (power !== null) patch.last_power = power;
   if (temp !== null) patch.last_temp = temp;
   const { data, error } = await sb
