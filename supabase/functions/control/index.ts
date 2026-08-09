@@ -16,6 +16,7 @@
 
 import { dbClient } from "./devices.ts";
 import { assertAllowed, resolveRole, scrubDevices, type Role } from "./auth.ts";
+import { withinReservationWindow } from "./reservation-window.ts";
 import { HandlerError } from "./handlers/shared.ts";
 import { list } from "./handlers/list.ts";
 import { issue } from "./automation/dispatch.ts";
@@ -69,6 +70,14 @@ Deno.serve(async (req) => {
   try {
     // 손님이 할 수 있는 일은 여기서 잘린다. 클라이언트에서 버튼을 감추는 것으로는 부족하다.
     assertAllowed(role, action, body);
+
+    // 손님 페이지는 예약 시간에만 연다 — URL만 알면 누구나 부를 수 있어 "언제"도 서버가
+    // 정한다(reservation-window.ts). admin은 예약 시간과 무관하게 늘 열려 있다.
+    // code는 guest-control.html이 "일반 오류"와 "지금은 예약 시간이 아님"을 구분해
+    // 안내 문구를 바꾸는 데 쓴다 — 메시지 문자열 비교는 문구가 바뀌면 조용히 깨진다.
+    if (role === "guest" && !(await withinReservationWindow(sb))) {
+      return json({ error: "지금은 예약 시간이 아니에요", code: "outside_reservation_window" }, 403);
+    }
 
     switch (action) {
       // ── 기기 제어 ──

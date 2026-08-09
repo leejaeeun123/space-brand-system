@@ -23,7 +23,7 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 | 역할 | 판정 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
 | `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 11개 action 전부 |
-| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 + `automate` (등록·해제·CCTV 제외) |
+| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 + `automate` (등록·해제·CCTV 제외), **예약 시간 안에서만** |
 
 **손님 경로에는 비밀번호가 없다.** 예전엔 `GUEST_PASSWORD`(=현관 비밀번호)로 게이트를 걸었지만,
 그 값은 사이트 루트(`guest-guide.html`)에 이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 지금은
@@ -49,14 +49,25 @@ admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의
 결정을 한 번 거치게 한다. 손님에게 닫힌 경계는 이제 명령이 아니라 **action**이다 —
 기기 등록·해제와 CCTV는 기기를 잡는 게 아니라 구성과 영상을 잡는 일이라 등급이 다르다.
 
-`ADMIN_PASSWORD` 미설정은 예전처럼 전면 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게
-낫다.
+**손님 role은 "무엇을" 뿐 아니라 "언제"도 잘린다.** `guest-control.html`은 URL만 알면
+누구나 열 수 있어, 예약 시간 밖에서도 냉난방을 켰다 껐다 할 수 있으면 다음 손님이나
+지나가던 사람이 이용 중인 손님의 기기를 건드릴 수 있다. [`reservation-window.ts`](./reservation-window.ts)가
+`reservations`에서(service_role로, 개인정보는 안 읽고 boolean만) "지금이 취소되지 않은
+예약의 `[start_time, end_time)` 구간 안인가"를 판정하고, guest의 모든 action(`list` 포함)이
+이 판정을 통과해야 한다 — `index.ts`가 `assertAllowed` 다음에 건다. admin은 이 게이트를
+거치지 않는다. 밖이면 403 + `code: "outside_reservation_window"`를 주는데, 이 `code`로
+`guest-control.html`이 "일반 오류"와 "지금은 예약 시간이 아님"을 구분해 화면을 바꾼다 —
+메시지 문자열 비교는 문구가 바뀌면 조용히 깨진다.
 
-이 파일은 이 레포에서 유일하게 테스트가 붙어 있다(`auth.test.ts`). 나머지 핸들러의 실수는
-기능이 안 되는 정도지만, 여기 실수는 조용히 열린 채로 잘 돌아간다.
+`ADMIN_PASSWORD` 미설정은 예전처럼 전면 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게
+낫다. `reservations` 조회 자체가 실패해도 같은 태도로 **false(=닫힘)로 떨어진다** — 손님에게
+반쯤 열어주는 것보다 예약 시간에 한 번 더 새로고침하게 하는 쪽이 낫다.
+
+`auth.ts`와 `reservation-window.ts` 둘 다 이 레포에서 테스트가 붙어 있다. 나머지 핸들러의
+실수는 기능이 안 되는 정도지만, 이 둘의 실수는 조용히 열린 채로 잘 돌아간다.
 
 ```bash
-deno test --allow-env supabase/functions/control/auth.test.ts
+deno test --allow-env supabase/functions/control/auth.test.ts supabase/functions/control/reservation-window.test.ts
 ```
 
 ## 설치 절차
@@ -187,6 +198,7 @@ pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000
 |---|---|
 | `index.ts` | HTTP 표면 — CORS·라우팅 |
 | `auth.ts` | 역할 판정(admin/guest) + 손님 허용 범위 |
+| `reservation-window.ts` | 손님 role의 시간 게이트 — 지금이 예약 구간 안인가 |
 | `handlers/list.ts` | 목록 조회 + ThinQ 상태 갱신(TTL 30초) |
 | `handlers/command.ts` | 명령 1건 검증·발행 |
 | `handlers/automation.ts` | 자동화 진입점 — 틱당 판정과 실행을 이어 붙임 |
@@ -245,6 +257,12 @@ CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-s
   다음 틱이 모든 변화를 현장 조작으로 본다. `below_since`만 null로 비운다.
 - **스윕이 `power = null`을 끄게 하지 말 것.** '모름'을 'ON'으로 보면 상태를 한 번도 못 받은 기기에
   10분 내내 매 틱 명령이 나간다. 퇴실 시각의 '전체 끄기'는 `schedule.ts`가 이미 한 번 보냈다.
+- **예약 시간 게이트를 클라이언트로 옮기지 말 것.** `guest-control.html`이 자기 시계로
+  "지금 예약 시간인지" 판단하게 하면 아무 방어도 안 된다 — `reservation-window.ts`가
+  service_role로 서버에서 판정해야 한다.
+- **예약 조회 실패를 "예약 있음"(=허용)으로 취급하지 말 것.** `withinReservationWindow`는
+  DB 오류든 뭐든 실패하면 반드시 `false`로 떨어져야 한다. 반대로 두면 DB가 불안정한
+  순간 예약 없는 사람에게도 냉난방이 열린다.
 
 ## 조명은 여기서 큐에만 넣는다
 

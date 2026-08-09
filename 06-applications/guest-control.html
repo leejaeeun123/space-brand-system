@@ -21,6 +21,11 @@
   서버(auth.ts)가 여전히 자른다: 목록 조회와 조명·냉난방 조작만 허용한다. 기기 등록·해제와
   CCTV는 서버가 자른다.
 
+  "언제" 열려 있는지도 서버가 정한다(reservation-window.ts) — 예약 시간 밖이면 list·command가
+  모두 403(code: outside_reservation_window)으로 막힌다. 이 페이지는 그 코드를 받으면 컨트롤을
+  숨기고 안내만 보여주되, 폴링은 멈추지 않는다 — 예약 시작 시각이 되면 손님이 새로고침하지
+  않아도 자동으로 열려야 한다.
+
   ⚠️ **admin.html의 코드를 그대로 복사해 오면 안 된다.** admin이 쓰는 비밀번호는 기기뿐 아니라
   예약자 이름·연락처를 여는 admin_* RPC까지 여는 열쇠라, 이 공개 페이지에 들어가면 개인정보가
   통째로 새어 나간다.
@@ -157,24 +162,28 @@
     <p class="sub">조명 · 냉난방</p>
   </div>
 
-  <h2>전체</h2>
-  <div class="all-row">
-    <button type="button" id="allOnBtn" onclick="allPower('power_on')">전체 켜기</button>
-    <button type="button" id="allOffBtn" onclick="allPower('power_off')">전체 끄기</button>
-  </div>
-  <div class="all-row">
-    <button type="button" id="nightModeBtn" onclick="nightMode()">나이트모드</button>
-  </div>
+  <div id="closedNotice" class="notice warn" style="display:none;"></div>
 
-  <h2>기기</h2>
-  <div id="notice" class="notice" style="display:none;"></div>
-  <div id="list"></div>
-  <button type="button" class="refresh" onclick="refreshDevices()">상태 새로고침</button>
+  <div id="mainSections">
+    <h2>전체</h2>
+    <div class="all-row">
+      <button type="button" id="allOnBtn" onclick="allPower('power_on')">전체 켜기</button>
+      <button type="button" id="allOffBtn" onclick="allPower('power_off')">전체 끄기</button>
+    </div>
+    <div class="all-row">
+      <button type="button" id="nightModeBtn" onclick="nightMode()">나이트모드</button>
+    </div>
 
-  <div class="foot">
-    <p>냉난방은 여기서 <strong>온도 · 모드 · 바람 세기</strong>까지 맞추실 수 있어요. 거울 선반 위 작은 흰색 리모컨을 쓰셔도 돼요.</p>
-    <p>조명은 명령을 보낸 뒤 실제로 반영되기까지 몇 초 걸릴 수 있어요. 바로 안 바뀌어도 잠시 기다려 주세요.</p>
-    <p>나가실 때 <strong>전체 끄기</strong>를 한 번 눌러 주시면 큰 도움이 돼요.</p>
+    <h2>기기</h2>
+    <div id="notice" class="notice" style="display:none;"></div>
+    <div id="list"></div>
+    <button type="button" class="refresh" onclick="refreshDevices()">상태 새로고침</button>
+
+    <div class="foot">
+      <p>냉난방은 여기서 <strong>온도 · 모드 · 바람 세기</strong>까지 맞추실 수 있어요. 거울 선반 위 작은 흰색 리모컨을 쓰셔도 돼요.</p>
+      <p>조명은 명령을 보낸 뒤 실제로 반영되기까지 몇 초 걸릴 수 있어요. 바로 안 바뀌어도 잠시 기다려 주세요.</p>
+      <p>나가실 때 <strong>전체 끄기</strong>를 한 번 눌러 주시면 큰 도움이 돼요.</p>
+    </div>
   </div>
 </div>
 
@@ -214,6 +223,7 @@
         if(!res.ok){
           var err = new Error(data.error || ('요청 실패 (' + res.status + ')'));
           err.status = res.status;
+          err.code = data.code;
           throw err;
         }
         return data;
@@ -223,18 +233,23 @@
 
   /* ── 초기 로드 ─────────────────────────────────────────────────────────────── */
 
-  function init(){
-    controlCall('list').then(function(data){
-      loaded = true;
-      devicesCache = data.devices || [];
-      render(data);
-      startPolling();
-    }).catch(function(err){
-      notice('연결하지 못했어요: ' + err.message, true);
-    });
+  /* 예약 시간 밖이면 서버가 list·command를 전부 403(code: outside_reservation_window)으로
+     막는다(reservation-window.ts). 컨트롤을 숨기고 안내만 보이되, 폴링은 계속 돈다 —
+     예약 시작 시각이 되면 손님이 새로고침을 누르지 않아도 자동으로 열려야 한다. */
+  function setClosed(isClosed, msg){
+    document.getElementById('mainSections').style.display = isClosed ? 'none' : '';
+    var el = document.getElementById('closedNotice');
+    el.style.display = isClosed ? 'block' : 'none';
+    if(isClosed) el.textContent = msg || '지금은 예약 시간이 아니에요.';
   }
 
-  /* 화면을 안 보고 있으면 읽지 않는다 — 손님 휴대폰 배터리와 데이터를 조용히 태울 이유가 없다. */
+  function init(){
+    startPolling();
+    refreshDevices().then(function(){ loaded = true; });
+  }
+
+  /* 화면을 안 보고 있으면 읽지 않는다 — 손님 휴대폰 배터리와 데이터를 조용히 태울 이유가 없다.
+     예약 시간 전이라도 폴링은 켜 둔다 — 그래야 시작 시각에 자동으로 열린다. */
   function startPolling(){
     stopPolling();
     pollTimer = setInterval(function(){
@@ -245,7 +260,7 @@
     if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
   }
   document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible' && loaded) refreshDevices();
+    if(document.visibilityState === 'visible') refreshDevices();
   });
 
   /* ── 목록 ─────────────────────────────────────────────────────────────────── */
@@ -259,11 +274,27 @@
 
   function refreshDevices(){
     return controlCall('list').then(function(data){
+      setClosed(false);
       devicesCache = data.devices || [];
       render(data);
     }).catch(function(err){
+      if(err.code === 'outside_reservation_window'){
+        devicesCache = [];
+        setClosed(true, err.message);
+        return;
+      }
       notice('기기 상태를 불러오지 못했어요: ' + err.message, true);
     });
+  }
+
+  /* 컨트롤 조작 중 예약 시간이 끝나버린 경우(페이지를 열어 둔 채 시간이 지남) — 명령 응답도
+     같은 코드로 막힌다. 일반 오류와 다르게 컨트롤 자체를 닫아 더 이상 누를 게 없게 한다. */
+  function handleControlError(err){
+    if(err.code === 'outside_reservation_window'){
+      setClosed(true, err.message);
+    } else {
+      notice(err.message, true);
+    }
   }
 
   function escapeHtml(s){
@@ -490,7 +521,7 @@
       .then(function(){
         return refreshDevices().then(scheduleLateRefresh);
       })
-      .catch(function(err){ notice(err.message, true); })
+      .catch(handleControlError)
       .then(function(){ el.disabled = false; });
   });
 
@@ -514,7 +545,7 @@
       .then(function(){
         return refreshDevices().then(scheduleLateRefresh);
       })
-      .catch(function(err){ notice(err.message, true); })
+      .catch(handleControlError)
       .then(function(){ el.disabled = false; });
   });
 
