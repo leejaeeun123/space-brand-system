@@ -5,3 +5,14 @@ __pycache__/
 supabase/.temp
 node_modules/
 .env
+
+# 현장 맥이 만드는 것들. 여기 없으면 `git add -A` 한 번에 개인키가 히스토리에 들어간다 —
+# 히스토리에서 키를 지우는 일은 되돌리기가 거의 불가능하다.
+auto.key
+auto.crt
+*.log
+*.bak-*
+
+# 청소 완료 QR 이미지. 토큰을 그림으로 인코딩한 것이라 커밋하면 시크릿을 커밋하는 것과 같다
+# (만드는 법은 control-setup.md L-2).
+cleaning-qr.*
