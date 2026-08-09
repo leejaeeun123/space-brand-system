@@ -9,8 +9,9 @@
  * 예약자 이름·연락처를 여는 `admin_*` RPC의 열쇠이기도 해서 인쇄된 QR에 실을 수 없다.
  * 대신 이 함수가 이미 들고 있는 service_role로 직접 쓴다(`reservation-window.ts`와 같은 방식).
  *
- * 예약에서 읽는 컬럼은 `id`·`date`·`start_time`·`end_time` 넷뿐이다. 이름·연락처는 읽지
- * 않는다 — QR은 인쇄물이라 사진으로 찍히고 스캐너 앱 기록에 남는다.
+ * 예약에서 읽는 컬럼은 `id`·`date`·`start_time`·`end_time`·`name` 다섯뿐이다. **연락처·이메일·
+ * 금액은 읽지 않는다** — 담당자가 "언제 누구 예약을 완료 처리하는가"를 대조하는 데 필요한 건
+ * 시각과 이름이고, 나머지는 QR이 인쇄물이라는 사실 앞에서 위험만 남는다.
  */
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -24,8 +25,8 @@ import {
 import { notifyCompleted, notifyCompleteFailed } from "../cleaning/notify.ts";
 import { HandlerError } from "./shared.ts";
 
-/** 판정에 필요한 것만. 이 목록이 늘어나면 QR 경로가 읽는 개인정보도 같이 늘어난다. */
-const FIELDS = "id, date, start_time, end_time";
+/** 판정과 대조에 필요한 것만. 이 목록이 늘어나면 QR 경로가 읽는 개인정보도 같이 늘어난다. */
+const FIELDS = "id, date, start_time, end_time, name";
 
 /**
  * `in` 필터 한 번에 넣는 id 수.
@@ -87,7 +88,7 @@ export async function pending(sb: SupabaseClient, now = new Date()): Promise<Com
 export async function complete(sb: SupabaseClient, now = new Date()): Promise<CompletionSummary> {
   const targets = endedBy(await fetchOutstanding(sb, now), now);
   if (targets.length === 0) {
-    await notifyCompleted(0, null, null, now);
+    await notifyCompleted(0, null, null, [], now);
     return summarize([]);
   }
 
@@ -110,6 +111,6 @@ export async function complete(sb: SupabaseClient, now = new Date()): Promise<Co
   }
 
   const result = summarize(changed);
-  await notifyCompleted(result.count, result.from, result.to, now);
+  await notifyCompleted(result.count, result.from, result.to, result.items, now);
   return result;
 }

@@ -12,6 +12,8 @@
  * 문자가 장부에 안 적히면 안 된다.
  */
 
+import type { CompletionEntry } from "./completion.ts";
+
 export type CleaningKind = "digest" | "update";
 
 export const KIND_LABEL: Record<CleaningKind, string> = {
@@ -97,18 +99,29 @@ function range(from: string | null, to: string | null): string {
 }
 
 /**
+ * 어떤 예약이 완료됐는지 한 줄씩. 화면에 뜬 목록과 **같은 것**이어야 한다 —
+ * 담당자가 본 것과 형운이 채널에서 보는 것이 다르면 대조가 안 된다.
+ */
+function lines(items: CompletionEntry[]): string {
+  return items
+    .map((e) => `${e.date} ${e.start}–${e.end}${e.crossesMidnight ? "(익일)" : ""}  ${e.name}`)
+    .join("\n");
+}
+
+/**
  * 현장 QR로 청소 완료를 표시했다.
  *
  * **0건에도 올린다.** 안 올리면 "QR이 고장났다"와 "표시할 게 없었다"가 채널에서 똑같이
  * 보인다 — 무인 운영에서 조용한 성공은 조용한 실패와 구분되지 않는다(`sweep.ts`와 같은 판단).
  *
- * 예약자 이름은 싣지 않는다. 이 경로는 예약에서 시각 네 필드만 읽고 이름을 아예 조회하지
- * 않는다(`completion.ts`) — 채널에 이름이 있으면 그걸 채우려고 다음 사람이 조회를 넓힌다.
+ * 목록을 코드 블록으로 감싸는 이유는 다이제스트와 같다 — 이름에 마크다운 문자가 들어가도
+ * 채널에서 보이는 것이 담당자가 화면에서 본 것과 어긋나지 않는다.
  */
 export function notifyCompleted(
   count: number,
   from: string | null,
   to: string | null,
+  items: CompletionEntry[],
   at: Date,
 ): Promise<void> {
   if (count === 0) {
@@ -123,6 +136,7 @@ export function notifyCompleted(
     [
       `**🧹 청소 완료 QR** · ${count}건`,
       `${range(from, to)} 예약을 청소 완료로 표시했습니다. (${kstStamp(at)} 스캔)`,
+      quote(lines(items)),
     ].join("\n"),
   );
 }

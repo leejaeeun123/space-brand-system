@@ -63,9 +63,13 @@ const GUEST_COMMANDS = new Set(["power_on", "power_off", "set_temp", "set_mode",
 /**
  * QR을 찍은 청소 담당자가 부를 수 있는 action. 이 둘이 전부다.
  *
- * `cleaning_pending`은 **건수만** 돌려준다. 예약자 이름·연락처는커녕 예약 하나하나의 시각도
- * 내리지 않는다 — 인쇄된 QR은 공개물이라 누구든 찍을 수 있고, 그게 예약 정보를 읽는 창이 되면
- * 안 된다(`scrubDevices`와 같은 태도).
+ * 돌려주는 것은 **날짜·시각·예약자 이름**까지다. 담당자가 "언제 누구 예약을 완료 처리하는가"를
+ * 아침 다이제스트 문자와 대조할 수 있어야 하기 때문이고(형운 결정, 2026-08-09), 담당자는 이미
+ * 그 문자로 이름·인원·용도를 받는 내부 인력이다(`cleaning/templates.ts`).
+ *
+ * **연락처·이메일·금액은 여전히 안 내린다.** 대조에 쓸모가 없고, 인쇄된 QR은 누구든 찍을 수
+ * 있어 안 내리면 안 새는 값이다(`scrubDevices`와 같은 태도). 서버가 예약에서 읽는 컬럼도
+ * 다섯으로 묶여 있다(`handlers/cleaning.ts`).
  */
 const CLEANER_ACTIONS = new Set(["cleaning_pending", "cleaning_complete"]);
 

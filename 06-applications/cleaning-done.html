@@ -27,10 +27,15 @@
   ⚠️ **토큰은 URL 프래그먼트(`#t=...`)에 있다.** 쿼리스트링(`?t=`)에 두면 Vercel 접속 로그와
   리퍼러에 남는다. 프래그먼트는 브라우저 밖으로 나가지 않는다.
 
-  ⚠️ **어드민 비밀번호를 여기 넣지 않는다.** 그 값은 예약자 이름·연락처를 여는 admin_* RPC의
-  열쇠이기도 하다. 인쇄물은 사진으로 찍히고 스캐너 앱 기록에 남으므로, 전용 시크릿
-  (`CLEANING_TOKEN`)만 싣는다. 이 토큰으로 할 수 있는 일은 서버(auth.ts)가 둘로 자른다 —
-  건수 조회와 완료 표시. 예약자 이름은 응답에 아예 담기지 않는다.
+  ⚠️ **어드민 비밀번호를 여기 넣지 않는다.** 그 값은 예약자 이름·연락처·이메일·금액을 통째로
+  여는 admin_* RPC의 열쇠이기도 하다. 인쇄물은 사진으로 찍히고 스캐너 앱 기록에 남으므로,
+  전용 시크릿(`CLEANING_TOKEN`)만 싣는다. 이 토큰으로 할 수 있는 일은 서버(auth.ts)가 둘로
+  자른다 — 목록 조회와 완료 표시.
+
+  화면에 나오는 것은 **날짜·시각·이름**뿐이다. 담당자가 "언제 누구 예약을 완료 처리하는가"를
+  아침에 받은 다이제스트 문자와 대조할 수 있어야 해서 이름을 싣지만(형운 결정, 2026-08-09),
+  **연락처·이메일·금액은 서버가 아예 읽지 않는다**(`handlers/cleaning.ts`의 FIELDS). 대조에
+  쓸모가 없고, QR이 인쇄물이라는 사실 앞에서는 위험만 남는다.
 
   화면 토큰은 03-identity/design-tokens.md가 정본이고 이 파일이 따라온다.
 -->
@@ -62,22 +67,38 @@
     padding:32px 20px 48px;
   }
   .wrap{width:100%;max-width:420px;}
-  header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding-bottom:18px;margin-bottom:28px;border-bottom:1px solid var(--hair);
-  }
-  .brand{font-size:13px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;}
+
+  /* 로고는 레이어드 E 워드마크 단독이다(03-identity/logo-system.md — 심볼 없음).
+     guest-guide·guest-control과 같은 마크업을 쓴다 — 이 레포는 빌드 단계가 없어
+     각 HTML이 단독 배포물이라 공유 파일 대신 같은 조각을 복사한다. */
+  .hero{text-align:center;padding:40px 0 26px;}
+  .hero .wordmark{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;}
+  .eIcon{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:.08em;}
+  .hero .sub{font-size:15px;color:var(--mute);margin-top:10px;}
+
   .theme-btn{
+    position:absolute;top:20px;right:20px;
     background:none;border:1px solid var(--hair);border-radius:999px;
     color:var(--ink);font-family:inherit;font-size:12px;padding:6px 12px;cursor:pointer;
   }
-  h1{font-size:26px;font-weight:600;line-height:1.35;margin-bottom:10px;}
+  h1{font-size:22px;font-weight:600;line-height:1.35;margin-bottom:10px;}
   .lead{font-size:15px;line-height:1.7;color:var(--mute);}
   .count{
-    font-size:56px;font-weight:600;line-height:1.1;margin:28px 0 6px;color:var(--orange);
+    font-size:56px;font-weight:600;line-height:1.1;margin:26px 0 4px;color:var(--orange);
   }
   .count small{font-size:20px;font-weight:400;color:var(--ink);margin-left:4px;}
-  .range{font-size:14px;color:var(--mute);margin-bottom:28px;}
+  .range{font-size:14px;color:var(--mute);margin-bottom:20px;}
+
+  /* 담당자가 아침에 받은 문자와 나란히 놓고 대조하는 목록이다. 순서도 문자와 같다. */
+  .list{border-top:1px solid var(--hair);margin-bottom:26px;}
+  .item{
+    display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    padding:12px 2px;border-bottom:1px solid var(--hair);
+  }
+  .item .when{font-size:14px;font-variant-numeric:tabular-nums;}
+  .item .when .day{color:var(--mute);margin-right:6px;}
+  .item .when .next{color:var(--orange);font-size:12px;margin-left:4px;}
+  .item .who{font-size:15px;font-weight:600;text-align:right;}
   button.action{
     width:100%;padding:18px;border:none;border-radius:14px;
     background:var(--orange);color:#fff;
@@ -94,22 +115,23 @@
 </style>
 </head>
 <body>
+<button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="다크 모드로 전환">테마</button>
+
 <div class="wrap">
-  <header>
-    <span class="brand">Type Lounge</span>
-    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="다크 모드로 전환">테마</button>
-  </header>
+  <div class="hero">
+    <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
+    <p class="sub">청소 완료</p>
+  </div>
 
   <div id="loading">
-    <h1>청소 완료</h1>
     <p class="lead">확인 중이에요…</p>
   </div>
 
   <div id="ready" class="hidden">
-    <h1>청소 완료로 표시할까요?</h1>
-    <p class="lead">지금까지 이용이 끝난 예약이에요.</p>
+    <h1>아래 예약을 청소 완료로 표시할까요?</h1>
     <div class="count"><span id="pendingCount">0</span><small>건</small></div>
     <div class="range" id="pendingRange"></div>
+    <div class="list" id="pendingList"></div>
     <button class="action" id="confirmBtn" onclick="submit()">완료로 표시하기</button>
     <p class="note">누르면 위 예약이 전부 청소 완료로 기록되고 알림이 갑니다. 아직 이용 중인
       예약은 포함되지 않아요.</p>
@@ -126,6 +148,7 @@
       <h2><span id="doneCount">0</span>건 청소 완료</h2>
       <p class="lead" id="doneRange"></p>
     </div>
+    <div class="list" id="doneList"></div>
     <p class="note">고생하셨습니다. 이 화면은 닫으셔도 됩니다.</p>
   </div>
 
@@ -200,6 +223,44 @@
     return from === to ? from : (from + ' ~ ' + to);
   }
 
+  /* '2026-08-09' → '8/9'. 담당자가 아침에 받은 문자와 같은 줄을 눈으로 찾는 용도라
+     연도까지 적으면 오히려 읽는 데 방해가 된다 — 연도는 위 날짜 범위에 이미 있다. */
+  function dayText(date){
+    var p = (date || '').split('-');
+    return p.length === 3 ? (Number(p[1]) + '/' + Number(p[2])) : date;
+  }
+
+  /* 예약자 이름은 남이 준 값이라 innerHTML로 넣지 않는다 — textContent로만 붙인다. */
+  function renderList(el, items){
+    el.textContent = '';
+    (items || []).forEach(function(it){
+      var row = document.createElement('div');
+      row.className = 'item';
+
+      var when = document.createElement('div');
+      when.className = 'when';
+      var day = document.createElement('span');
+      day.className = 'day';
+      day.textContent = dayText(it.date);
+      when.appendChild(day);
+      when.appendChild(document.createTextNode(it.start + '–' + it.end));
+      if(it.crossesMidnight){
+        var next = document.createElement('span');
+        next.className = 'next';
+        next.textContent = '익일';
+        when.appendChild(next);
+      }
+
+      var who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = it.name || '';
+
+      row.appendChild(when);
+      row.appendChild(who);
+      el.appendChild(row);
+    });
+  }
+
   function submit(){
     var btn = document.getElementById('confirmBtn');
     btn.disabled = true;
@@ -207,6 +268,7 @@
     controlCall('cleaning_complete').then(function(data){
       document.getElementById('doneCount').textContent = data.count;
       document.getElementById('doneRange').textContent = rangeText(data.from, data.to);
+      renderList(document.getElementById('doneList'), data.items);
       show('result');
     }).catch(function(err){
       fail(err.message);
@@ -220,6 +282,7 @@
       if(data.count === 0){ show('empty'); return; }
       document.getElementById('pendingCount').textContent = data.count;
       document.getElementById('pendingRange').textContent = rangeText(data.from, data.to);
+      renderList(document.getElementById('pendingList'), data.items);
       show('ready');
     }).catch(function(err){
       fail(err.message);

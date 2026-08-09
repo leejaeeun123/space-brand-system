@@ -14,8 +14,8 @@ import { type CompletableReservation, endedBy, summarize } from "./completion.ts
 
 const DAY = "2026-08-09";
 
-function res(id: string, start: string, end: string, date = DAY): CompletableReservation {
-  return { id, date, start_time: start, end_time: end };
+function res(id: string, start: string, end: string, date = DAY, name = "홍길동"): CompletableReservation {
+  return { id, date, start_time: start, end_time: end, name };
 }
 
 /** KST 벽시계 → Date. 런타임 타임존과 무관하게 같은 순간을 가리킨다. */
@@ -74,17 +74,48 @@ Deno.test("요약 — 건수와 날짜 범위", () => {
     res("a", "10:00:00", "12:00:00", "2026-07-30"),
     res("c", "10:00:00", "12:00:00", "2026-08-09"),
   ];
-  assertEquals(summarize(list), { count: 3, from: "2026-07-30", to: "2026-08-09" });
+  const s = summarize(list);
+  assertEquals(s.count, 3);
+  assertEquals(s.from, "2026-07-30");
+  assertEquals(s.to, "2026-08-09");
 });
 
 Deno.test("0건 요약은 날짜가 없다 — 없는 범위를 지어내지 않는다", () => {
-  assertEquals(summarize([]), { count: 0, from: null, to: null });
+  assertEquals(summarize([]), { count: 0, from: null, to: null, items: [] });
 });
 
 Deno.test("1건이면 시작과 끝이 같다", () => {
-  assertEquals(summarize([res("a", "10:00:00", "12:00:00")]), {
-    count: 1,
-    from: DAY,
-    to: DAY,
+  const s = summarize([res("a", "10:00:00", "12:00:00")]);
+  assertEquals(s.count, 1);
+  assertEquals(s.from, DAY);
+  assertEquals(s.to, DAY);
+});
+
+Deno.test("목록은 날짜·시작 시각 순이다 — 아침 문자와 나란히 놓고 대조한다", () => {
+  const list = [
+    res("late", "18:00:00", "20:00:00", DAY, "박수현"),
+    res("yesterday", "13:00:00", "15:00:00", "2026-08-08", "이서준"),
+    res("early", "09:00:00", "11:00:00", DAY, "김민지"),
+  ];
+  assertEquals(summarize(list).items.map((e) => e.id), ["yesterday", "early", "late"]);
+});
+
+Deno.test("한 줄에 담기는 것 — 날짜·시각·이름, 그리고 그것뿐", () => {
+  const s = summarize([res("a", "14:00:00", "17:00:00", DAY, "김민지")]);
+  assertEquals(s.items[0], {
+    id: "a",
+    date: DAY,
+    start: "14:00",
+    end: "17:00",
+    crossesMidnight: false,
+    name: "김민지",
   });
+});
+
+Deno.test("자정을 넘기면 표시로 남는다 — 22:00–02:00을 거꾸로 읽지 않게", () => {
+  const overnight = summarize([res("a", "22:00:00", "02:00:00")]).items[0];
+  assertEquals(overnight.crossesMidnight, true);
+  assertEquals(overnight.end, "02:00");
+  // 자정 정각 종료도 다음 날이다 — #41과 같은 자리.
+  assertEquals(summarize([res("b", "18:00:00", "00:00:00")]).items[0].crossesMidnight, true);
 });
