@@ -52,6 +52,62 @@ Deno.test("역할 판정", () => {
   });
 });
 
+Deno.test("청소 토큰이 맞으면 cleaner다", () => {
+  withEnv({ ADMIN_PASSWORD: "adminpw", CLEANING_TOKEN: "qrtoken" }, () => {
+    assertEquals(resolveRole("", "qrtoken"), "cleaner");
+    // 틀린 토큰은 guest로 낮추지 않는다 — 담당자가 옛 QR을 찍었을 때 "아무 일도 안
+    // 일어남"이 아니라 401로 보여야 QR을 다시 뽑아야 한다는 걸 안다.
+    assertEquals(resolveRole("", "틀린토큰"), null);
+  });
+});
+
+Deno.test("CLEANING_TOKEN 미설정이면 어떤 토큰도 통과하지 못한다", () => {
+  withEnv({ ADMIN_PASSWORD: "adminpw", CLEANING_TOKEN: null }, () => {
+    // 빈 문자열끼리 맞아떨어져 우연히 열리면, 시크릿을 안 넣은 상태가
+    // '아직 안 씀'이 아니라 '누구나 청소 완료'가 된다.
+    assertEquals(resolveRole("", "아무거나"), null);
+    // 토큰을 안 보낸 요청은 여전히 손님이다 — 손님 페이지가 같이 죽으면 안 된다.
+    assertEquals(resolveRole(""), "guest");
+  });
+});
+
+Deno.test("비밀번호 계약은 토큰이 생겨도 그대로다", () => {
+  withEnv({ ADMIN_PASSWORD: "adminpw", CLEANING_TOKEN: "qrtoken" }, () => {
+    // 비밀번호를 보낸 요청은 토큰을 보든 말든 비밀번호로 판정이 끝난다.
+    // 안 그러면 admin.html의 오타가 다른 역할로 새어 나갈 길이 생긴다.
+    assertEquals(resolveRole("틀린값", "qrtoken"), null);
+    assertEquals(resolveRole("adminpw", "틀린토큰"), "admin");
+  });
+});
+
+Deno.test("청소 담당자는 청소 완료 표시만 할 수 있다", () => {
+  assertAllowed("cleaner", "cleaning_pending", {});
+  assertAllowed("cleaner", "cleaning_complete", {});
+
+  // QR은 인쇄물이라 누구든 찍을 수 있다. 기기 제어도, 예약 정보도, CCTV도 열리면 안 된다.
+  for (
+    const action of [
+      "list",
+      "command",
+      "automate",
+      "delete",
+      "register",
+      "cameras",
+      "camera_credentials",
+      "sms_preview",
+      "sms_send",
+    ]
+  ) {
+    assertThrows(() => assertAllowed("cleaner", action, {}), HandlerError, "청소 완료 표시만");
+  }
+});
+
+Deno.test("손님은 청소 완료를 표시할 수 없다", () => {
+  for (const action of ["cleaning_pending", "cleaning_complete"]) {
+    assertThrows(() => assertAllowed("guest", action, {}), HandlerError, "조명·냉난방");
+  }
+});
+
 Deno.test("손님은 목록 조회와 냉난방 제어 다섯 가지를 할 수 있다", () => {
   assertAllowed("guest", "list", {});
   for (const command of ["power_on", "power_off", "set_temp", "set_mode", "set_wind"]) {

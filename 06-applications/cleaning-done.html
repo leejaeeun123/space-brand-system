@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>TYPE LOUNGE — 청소 완료</title>
+<meta name="robots" content="noindex">
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<!--
+  청소 담당자가 현장에 붙은 QR을 찍으면 열리는 페이지. 찍은 시각 이전에 끝난 예약을 전부
+  청소 완료로 표시한다(어드민의 청소 체크와 같은 컬럼 — `reservations.cleaning_done`).
+
+  ⚠️ **QR을 찍는 것만으로는 아무것도 바뀌지 않는다.** 이 페이지는 먼저 건수만 물어보고
+  (`cleaning_pending`), 사람이 버튼을 눌러야 표시한다(`cleaning_complete`). 이유가 둘이다:
+    · QR 스캐너 앱과 메신저는 링크를 미리 열어보는 일이 있다. 여는 것만으로 장부가 바뀌면
+      담당자가 찍지도 않은 청소가 완료로 적힌다.
+    · 첫 스캔은 밀린 예약이 통째로 잡힐 수 있다. 누르기 전에 숫자를 보여줘야 이상하면 멈춘다.
+
+  ⚠️ **토큰은 URL 프래그먼트(`#t=...`)에 있다.** 쿼리스트링(`?t=`)에 두면 Vercel 접속 로그와
+  리퍼러에 남는다. 프래그먼트는 브라우저 밖으로 나가지 않는다.
+
+  ⚠️ **어드민 비밀번호를 여기 넣지 않는다.** 그 값은 예약자 이름·연락처를 여는 admin_* RPC의
+  열쇠이기도 하다. 인쇄물은 사진으로 찍히고 스캐너 앱 기록에 남으므로, 전용 시크릿
+  (`CLEANING_TOKEN`)만 싣는다. 이 토큰으로 할 수 있는 일은 서버(auth.ts)가 둘로 자른다 —
+  건수 조회와 완료 표시. 예약자 이름은 응답에 아예 담기지 않는다.
+
+  화면 토큰은 03-identity/design-tokens.md가 정본이고 이 파일이 따라온다.
+-->
+<style>
+  :root{
+    --ink:#16130F;
+    --white:#ffffff;
+    --orange:#E2531E;
+    --hair: rgba(22,19,15,.12);
+    --mute:#6b665c;
+  }
+  :root[data-theme="dark"]{
+    --ink:#F2EDE6;
+    --white:#16130F;
+    --hair: rgba(242,237,230,.14);
+    --mute:#A39D90;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  html, body{overflow-x:hidden;max-width:100%;}
+  body{
+    font-family:'Paperlogy', sans-serif;
+    background:var(--white);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 20px 48px;
+  }
+  .wrap{width:100%;max-width:420px;}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding-bottom:18px;margin-bottom:28px;border-bottom:1px solid var(--hair);
+  }
+  .brand{font-size:13px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;}
+  .theme-btn{
+    background:none;border:1px solid var(--hair);border-radius:999px;
+    color:var(--ink);font-family:inherit;font-size:12px;padding:6px 12px;cursor:pointer;
+  }
+  h1{font-size:26px;font-weight:600;line-height:1.35;margin-bottom:10px;}
+  .lead{font-size:15px;line-height:1.7;color:var(--mute);}
+  .count{
+    font-size:56px;font-weight:600;line-height:1.1;margin:28px 0 6px;color:var(--orange);
+  }
+  .count small{font-size:20px;font-weight:400;color:var(--ink);margin-left:4px;}
+  .range{font-size:14px;color:var(--mute);margin-bottom:28px;}
+  button.action{
+    width:100%;padding:18px;border:none;border-radius:14px;
+    background:var(--orange);color:#fff;
+    font-family:inherit;font-size:17px;font-weight:600;cursor:pointer;
+  }
+  button.action:disabled{opacity:.45;cursor:default;}
+  .note{font-size:13px;line-height:1.7;color:var(--mute);margin-top:22px;}
+  .done{
+    border:1px solid var(--hair);border-radius:14px;padding:22px;margin-top:4px;
+  }
+  .done h2{font-size:19px;font-weight:600;margin-bottom:8px;}
+  .error{color:var(--orange);font-size:15px;line-height:1.7;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="brand">Type Lounge</span>
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="다크 모드로 전환">테마</button>
+  </header>
+
+  <div id="loading">
+    <h1>청소 완료</h1>
+    <p class="lead">확인 중이에요…</p>
+  </div>
+
+  <div id="ready" class="hidden">
+    <h1>청소 완료로 표시할까요?</h1>
+    <p class="lead">지금까지 이용이 끝난 예약이에요.</p>
+    <div class="count"><span id="pendingCount">0</span><small>건</small></div>
+    <div class="range" id="pendingRange"></div>
+    <button class="action" id="confirmBtn" onclick="submit()">완료로 표시하기</button>
+    <p class="note">누르면 위 예약이 전부 청소 완료로 기록되고 알림이 갑니다. 아직 이용 중인
+      예약은 포함되지 않아요.</p>
+  </div>
+
+  <div id="empty" class="hidden">
+    <h1>표시할 예약이 없어요</h1>
+    <p class="lead">이용이 끝난 예약이 모두 이미 청소 완료로 되어 있습니다. 그대로 두셔도 돼요.</p>
+  </div>
+
+  <div id="result" class="hidden">
+    <h1>기록했습니다</h1>
+    <div class="done">
+      <h2><span id="doneCount">0</span>건 청소 완료</h2>
+      <p class="lead" id="doneRange"></p>
+    </div>
+    <p class="note">고생하셨습니다. 이 화면은 닫으셔도 됩니다.</p>
+  </div>
+
+  <div id="failed" class="hidden">
+    <h1>문제가 생겼어요</h1>
+    <p class="error" id="errorText"></p>
+    <p class="note">다시 시도해도 같으면 형운(010-4810-9142)에게 알려 주세요.</p>
+  </div>
+</div>
+
+<script>
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
+
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    try{ localStorage.setItem('theme', t); }catch(e){}
+    document.getElementById('themeToggle').setAttribute('aria-label', t === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환');
+  }
+  function toggleTheme(){ applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); }
+  applyTheme(currentTheme());
+
+  /* 토큰은 프래그먼트에서만 읽는다 — 쿼리스트링은 서버 접속 로그에 남는다. */
+  function readToken(){
+    var hash = (location.hash || '').replace(/^#/, '');
+    var parts = hash.split('&');
+    for(var i = 0; i < parts.length; i++){
+      var kv = parts[i].split('=');
+      if(kv[0] === 't' && kv[1]) return decodeURIComponent(kv[1]);
+    }
+    return '';
+  }
+
+  var token = readToken();
+
+  function show(id){
+    ['loading', 'ready', 'empty', 'result', 'failed'].forEach(function(name){
+      document.getElementById(name).classList.toggle('hidden', name !== id);
+    });
+  }
+
+  function fail(msg){
+    document.getElementById('errorText').textContent = msg;
+    show('failed');
+  }
+
+  function controlCall(action){
+    return fetch(CONTROL_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, token: token })
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if(!res.ok){
+          /* 서버는 토큰이 안 맞으면 admin 비밀번호와 같은 401 본문("invalid password")을
+             준다. 그 문구를 그대로 보여주면 비밀번호를 가진 적도 없는 담당자가 영문
+             메시지를 읽게 된다. 서버 응답은 admin.html이 의존하므로 건드리지 않고
+             여기서 갈아 끼운다. */
+          if(res.status === 401) throw new Error('이 QR은 더 이상 쓸 수 없어요. 현장에 새로 붙은 QR로 찍어 주세요.');
+          if(res.status === 403) throw new Error('이 QR로는 할 수 없는 일이에요. 형운에게 알려 주세요.');
+          throw new Error(data.error || ('요청 실패 (' + res.status + ')'));
+        }
+        return data;
+      });
+    });
+  }
+
+  function rangeText(from, to){
+    if(!from || !to) return '';
+    return from === to ? from : (from + ' ~ ' + to);
+  }
+
+  function submit(){
+    var btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = '기록 중…';
+    controlCall('cleaning_complete').then(function(data){
+      document.getElementById('doneCount').textContent = data.count;
+      document.getElementById('doneRange').textContent = rangeText(data.from, data.to);
+      show('result');
+    }).catch(function(err){
+      fail(err.message);
+    });
+  }
+
+  if(!token){
+    fail('주소가 올바르지 않아요. 현장에 붙은 QR을 다시 찍어 주세요.');
+  } else {
+    controlCall('cleaning_pending').then(function(data){
+      if(data.count === 0){ show('empty'); return; }
+      document.getElementById('pendingCount').textContent = data.count;
+      document.getElementById('pendingRange').textContent = rangeText(data.from, data.to);
+      show('ready');
+    }).catch(function(err){
+      fail(err.message);
+    });
+  }
+</script>
+</body>
+</html>

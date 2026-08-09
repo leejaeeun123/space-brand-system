@@ -18,12 +18,13 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 다르게 간 이유는 위험의 등급이 다르기 때문이다: 예약은 읽혀도 정보가 새는 정도지만, 기기 제어는
 소스만 본 사람이 **손님 이용 중에 냉난방을 끌 수 있다**.
 
-## 부르는 쪽이 둘이다 — 그래서 권한도 둘이다
+## 부르는 쪽이 셋이다 — 그래서 권한도 셋이다
 
 | 역할 | 판정 | 부르는 화면 | 할 수 있는 일 |
 |---|---|---|---|
-| `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 11개 action 전부 |
-| `guest` | `password`를 아예 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 + `automate` (등록·해제·CCTV 제외), **예약 시간 안에서만** |
+| `admin` | `password`가 `ADMIN_PASSWORD`와 일치 | `admin.html` | 17개 action 전부 |
+| `guest` | `password`·`token` 둘 다 안 보냄 | `guest-control.html` (`/control`) | `list` + `command` 5종 + `automate` (등록·해제·CCTV 제외), **예약 시간 안에서만** |
+| `cleaner` | `token`이 `CLEANING_TOKEN`과 일치 | `cleaning-done.html` (`/cleaning`) | `cleaning_pending` + `cleaning_complete` 둘뿐 |
 
 **손님 경로에는 비밀번호가 없다.** 예전엔 `GUEST_PASSWORD`(=현관 비밀번호)로 게이트를 걸었지만,
 그 값은 사이트 루트(`guest-guide.html`)에 이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 지금은
@@ -58,6 +59,21 @@ admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의
 거치지 않는다. 밖이면 403 + `code: "outside_reservation_window"`를 주는데, 이 `code`로
 `guest-control.html`이 "일반 오류"와 "지금은 예약 시간이 아님"을 구분해 화면을 바꾼다 —
 메시지 문자열 비교는 문구가 바뀌면 조용히 깨진다.
+
+**청소 담당자는 비밀번호가 아니라 전용 토큰으로 판정한다.** 현장에 붙는 QR에 admin 비밀번호를
+실으면 인쇄물 한 장이 예약자 이름·연락처를 여는 열쇠가 된다 — 그 인쇄물은 사진으로 찍히고
+스캐너 앱 기록에도 남는다. 그래서 `CLEANING_TOKEN`이라는 별도 시크릿을 두고, 그 값은 QR의
+**URL 프래그먼트**(`/cleaning#t=...`)에만 있다. 쿼리스트링(`?t=`)이 아닌 이유는 프래그먼트가
+Vercel 접속 로그와 리퍼러 헤더에 남지 않아서다.
+
+자격증명을 `password`에 겸용하지 않는 것도 의도다. 판정 순서가 곧 계약이라
+[`auth.ts`](./auth.ts)는 `password`를 먼저 끝까지 처리한다 — 뭔가 보냈는데 admin과 안 맞으면
+토큰을 보든 말든 401이다. 섞으면 `admin.html`의 오타가 다른 역할로 새어 나갈 길이 생긴다.
+`CLEANING_TOKEN`이 아예 없으면 **어떤 토큰도 통과하지 못한다**. 빈 문자열끼리 맞아떨어져
+열리면 '시크릿을 아직 안 넣은 상태'가 '누구나 청소 완료'가 된다.
+
+cleaner는 예약 시간 게이트를 **타지 않는다.** 청소는 정의상 예약과 예약 **사이**에 하는
+일이라, 게이트를 걸면 이 기능은 100% 실패한다.
 
 `ADMIN_PASSWORD` 미설정은 예전처럼 전면 거부(503)다 — 무인증 제어로 열리는 것보다 닫혀 있는 게
 낫다. `reservations` 조회 자체가 실패해도 같은 태도로 **false(=닫힘)로 떨어진다** — 손님에게
@@ -197,8 +213,10 @@ pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000
 | 파일 | 책임 |
 |---|---|
 | `index.ts` | HTTP 표면 — CORS·라우팅 |
-| `auth.ts` | 역할 판정(admin/guest) + 손님 허용 범위 |
+| `auth.ts` | 역할 판정(admin/guest/cleaner) + 역할별 허용 범위 |
 | `reservation-window.ts` | 손님 role의 시간 게이트 — 지금이 예약 구간 안인가 |
+| `handlers/cleaning.ts` | 현장 QR로 청소 완료 표시 — 조회·일괄 갱신·알림 |
+| `cleaning/completion.ts` | 순수 판정 — 어떤 예약이 스캔 시각 전에 끝났나 |
 | `handlers/list.ts` | 목록 조회 + ThinQ 상태 갱신(TTL 30초) |
 | `handlers/command.ts` | 명령 1건 검증·발행 |
 | `handlers/automation.ts` | 자동화 진입점 — 틱당 판정과 실행을 이어 붙임 |
@@ -223,10 +241,22 @@ pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000
 | `types.ts` | 공유 타입 |
 | `tasmota/topics.ts` | 조명 MQTT 토픽 문법 + 기기 ID 검증 |
 
-action은 11개다. **그중 손님이 부를 수 있는 건 3개**(`list` · `command` · `automate`)뿐이다.
+action은 17개다. **그중 손님이 부를 수 있는 건 3개**(`list` · `command` · `automate`)뿐이고,
+청소 QR로 부를 수 있는 건 2개뿐이다.
 
 - 기기 제어 7개: `list` · `thinq_devices` · `register` · `register_light` · `command` · `delete` · `automate`
+- 손님 안내 문자 4개: `sms_preview` · `sms_send` · `sms_mark_manual` · `sms_auto`
 - CCTV 4개: `cameras` · `camera_credentials` · `camera_register` · `camera_delete`
+- 청소 2개: `cleaning_pending`(읽기) · `cleaning_complete`(쓰기)
+
+**청소는 읽기와 쓰기를 나눠 뒀다.** QR 스캐너 앱과 메신저는 링크를 미리 열어보는 일이 있어,
+페이지를 여는 것만으로 장부가 바뀌면 담당자가 찍지도 않은 청소가 완료로 적힌다. 그래서
+`cleaning_pending`으로 건수만 보여주고 사람이 버튼을 눌러야 `cleaning_complete`가 나간다.
+첫 스캔은 밀린 예약이 통째로 잡힐 수 있어, 그 숫자를 **누르기 전에** 보여주는 것도 같은 장치다.
+
+응답에는 **건수와 날짜 범위만** 담는다. 인쇄된 QR은 누구든 찍을 수 있으므로 이 경로가 예약자
+이름·연락처를 읽는 창이 되면 안 된다 — 예약에서 읽는 컬럼도 `id`·`date`·`start_time`·`end_time`
+넷뿐이다.
 
 CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-setup.md)에 있다.
 
@@ -260,6 +290,16 @@ CCTV 설치는 [`06-applications/cctv-setup.md`](../../../06-applications/cctv-s
 - **예약 시간 게이트를 클라이언트로 옮기지 말 것.** `guest-control.html`이 자기 시계로
   "지금 예약 시간인지" 판단하게 하면 아무 방어도 안 된다 — `reservation-window.ts`가
   service_role로 서버에서 판정해야 한다.
+- **청소 QR에 admin 비밀번호를 싣지 말 것.** 그 값은 예약자 이름·연락처를 여는 `admin_*` RPC의
+  열쇠이기도 하다. 인쇄물은 사진으로 찍히고 스캐너 앱 기록에 남는다 — `CLEANING_TOKEN`만 싣고,
+  그것도 쿼리스트링이 아니라 **프래그먼트**에 둔다(쿼리는 접속 로그·리퍼러에 남는다).
+- **청소 완료 대상을 `date`·`end_time` 문자열 비교로 고르지 말 것.** 자정을 넘기는
+  예약(22:00~02:00)이 00:30 스캔에 '이미 끝난 것'으로 잡혀, 손님이 안에 있는데 청소가 끝났다고
+  적힌다. 반드시 `endTime()`을 통한다 — #41이 같은 함정이었다.
+- **`cleaning_complete`를 GET으로 열지 말 것.** 스캐너 앱과 메신저는 링크를 미리 열어본다.
+  찍는 것만으로 장부가 바뀌면 담당자가 하지 않은 청소가 완료로 기록된다.
+- **`cleaner`에게 예약 시간 게이트를 걸지 말 것.** 청소는 정의상 예약과 예약 **사이**에 하는
+  일이라, 게이트를 걸면 이 기능은 100% 실패한다.
 - **예약 조회 실패를 "예약 있음"(=허용)으로 취급하지 말 것.** `withinReservationWindow`는
   DB 오류든 뭐든 실패하면 반드시 `false`로 떨어져야 한다. 반대로 두면 DB가 불안정한
   순간 예약 없는 사람에게도 냉난방이 열린다.

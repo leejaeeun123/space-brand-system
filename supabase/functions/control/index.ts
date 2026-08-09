@@ -29,6 +29,7 @@ import {
   removeCamera,
 } from "./handlers/cameras.ts";
 import { markManualSent, preview, sendOne, setAuto } from "./handlers/sms.ts";
+import { complete, pending } from "./handlers/cleaning.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -55,9 +56,10 @@ Deno.serve(async (req) => {
   }
 
   // 비밀번호가 설정 안 된 상태로 열어두면 무인증 제어가 된다. 열지 않는다(auth.ts).
+  // `token`은 현장 QR 전용 자격증명이다 — 비밀번호와 겸용하지 않는다(auth.ts 참고).
   let role: Role;
   try {
-    const resolved = resolveRole(String(body.password ?? ""));
+    const resolved = resolveRole(String(body.password ?? ""), String(body.token ?? ""));
     if (!resolved) return json({ error: "invalid password" }, 401);
     role = resolved;
   } catch (e) {
@@ -110,6 +112,14 @@ Deno.serve(async (req) => {
         return json(await markManualSent(sb, body));
       case "sms_auto":
         return json(await setAuto(sb, body));
+
+      // ── 현장 QR로 표시하는 청소 완료. cleaner 전용이지만 admin도 부를 수 있다.
+      //    읽기(`cleaning_pending`)와 쓰기(`cleaning_complete`)를 나눈 것은 스캐너 앱·메신저가
+      //    링크를 미리 열어보는 일이 있어서다 — 찍는 것만으로 장부가 바뀌면 안 된다. ──
+      case "cleaning_pending":
+        return json(await pending(sb));
+      case "cleaning_complete":
+        return json(await complete(sb));
 
       // ── CCTV. 영상은 여기를 지나가지 않는다 — 목록·자격증명만 다룬다. ──
       case "cameras":

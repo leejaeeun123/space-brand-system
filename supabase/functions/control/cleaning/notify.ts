@@ -84,3 +84,63 @@ export function notifyQuiet(kind: CleaningKind, body: string): Promise<void> {
     ].join("\n"),
   );
 }
+
+/** 'YYYY-MM-DD HH:MM' (KST). 채널을 읽는 사람의 시계와 같은 값이어야 한다. */
+function kstStamp(at: Date): string {
+  const kst = new Date(at.getTime() + 9 * 60 * 60 * 1000).toISOString();
+  return `${kst.slice(0, 10)} ${kst.slice(11, 16)}`;
+}
+
+function range(from: string | null, to: string | null): string {
+  if (!from || !to) return "";
+  return from === to ? from : `${from} ~ ${to}`;
+}
+
+/**
+ * 현장 QR로 청소 완료를 표시했다.
+ *
+ * **0건에도 올린다.** 안 올리면 "QR이 고장났다"와 "표시할 게 없었다"가 채널에서 똑같이
+ * 보인다 — 무인 운영에서 조용한 성공은 조용한 실패와 구분되지 않는다(`sweep.ts`와 같은 판단).
+ *
+ * 예약자 이름은 싣지 않는다. 이 경로는 예약에서 시각 네 필드만 읽고 이름을 아예 조회하지
+ * 않는다(`completion.ts`) — 채널에 이름이 있으면 그걸 채우려고 다음 사람이 조회를 넓힌다.
+ */
+export function notifyCompleted(
+  count: number,
+  from: string | null,
+  to: string | null,
+  at: Date,
+): Promise<void> {
+  if (count === 0) {
+    return post(
+      [
+        "**🧹 청소 완료 QR — 표시할 예약이 없었습니다**",
+        `끝난 예약이 모두 이미 완료 상태입니다. (${kstStamp(at)} 스캔)`,
+      ].join("\n"),
+    );
+  }
+  return post(
+    [
+      `**🧹 청소 완료 QR** · ${count}건`,
+      `${range(from, to)} 예약을 청소 완료로 표시했습니다. (${kstStamp(at)} 스캔)`,
+    ].join("\n"),
+  );
+}
+
+/**
+ * 표시하다 실패했다.
+ *
+ * 여기에는 **몇 건까지 됐는지**를 반드시 싣는다. 담당자는 이미 자리를 떴고, 형운이 어드민에서
+ * 나머지를 손으로 채워야 하는데 '어디까지 됐나'를 모르면 전부 다시 봐야 한다.
+ */
+export function notifyCompleteFailed(done: number, error: string, at: Date): Promise<void> {
+  return post(
+    [
+      "**⚠️ 청소 완료 QR 실패**",
+      `사유: ${error}`,
+      `이미 표시된 것: ${done}건 (${kstStamp(at)} 스캔)`,
+      "",
+      "나머지는 어드민에서 손으로 표시해야 합니다.",
+    ].join("\n"),
+  );
+}

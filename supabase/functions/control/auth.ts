@@ -15,11 +15,17 @@
  * 이 판정이 **서버에 있어야 하는 이유**도 같다 — `guest-control.html`도 소스가 그대로
  * 공개되므로, 클라이언트에서 버튼을 감추는 것은 아무것도 막지 못한다.
  * 누구나 `fetch`로 `delete`·`camera_credentials`를 직접 부를 수 있다.
+ *
+ * 세 번째 경로가 `cleaner`다 — 현장에 붙은 QR을 찍은 청소 담당자. **비밀번호가 아니라
+ * 별도 시크릿(`CLEANING_TOKEN`)으로 판정한다.** admin 비밀번호를 QR에 넣으면 인쇄물 한 장이
+ * 예약자 이름·연락처를 여는 열쇠가 되고, 그 인쇄물은 사진으로 찍히고 스캐너 앱 기록에 남는다.
+ * 자격증명을 `password`에 겸용하지 않는 이유는 또 있다 — 그러면 "뭔가 보냈는데 admin과 안
+ * 맞으면 401"이라는 위 규칙이 흐려진다.
  */
 
 import { HandlerError } from "./handlers/shared.ts";
 
-export type Role = "admin" | "guest";
+export type Role = "admin" | "guest" | "cleaner";
 
 /** 손님이 부를 수 있는 action. 등록·해제·CCTV는 여기 없다.
  *
@@ -55,26 +61,76 @@ const GUEST_ACTIONS = new Set(["list", "command", "automate"]);
 const GUEST_COMMANDS = new Set(["power_on", "power_off", "set_temp", "set_mode", "set_wind"]);
 
 /**
- * 비밀번호 → 역할. admin과 맞으면 `admin`, 아예 안 보냈으면 `guest`,
- * 뭔가 보냈는데 admin과 안 맞으면 `null`(=401).
+ * QR을 찍은 청소 담당자가 부를 수 있는 action. 이 둘이 전부다.
+ *
+ * `cleaning_pending`은 **건수만** 돌려준다. 예약자 이름·연락처는커녕 예약 하나하나의 시각도
+ * 내리지 않는다 — 인쇄된 QR은 공개물이라 누구든 찍을 수 있고, 그게 예약 정보를 읽는 창이 되면
+ * 안 된다(`scrubDevices`와 같은 태도).
+ */
+const CLEANER_ACTIONS = new Set(["cleaning_pending", "cleaning_complete"]);
+
+/**
+ * 길이가 같은 두 문자열을 상수 시간에 비교한다.
+ *
+ * admin 비밀번호에는 안 쓴다 — 그 값은 `admin_*` SQL 함수에서도 평문 `<>`로 비교되므로
+ * 여기 한 곳만 상수 시간으로 만들어봐야 실제로 막히는 게 없다. 반면 `CLEANING_TOKEN`은
+ * 이 파일이 유일한 검증 지점이라 여기서 지키면 그게 전부다.
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
+/**
+ * 자격증명 → 역할. admin과 맞으면 `admin`, 청소 토큰과 맞으면 `cleaner`,
+ * 아무것도 안 보냈으면 `guest`, 뭔가 보냈는데 안 맞으면 `null`(=401).
+ *
+ * **판정 순서가 곧 계약이다.** `password`를 먼저 끝까지 처리해서 "뭔가 보냈는데 admin과 안
+ * 맞으면 401"을 그대로 남긴다. 토큰은 비밀번호를 아예 안 보낸 요청에서만 본다 — 둘을 섞으면
+ * admin.html의 오타가 알 수 없는 403으로 보이기 시작한다.
+ *
+ * `CLEANING_TOKEN` 미설정이면 **어떤 토큰도 통과하지 못한다.** 빈 문자열끼리 맞아떨어져
+ * 우연히 열리는 일이 없어야 한다 — 시크릿을 안 넣은 상태는 '누구나 청소 완료'가 아니라
+ * '아직 안 씀'이다.
  *
  * `ADMIN_PASSWORD` 미설정은 예전과 같이 **전면 거부**다(503). 무인증 제어로 열리는 것보다
  * 닫혀 있는 게 낫다.
  */
-export function resolveRole(supplied: string): Role | null {
+export function resolveRole(supplied: string, token = ""): Role | null {
   const admin = Deno.env.get("ADMIN_PASSWORD");
   if (!admin) {
     console.error("ADMIN_PASSWORD 미설정 — 모든 요청을 거부합니다");
     throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
   if (supplied === admin) return "admin";
-  if (supplied === "") return "guest";
-  return null;
+  if (supplied !== "") return null;
+
+  if (token !== "") {
+    const expected = Deno.env.get("CLEANING_TOKEN") ?? "";
+    if (expected === "") {
+      console.error("CLEANING_TOKEN 미설정 — 청소 QR 요청을 거부합니다");
+      return null;
+    }
+    return constantTimeEqual(token, expected) ? "cleaner" : null;
+  }
+  return "guest";
 }
 
-/** 손님이 허용 범위를 벗어난 요청을 보내면 403. admin은 그대로 통과한다. */
+/** 허용 범위를 벗어난 요청은 403. admin은 그대로 통과한다. */
 export function assertAllowed(role: Role, action: string, body: Record<string, unknown>): void {
-  if (role !== "guest") return;
+  if (role === "admin") return;
+
+  if (role === "cleaner") {
+    if (!CLEANER_ACTIONS.has(action)) {
+      throw new HandlerError(403, "이 QR로는 청소 완료 표시만 할 수 있어요");
+    }
+    return;
+  }
 
   const denied = new HandlerError(403, "이 페이지에서는 조명·냉난방 조작만 할 수 있어요");
   if (!GUEST_ACTIONS.has(action)) throw denied;
