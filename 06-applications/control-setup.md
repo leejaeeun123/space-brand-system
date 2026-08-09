@@ -21,6 +21,19 @@
 > 절차를 섞지 않았다 — 영상은 서버를 지나가지 않아서 경로가 통째로 다르고, 무엇보다 카메라는
 > **법·고지가 선행**이라 순서가 뒤엉키면 안 된다.
 
+> ⚠️ **`public/`(→ `typelounge.vercel.app`)은 GitHub 자동 배포가 아니다.** main에 머지·push해도
+> 사이트엔 반영되지 않는다 — 이 프로젝트는 **`vercel --prod`를 수동으로 돌려야** 배포된다
+> (2026-08-09 확인: PR을 4개 연달아 머지했는데 사이트는 그대로였다. `vercel inspect`로 봐도
+> 배포에 git 커밋 메타데이터가 없어 GitHub 연동이 아님을 확인했다). `supabase/functions/`
+> (Edge Function)는 별개로 `supabase functions deploy control`이 필요하다 — 이것도 자동이 아니다.
+> HTML·서버 코드를 고친 뒤에는 **둘 다** 잊지 않는다.
+
+```bash
+cd <이 레포>
+vercel --prod --yes        # public/ → typelounge.vercel.app
+supabase functions deploy control   # Edge Function (필요할 때만)
+```
+
 ---
 
 ## A. 냉난방
@@ -547,8 +560,10 @@ npx -y qrcode -t png -w 1200 -e H -d 16130Fff -l ffffffff -o cleaning-qr.png \
 
 ```bash
 supabase functions deploy control
-# 페이지는 public/cleaning.html 심링크로 이미 배포된다 (git push → Vercel)
+vercel --prod --yes
 ```
+
+**`git push`만으로는 페이지가 안 올라간다** — 위 안내 참조. 함수와 페이지 둘 다 돌린다.
 
 ### L-4. 확인
 
