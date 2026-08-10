@@ -1610,6 +1610,9 @@
       rows += '<dt>예약번호</dt><dd>' + (p.booking_no ? escapeHtml(p.booking_no) : '—') + '</dd>';
       rows += '<dt>청구 금액</dt><dd>' + won(p.amount) + '</dd>';
       rows += '<dt>지급 예정</dt><dd>' + won(calc.net) + ' <span class="dev-note">(3.3% ' + won(calc.tax) + ' 공제)</span></dd>';
+      /* 신청자의 자기보고다 — '확인됨'이 아니라 '남겼다고 함'으로 적는다. 실제 리뷰는 판매
+         채널에서 사람이 대조해야 하는데, 둘을 같은 말로 쓰면 대조를 건너뛰게 된다. */
+      rows += '<dt>리뷰</dt><dd>' + (p.review_confirmed_at ? '남겼다고 확인함' : '<span class="dev-warn">확인 없음</span>') + '</dd>';
       rows += '<dt>연락처</dt><dd>' + escapeHtml(p.phone || '') + '</dd>';
       rows += '<dt>이메일</dt><dd>' + escapeHtml(p.email || '') + '</dd>';
       rows += '<dt>예금주</dt><dd>' + escapeHtml(p.bank || '') + ' · ' + escapeHtml(p.account_holder || '') + '</dd>';

@@ -20,6 +20,8 @@ export interface Claim {
   accountHolder: string;
   account: string;
   rrn: string;
+  /** 리뷰를 남겼다고 확인했는가. 지급 조건이라 항상 true지만, 값을 들고 다니는 이유는 store가 시각을 찍기 위해서다. */
+  reviewDone: true;
 }
 
 export type Validated =
@@ -109,6 +111,12 @@ export function validate(body: Record<string, unknown>): Validated {
     return { ok: false, error: "개인정보 수집·이용에 동의해 주세요" };
   }
 
+  // 리뷰 확인도 서버가 자른다. 체크박스는 화면 장치라 `fetch`로는 그냥 빠진다 —
+  // 동의를 `=== true`로 보는 것과 같은 이유다(문자열 "false"도 truthy다).
+  if (body.reviewDone !== true) {
+    return { ok: false, error: "리뷰를 남기셨는지 확인해 주세요" };
+  }
+
   if (!name) return { ok: false, error: "이름을 입력해 주세요" };
   if (!phone) return { ok: false, error: "연락처를 입력해 주세요" };
   if ((phone.match(/\d/g) ?? []).length < 9) {
@@ -164,6 +172,7 @@ export function validate(body: Record<string, unknown>): Validated {
       accountHolder,
       account,
       rrn,
+      reviewDone: true,
     },
   };
 }

@@ -224,6 +224,19 @@
       <p class="calc-note">원 단위는 실제 지급 시 조정될 수 있어요.</p>
     </div>
 
+    <!-- 리뷰 확인. 캡처 이미지는 받지 않기로 했다(형운, 2026-08-10) — 신청자의 확인만 받고
+         실제 리뷰는 판매 채널에서 사람이 대조한다. 그쪽이 더 가볍고 정확하다. -->
+    <div class="consent" style="margin:0 0 18px;">
+      <label class="check-row" for="reviewDone" style="margin-top:0;">
+        <input type="checkbox" id="reviewDone" required>
+        <span>이용 후 리뷰를 남겼습니다</span>
+      </label>
+      <p class="refuse" style="margin-top:10px;">
+        지원금은 <strong>리뷰를 남기신 분께</strong> 드려요. 예약하셨던 채널에서 확인하므로,
+        아직 안 남기셨다면 먼저 남기고 신청해 주세요.
+      </p>
+    </div>
+
     <h2>받으실 계좌</h2>
 
     <div class="field row2">
@@ -374,6 +387,7 @@
     if(!val('accountHolder')) return '예금주를 입력해 주세요';
     if(!val('account')) return '계좌번호를 입력해 주세요';
     if(digits(val('rrn')).length !== 13) return '주민등록번호 13자리를 입력해 주세요';
+    if(!document.getElementById('reviewDone').checked) return '리뷰를 남기셨는지 확인해 주세요';
     if(!document.getElementById('consent').checked) return '개인정보 수집·이용에 동의해 주세요';
     return null;
   }
@@ -406,6 +420,7 @@
         account: val('account'),
         rrn: val('rrn'),
         website: val('website'),
+        reviewDone: document.getElementById('reviewDone').checked,
         consent: document.getElementById('consent').checked
       })
     }).then(function(res){

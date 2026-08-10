@@ -46,6 +46,8 @@ export async function insert(sb: SupabaseClient, c: Claim, at: Date): Promise<nu
       rrn_enc: rrnEnc,
       rrn_masked: maskRrn(c.rrn),
       consented_at: at.toISOString(),
+      // 신청자가 보낸 시각이 아니라 접수 시각이다 — 동의 기록과 같은 이유로 우리가 아는 시각이어야 한다.
+      review_confirmed_at: c.reviewDone ? at.toISOString() : null,
     })
     .select("id")
     .single();

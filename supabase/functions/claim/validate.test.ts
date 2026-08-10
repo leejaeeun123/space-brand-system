@@ -19,8 +19,22 @@ const FULL = {
   accountHolder: "홍길동",
   account: "123456-78-901234",
   rrn: "990101-1234567",
+  reviewDone: true,
   consent: true,
 };
+
+Deno.test("리뷰 확인 없이는 통과하지 못한다 — 체크박스는 fetch로 그냥 빠진다", () => {
+  assertEquals(validate({ ...FULL, reviewDone: undefined }).ok, false);
+  assertEquals(validate({ ...FULL, reviewDone: false }).ok, false);
+  // 문자열 "false"도 truthy라, `=== true`가 아니면 여기서 새어 나간다.
+  assertEquals(validate({ ...FULL, reviewDone: "false" }).ok, false);
+});
+
+Deno.test("리뷰를 확인하면 그 사실이 값에 실린다", () => {
+  const r = validate({ ...FULL });
+  if (!r.ok || "spam" in r) throw new Error("통과했어야 한다");
+  assertEquals(r.value.reviewDone, true);
+});
 
 Deno.test("정상 신청을 통과시키고 값을 정리한다", () => {
   const r = validate({ ...FULL });
