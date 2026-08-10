@@ -522,9 +522,9 @@ iPhone UA  → 400  {"error":"HLS on iOS requires the server to set and read coo
 
 | 항목 | 값 |
 |---|---|
-| 위치 | Cloudflare 대시보드 → `nmwc.ai.kr` → Rules → **Transform Rules** → *Modify Request Header* |
+| 위치 | Cloudflare 대시보드 → `nmwc.ai.kr` → Rules → **Create rule** → *Request Header Transform Rule* |
 | 이름 | `cam: strip iOS UA` |
-| 조건 | `Hostname` **equals** `cam.nmwc.ai.kr` |
+| 조건 | *Custom filter expression* → `Hostname` **equals** `cam.nmwc.ai.kr` |
 | 동작 | **Set static** — Header name `User-Agent`, Value `TypeLounge-Viewer/1.0` |
 
 Free 플랜에 포함되고 Workers가 아니라 **요청 한도가 없다.** 세그먼트 요청이 초당 여러 건이라
@@ -538,6 +538,18 @@ curl -s -o /dev/null -w '%{http_code}\n' -A "$IOS" -H "Authorization: Basic <...
   https://cam.nmwc.ai.kr/office/index.m3u8?cookieCheck=1
 # 적용 전 400 → 적용 후 200 이어야 한다
 ```
+
+**2026-08-10 적용 완료.** 규칙을 넣은 직후 같은 명령으로 확인했다:
+
+| | 적용 전 | 적용 후 |
+|---|---|---|
+| iPhone UA · `index.m3u8?cookieCheck=1` | 400 | **200** |
+| iPhone UA · 리다이렉트까지 따라가기 | — | **200** (리다이렉트 1회) |
+| 카메라 3대 · 마스터 → 하위 → 세그먼트 | — | **전부 200** (180~280KB, 0.24~0.41s) |
+| iPhone UA · **인증 없이** | 401 | **401** (보안 회귀 없음) |
+
+> 이 규칙이 꺼지거나 지워지면 **iPhone에서만** 영상이 400으로 죽는다. PC는 멀쩡해서
+> 눈치채기 어렵다 — iPhone 제보가 오면 여기부터 본다.
 
 > **어드민에 `?cookieCheck=1`을 붙이는 우회는 하지 마라.** 그날 한 번 넣었다가 걷어냈다 —
 > 302를 건너뛰게 만들어 **Set-Cookie를 받을 기회마저 없애서** 오히려 나빠진다.
