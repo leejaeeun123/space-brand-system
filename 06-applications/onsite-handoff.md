@@ -8,6 +8,107 @@
 
 작성: 2026-08-03 · 서버 쪽 작업은 다른 맥에서 이미 끝냈다.
 
+> ⚠️ **아래 본문(1~9절)은 2026-08-03 시점이라 지금과 다른 대목이 있다** — 터널도 카메라도
+> 그 뒤 올라갔다. 오늘 밟을 건 바로 아래 0절이다.
+
+---
+
+## 0. 지금 밟을 것 (2026-08-10 추가)
+
+원격에서 고칠 수 있는 건 다 끝났다(어드민 재연결 · 배포 트리거). **이 셋은 현장 맥이어야 한다.**
+절차는 `cctv-setup.md`에 있다 — 여기서는 순서와 이유만 말한다.
+
+### 0-0. 먼저 상태를 본다
+
+붙여넣으면 아래 두 단계에 필요한 값이 전부 나온다.
+
+```bash
+cd ~/Dev/space-brand-system && git pull --ff-only
+
+echo "── 에이전트"
+launchctl print gui/$(id -u)/kr.nmwc.typelounge.control-agent 2>/dev/null | grep -E "state = |pid = "
+grep -E "^MEDIAMTX" 06-applications/control-agent/.env || echo "  ⚠️ MEDIAMTX 항목이 없다"
+
+echo "── MediaMTX 설정"
+grep -E "recordPath|hlsSegment|recordDeleteAfter" "$(brew --prefix)/etc/mediamtx.yml"
+
+echo "── 스트림 상태 (tracks에 오디오가 섞이면 위법이다)"
+curl -s http://127.0.0.1:9997/v3/paths/list | python3 -c "import json,sys
+for p in json.load(sys.stdin).get('items',[]):
+    print('  ', p['name'], 'ready' if p['ready'] else '⚠️ NOT ready', p.get('tracks'))"
+
+echo "── 디스크"; df -h "$(brew --prefix)" | tail -1
+```
+
+### 0-1. 녹화 감시가 죽어 있다 — **제일 급하다**
+
+`camera_state` 테이블이 8/8 카메라 등록 이후 **0행**이다(2026-08-10 확인). 같은 에이전트의
+조명·냉난방 보고(`device_state`)는 멀쩡하니, 프로세스는 살아 있고 **카메라 관찰자만 시작조차
+안 됐다.** `.env`의 `MEDIAMTX_RECORD_DIR`이 비어 있으면 정확히 이 상태가 된다 — 카메라를 안 단
+상태에서 조명까지 멈추지 않으려고 조용히 건너뛰는 설계다(`control-agent/src/cameras.js`).
+
+그래서 **지금은 녹화가 멈춰도 아무도 모른다.** 보관기간 약속의 근거가 없는 상태다.
+
+```bash
+cd ~/Dev/space-brand-system/06-applications/control-agent
+# 0-0이 출력한 recordPath에서 '/%path' 앞부분을 그대로 넣는다. 두 값이 어긋나면
+# 파일을 엉뚱한 곳에서 찾아 '녹화 안 됨'으로 잘못 뜬다.
+#   예: recordPath: /Users/xxx/typelounge-recordings/%path/%Y-...
+#       → MEDIAMTX_RECORD_DIR=/Users/xxx/typelounge-recordings
+open -e .env
+
+launchctl kickstart -k gui/$(id -u)/kr.nmwc.typelounge.control-agent
+tail -f agent.log     # "[camera] 카메라 3대 관찰 시작" 이 떠야 한다
+```
+
+`MEDIAMTX_API_URL`은 안 채워도 된다 — 기본값 `http://127.0.0.1:9997`이 이미 맞다.
+
+- [ ] `agent.log`에 `[camera] 카메라 3대 관찰 시작`
+- [ ] 어드민 카드에서 `아직 보고를 받은 적 없음`이 사라지고 `녹화 중 · 남은 용량`이 뜬다
+
+### 0-2. 세그먼트를 4초로 — 끊김 빈도를 실제로 줄이는 유일한 레버
+
+터널이 Cloudflare LAX를 타서 왕복이 0.73~0.94초다(`cctv-setup.md` "터널이 태평양을 두 번
+건너는 문제"). 1초 세그먼트로는 받는 데 드는 시간이 재생 시간보다 길다.
+
+```bash
+# hlsSegmentDuration: 1s → 4s  (hlsSegmentCount: 7 은 그대로 둔다)
+open -e "$(brew --prefix)/etc/mediamtx.yml"
+brew services restart mediamtx
+```
+
+요청 수가 1/4이 되고 라이브 윈도우가 7초 → 28초로 늘어 지터에도 강해진다. 대가는 지연이
+몇 초 느는 것뿐이라 감시 용도엔 문제가 안 된다. **녹화 화질·용량은 안 변한다** —
+`recordPartDuration`·`recordSegmentDuration`은 별개 설정이다.
+
+- [ ] 어드민에서 세 카드가 다 나온다
+- [ ] 10분쯤 두고 봤을 때 예전보다 덜 끊긴다
+
+### 0-3. 재연결을 실기기로 확인 — 아직 아무도 못 봤다
+
+어드민 재연결은 로직 테스트(CI 17개)만 통과했고 **실제 스트림으로는 확인 못 했다.**
+
+```bash
+# 터널을 어떻게 띄웠는지에 따라 끄는 법이 다르다. 먼저 확인한다.
+ls /Library/LaunchDaemons/ | grep -i cloudflare     # sudo cloudflared service install 로 깔았으면 여기
+brew services list | grep -i cloudflared            # brew 로 띄웠으면 여기
+
+# 어드민 CCTV 화면을 열어둔 채로 위에서 나온 쪽을 끈다. 예:
+sudo launchctl bootout system/<위에서 나온 라벨>
+#   → 카드에 "... · 재연결 중" 이 뜨고 백오프가 늘어나는지 본다
+sudo launchctl bootstrap system /Library/LaunchDaemons/<그 plist>
+#   → 새로고침 없이 저절로 돌아와야 한다
+```
+
+> 터널을 끄는 게 부담스러우면 **Wi-Fi를 20초쯤 껐다 켜는 것**으로도 같은 경로를 밟는다.
+> 다만 그 사이 조명 MQTT도 같이 끊기니 손님이 없을 때 한다.
+
+- [ ] 끊는 순간 `재연결 중`이 뜬다
+- [ ] **터널을 올리면 새로고침 없이 영상이 돌아온다** ← 이게 이번 수정의 핵심이다
+- [ ] 오래 끊어두면 `연결 실패 — 15초마다 다시 시도해요`로 내려가고, 올리면 15초 안에 붙는다
+
+결과는 `cctv-setup.md`의 "어드민이 끊김에서 돌아오는 방식" 절 마지막 인용구를 지우고 적는다.
+
 ---
 
 ## 1. 지금 상태
