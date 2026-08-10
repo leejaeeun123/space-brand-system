@@ -408,7 +408,7 @@ Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다�
 | 로컬은 되는데 외부에서 안 된다 | 터널. `cloudflared` 로그와 DNS 라우팅(C-6) |
 | 자격증명 없이도 보인다 | **즉시 멈춘다.** `mediamtx.yml`의 `<스트림계정>` 자리가 안 채워졌다 |
 | 카드는 뜨는데 영상만 안 나온다 | 스트림 이름 오타(C-9). `paths` 키와 대조 |
-| 크롬은 되는데 **iPhone 사파리만** 안 된다 | **CDN 차단이 아니다**(2026-08-10에 그렇게 오진했다). 아래 "사파리만 302에서 죽는 이유"를 읽는다. `index.m3u8` 뒤에 `?cookieCheck=1`이 붙어 있는지부터 본다 |
+| 크롬은 되는데 **iPhone 사파리만** 안 된다 | **CDN 차단이 아니다**(2026-08-10에 그렇게 오진했다). 아래 "iPhone만 400으로 죽는 이유"를 읽는다. `?debug=1`을 붙여 열면 카드에 `http=400`이 보인다 — 그러면 Cloudflare Transform Rule이 빠졌거나 꺼진 것이다 |
 | **세 대 다 화면이 안 나온다** (카드는 `연결됨`) | 오디오를 떼는 **ffmpeg 재발행이 죽은 것**이다. 아래 "카메라 오디오를 떼는 재발행"을 본다. `curl -s localhost:9997/v3/paths/list`에서 `ready: false`면 확정이다 |
 | `녹화 안 됨` 인데 화면은 나온다 | **정상적인 경고다.** 디스크가 찼거나 `<녹화경로>` 권한. `df -h` |
 | `아직 보고를 받은 적 없음` | 에이전트가 CCTV 설정을 못 읽었다(C-8) |
@@ -492,26 +492,56 @@ for p in json.load(sys.stdin).get('items',[]): print(' ', p['name'], p['ready'],
 > 시스템 설정 > 개인정보 보호 및 보안 > 로컬 네트워크 목록에 ffmpeg 항목이 아예 없어
 > 토글로도 못 푼다. `.app` 번들로 감싸 TCC 항목을 만드는 우회가 남아 있다.
 
-### 사파리만 302에서 죽는 이유 (2026-08-10)
+### iPhone만 400으로 죽는 이유 — UA를 덮어써서 푼다 (2026-08-10)
 
-PC 크롬은 멀쩡한데 iPhone 사파리에서만 `영상 연결 실패`가 떴다.
+PC 크롬 ✅ · **맥 사파리 ✅** · iPhone 사파리 ❌. 맥 사파리가 멀쩡한 게 결정적이었다 —
+WebKit 문제도, 리다이렉트 문제도 아니라는 뜻이다.
 
-MediaMTX v1.18이 HLS에 세션 쿠키 검사를 넣으면서 `index.m3u8` 최초 요청이 `?cookieCheck=1`로
-302 리다이렉트된다. 어드민 요청은 `Authorization` 헤더 때문에 프리플라이트가 필요한데,
-**사파리는 프리플라이트가 필요한 요청이 리다이렉트되면 그대로 실패시킨다.** 크롬은 리다이렉트
-뒤에 프리플라이트를 다시 해서 진행한다 — 그래서 같은 코드가 한쪽에서만 깨졌다.
+원인은 MediaMTX가 **iOS User-Agent에만** 쿠키를 요구하는 것이다:
 
-쿠키를 넘기는 방향은 답이 아니다. **서버는 쿠키를 요구하지 않는다** — 쿠키를 하나도 안 보내는
-교차 출처 `fetch`가 플레이리스트와 세그먼트까지 전부 200으로 통과하는 것을 확인했다.
-그래서 어드민이 쿼리를 처음부터 붙여 **리다이렉트 자체를 만들지 않는다**(`admin.html` `attachLive`).
-
-```
-index.m3u8                 → 302
-index.m3u8?cookieCheck=1   → 200 (리다이렉트 없음)
+```go
+// internal/servers/hls/http_server.go
+if _, err := ctx.Request.Cookie("cookieCheck"); err != nil && isIOS(ctx.Request.UserAgent()) {
+    s.writeErrorNoLog(ctx, http.StatusBadRequest,
+        fmt.Errorf("HLS on iOS requires the server to set and read cookies"))
 ```
 
-MediaMTX 내부 구현에 기댄 우회다. **업그레이드하면 위 두 줄을 다시 재본다** — 302가 사라졌으면
-쿼리를 떼도 되고, 형태가 바뀌었으면 어드민도 같이 고쳐야 한다.
+같은 요청을 **UA만 바꿔서** 보내면 갈린다(터널 경유 실측):
+
+```
+iPhone UA  → 400  {"error":"HLS on iOS requires the server to set and read cookies"}
+그 밖의 UA → 200
+```
+
+그런데 브라우저가 그 쿠키를 보낼 방법이 없다. hls.js의 XHR은 `withCredentials=false`가 기본이라
+교차 사이트 쿠키를 주고받지 않고, 켜려 해도 **MediaMTX는 `Access-Control-Allow-Credentials`를
+어떤 경로에서도 보내지 않는다**(소스 확인). 어드민(`typelounge.vercel.app`)과 스트림
+(`cam.nmwc.ai.kr`)이 다른 사이트인 한 **클라이언트 코드로는 못 푼다.**
+
+그래서 **Cloudflare Transform Rule에서 UA를 덮어쓴다.** 검사 자체가 성립하지 않게 만드는 것이다.
+
+| 항목 | 값 |
+|---|---|
+| 위치 | Cloudflare 대시보드 → `nmwc.ai.kr` → Rules → **Transform Rules** → *Modify Request Header* |
+| 이름 | `cam: strip iOS UA` |
+| 조건 | `Hostname` **equals** `cam.nmwc.ai.kr` |
+| 동작 | **Set static** — Header name `User-Agent`, Value `TypeLounge-Viewer/1.0` |
+
+Free 플랜에 포함되고 Workers가 아니라 **요청 한도가 없다.** 세그먼트 요청이 초당 여러 건이라
+Workers 무료 한도(10만/일)로는 아슬아슬한데, Transform Rule에는 그 제약이 없다.
+
+적용 뒤 **iPhone 없이 검증된다** — UA를 흉내내 400이 200으로 바뀌는지 보면 된다:
+
+```bash
+IOS="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+curl -s -o /dev/null -w '%{http_code}\n' -A "$IOS" -H "Authorization: Basic <...>" \
+  https://cam.nmwc.ai.kr/office/index.m3u8?cookieCheck=1
+# 적용 전 400 → 적용 후 200 이어야 한다
+```
+
+> **어드민에 `?cookieCheck=1`을 붙이는 우회는 하지 마라.** 그날 한 번 넣었다가 걷어냈다 —
+> 302를 건너뛰게 만들어 **Set-Cookie를 받을 기회마저 없애서** 오히려 나빠진다.
+> `admin.html`의 `attachLive` 주석에 그 오진 기록을 남겨뒀다.
 
 ### 터널이 태평양을 두 번 건너는 문제 (2026-08-10 실측)
 
