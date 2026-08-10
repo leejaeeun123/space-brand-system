@@ -1,4 +1,4 @@
-# 공간 제어 Edge Function 검증.
+# 공간 제어 Edge Function + 어드민 재연결 검증.
 #
 # **이 레포에서 자동으로 도는 유일한 검증이다.** 그전엔 워크플로가 `deploy.yml` 하나였고
 # 그건 `public/**`와 HTML 세 개만 트리거라, `supabase/functions` 아래 코드는 테스트가
@@ -8,21 +8,25 @@
 # 배포는 여전히 수동이다(`supabase functions deploy control`). 여기서 하지 않는 이유는
 # 배포에 필요한 액세스 토큰을 레포 시크릿에 넣는 결정이 아직 안 됐기 때문이다.
 
-name: control 함수 검증
+name: 자동 검증
 
 on:
   push:
     branches: [main]
     paths:
       - "supabase/**"
+      - "06-applications/admin.html"
+      - "06-applications/admin-retry.test.js"
       - ".github/workflows/test.yml"
   pull_request:
     paths:
       - "supabase/**"
+      - "06-applications/admin.html"
+      - "06-applications/admin-retry.test.js"
       - ".github/workflows/test.yml"
 
 jobs:
-  test:
+  control:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,3 +46,20 @@ jobs:
       # --allow-env: 테스트는 순수 함수만 다루지만, 모듈이 로드되며 Deno.env를 읽는 경로가 있다.
       - name: 테스트
         run: deno test --allow-env
+
+  # admin.html의 CCTV 재연결 상태머신. 빌드 단계가 없는 단일 HTML이라 테스트가 함수 본문을
+  # 잘라내 돌린다 — 구조가 바뀌면 추출이 실패하며 죽는다(조용히 통과하지 않는다).
+  #
+  # 이 로직을 굳이 CI에 올린 이유는 틀렸을 때의 증상이 조용해서다. 재연결이 깨지면 카드가
+  # 검은 화면으로 남을 뿐 아무 데도 오류가 안 뜨고, 알아차리는 건 대개 영상이 필요해진 뒤다.
+  admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # --allow-read: admin.html을 읽어 함수를 떼어낸다.
+      - name: 어드민 재연결 테스트
+        run: deno test --allow-read 06-applications/admin-retry.test.js

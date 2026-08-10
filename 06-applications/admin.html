@@ -1708,6 +1708,8 @@
     players: {},          // hls.js 인스턴스 (재생 불가 브라우저에서는 비어 있다)
     attached: {},         // 붙이기를 시도한 카메라. players와 달리 실패한 것도 포함한다
     errors: {}, ids: '', spans: [], spanPath: '',
+    retries: {},          // 카메라별 연속 재연결 횟수. 화면이 들어오면 0으로 되돌린다
+    timers: {},           // 예약된 재연결. destroyCamPlayers에서 반드시 같이 끈다
     objectUrl: null,      // 되감기 blob. 새로 받을 때마다 이전 것을 반드시 해제한다
   };
 
@@ -1762,6 +1764,10 @@
   }
 
   function destroyCamPlayers(){
+    // 예약된 재연결부터 끊는다. 남겨두면 화면을 떠난 뒤에 되살아나 스트림이 다시 흐른다.
+    Object.keys(CAM.timers).forEach(function(id){ clearTimeout(CAM.timers[id]); });
+    CAM.timers = {};
+    CAM.retries = {};
     Object.keys(CAM.players).forEach(function(id){
       try { CAM.players[id].destroy(); } catch(e){ /* 이미 정리됨 */ }
     });
@@ -1880,6 +1886,45 @@
     cams.forEach(paintCameraMeta);
   }
 
+  /* ── 재연결 ──────────────────────────────────────────────────────────────────
+     hls.js의 fatal은 '자체 재시도를 이미 다 썼다'는 뜻이지 '영구 장애'가 아니다. 예전에는
+     여기서 오류 문구만 칠하고 끝냈는데, CAM.attached가 true로 남아 renderCameras가 다시
+     붙이지 않았다 — 즉 **순간 끊김 하나가 새로고침 전까지 검은 화면으로 굳었다.**
+     '자꾸 끊긴다'의 정체가 이것이다. 끊김이 잦은 게 아니라 한 번 끊기면 안 돌아왔다.
+
+     끊김 자체는 여기서 못 없앤다. 터널이 Cloudflare LAX(로스앤젤레스) 엣지를 타서
+     서울 → LA → 서울로 왕복 0.7~0.9초다(2026-08-10 실측, cctv-setup.md '막혔을 때').
+     이 코드가 맡는 일은 끊김을 없애는 게 아니라 **되돌아오게** 만드는 것뿐이다. */
+  var CAM_RETRY_MAX = 6;
+
+  /** 1s → 2s → … → 30s 상한. 끝없이 1초마다 두드리면 이미 버거운 업링크를 더 태운다. */
+  function camRetryDelay(n){ return Math.min(30000, 1000 * Math.pow(2, n)); }
+
+  /** 재연결 예약. 한도를 넘으면 조용히 멈추지 않고 이유를 남긴다 — 검은 화면만 남으면
+      고장과 구분되지 않는다. */
+  function camRetry(c, fn){
+    var n = CAM.retries[c.id] || 0;
+    if(n >= CAM_RETRY_MAX){
+      CAM.errors[c.id] = '재연결 실패 — 새로고침이 필요해요';
+      paintCameraMeta(cameraById(c.id) || c);
+      return;
+    }
+    CAM.retries[c.id] = n + 1;
+    clearTimeout(CAM.timers[c.id]);
+    CAM.timers[c.id] = setTimeout(function(){
+      // 등록이 해제돼 카드가 사라졌으면 되살리지 않는다.
+      if(document.querySelector('video[data-camid="' + c.id + '"]')) fn();
+    }, camRetryDelay(n));
+  }
+
+  /** 인스턴스를 통째로 버리고 새로 붙인다. startLoad로 안 살아난 경우의 마지막 수단이다. */
+  function reattachLive(c){
+    try { if(CAM.players[c.id]) CAM.players[c.id].destroy(); } catch(e){ /* 이미 정리됨 */ }
+    delete CAM.players[c.id];
+    delete CAM.attached[c.id];
+    attachLive(cameraById(c.id) || c);
+  }
+
   function attachLive(c){
     var video = document.querySelector('video[data-camid="' + c.id + '"]');
     if(!video || !CAM.cfg.live_base || !CAM.creds) return;
@@ -1894,6 +1939,10 @@
          하지만, 예외 경로에 기대지 않고 우리가 먼저 여는 편이 결과가 한가지다.
          (이후 hls.js의 openAndSendXhr는 readyState를 보고 다시 열지 않는다.) */
       var auth = camAuthHeader();
+      /* 버퍼 튜닝(liveSyncDurationCount 등)은 일부러 건드리지 않았다. 라이브 윈도우가 7초뿐이라
+         뒤로 미룬 만큼 세그먼트 만료에 가까워져, 쉽게 이득으로 보이지만 반대로 기울 수 있다.
+         이건 현장 맥에서 `hlsSegmentDuration`을 올려 윈도우를 늘린 뒤에 같이 재검토한다
+         (cctv-setup.md '터널이 태평양을 두 번 건너는 문제'). 여기서는 재연결만 맡는다. */
       var hls = new Hls({
         xhrSetup: function(xhr, u){
           xhr.open('GET', u, true);
@@ -1902,12 +1951,25 @@
       });
       hls.on(Hls.Events.ERROR, function(_evt, d){
         if(!d.fatal) return;
-        CAM.errors[c.id] = d.details || d.type;
+        CAM.errors[c.id] = (d.details || d.type) + ' · 재연결 중';
         paintCameraMeta(cameraById(c.id) || c);
+        if(d.type === Hls.ErrorTypes.MEDIA_ERROR){
+          // 디코더만 어긋난 경우다. 인스턴스를 버릴 필요가 없어 제일 싸고 제일 빠르다.
+          try { hls.recoverMediaError(); return; } catch(e){ /* 아래로 넘긴다 */ }
+        }
+        if(d.type === Hls.ErrorTypes.NETWORK_ERROR){
+          // 연결만 끊긴 경우. 같은 인스턴스로 다시 당기면 되므로 재부착보다 훨씬 싸다.
+          camRetry(c, function(){
+            try { hls.startLoad(); } catch(e){ reattachLive(c); }
+          });
+          return;
+        }
+        camRetry(c, function(){ reattachLive(c); });
       });
       // 실제로 화면이 들어오면 실패 표시를 지운다. 안 지우면 잠깐 끊겼다 붙은 카메라가
       // 영영 '실패'로 남아, 진짜 실패와 구분되지 않는다.
       hls.on(Hls.Events.FRAG_BUFFERED, function(){
+        CAM.retries[c.id] = 0;   // 살아 돌아왔다 — 다음 끊김은 백오프를 처음부터 다시 센다
         if(!CAM.errors[c.id]) return;
         delete CAM.errors[c.id];
         paintCameraMeta(cameraById(c.id) || c);
