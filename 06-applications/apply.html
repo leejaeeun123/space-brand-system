@@ -77,9 +77,24 @@
   }
 
   .intro{
-    border:1px solid var(--hair);border-radius:8px;padding:16px;margin-bottom:28px;
+    border:1px solid var(--hair);border-radius:8px;padding:16px;margin-bottom:14px;
     font-size:14px;color:var(--mute);
   }
+
+  /* 후원 배너. 소개 바로 아래에 둔다 — '이게 무슨 프로그램인가'의 일부지 각주가 아니다. */
+  .sponsor{
+    border:1px solid var(--hair);border-radius:8px;padding:18px 16px;margin-bottom:28px;
+    text-align:center;
+  }
+  .sponsor-marks{display:flex;align-items:center;justify-content:center;gap:18px;}
+  /* 마크는 높이로만 재고 폭은 비율이 정하게 둔다 — width를 같이 박으면 두 마크의 가로세로가 달라 로고가 늘어나거나 눌린다. */
+  .sponsor-mark{width:auto;color:var(--ink);flex:0 0 auto;}
+  .sponsor-mark.ae{height:26px;}
+  /* 위 주석 참조 — 원본에 여백이 들어 있어 같은 숫자로 두면 작아 보인다. */
+  .sponsor-mark.nmwc{height:44px;}
+  .sponsor-sep{width:1px;height:22px;background:var(--hair);flex:0 0 auto;}
+  .sponsor-lead{font-size:12px;color:var(--mute);margin-top:12px;}
+  .sponsor-lead strong{color:var(--ink);font-weight:600;}
 
   .field{margin-bottom:18px;}
   .field label{display:block;font-weight:600;font-size:14px;margin-bottom:7px;}
@@ -158,6 +173,40 @@
        그럴듯하게 적어두면 신청자가 그걸 근거로 기대하게 된다. -->
   <div class="intro">
     타입라운지 공간 지원 프로그램 신청서예요. 남겨 주신 내용을 확인한 뒤 개별적으로 연락드립니다.
+  </div>
+
+  <!--
+    후원 배너. 두 마크는 각 브랜드의 **공식 SVG를 그대로 인라인**한 것이다 —
+    ANTIEGG는 `antiegg-backoffice/public/logos/icon-dark.svg`,
+    NMWC는 `nmwc-brand-system/nmwc-logo.svg`(Brand.md가 'Primary Mark · 4-step Pill Stack'으로
+    정한 원본). 색만 currentColor로 바꿔 다크모드에서 같이 뒤집히게 했다.
+
+    **워드마크를 다시 조판하지 않는다.** 브랜드 이름은 아래 문장 안에 글자로만 넣는다 —
+    Paperlogy로 'ANTIEGG'를 찍으면 그건 그 브랜드의 로고가 아니라 우리가 만든 가짜 로고가 된다.
+    문장이 두 이름을 마크와 같은 순서로 부르므로 어느 마크가 어느 브랜드인지도 어긋나지 않는다.
+
+    두 마크의 렌더 높이가 다른 건 실수가 아니다 — NMWC 원본은 200x200 안에서 내용이 가운데
+    55%만 차지해(여백이 파일에 포함돼 있다) 같은 높이로 두면 혼자 작아 보인다. 원본 viewBox를
+    자르는 대신 높이를 키워 시각적 크기를 맞췄다. 각 파일의 여백 규정을 건드리지 않는 쪽이다.
+  -->
+  <div class="sponsor">
+    <div class="sponsor-marks">
+      <svg class="sponsor-mark ae" viewBox="0 0 220 234" role="img" aria-label="ANTIEGG">
+        <path fill="currentColor" d="M99.3467 28.6081C99.3467 28.2981 99.1407 28.0259 98.8424 27.9415L0.881355 0.249148C0.439301 0.124184 0.000274658 0.456304 0.000274658 0.915685L0.000274658 232.396C0.000274658 232.856 0.439438 233.188 0.881538 233.063L98.8426 205.342C99.1408 205.257 99.3467 204.985 99.3467 204.675L99.3467 28.6081Z"/>
+        <path fill="currentColor" d="M167.085 26.9877C167.085 26.7164 166.927 26.4702 166.68 26.3575L113.268 1.97676C112.809 1.76738 112.288 2.10264 112.288 2.60688L112.288 230.658C112.288 231.174 112.832 231.509 113.293 231.276L166.705 204.267C166.938 204.149 167.085 203.91 167.085 203.649L167.085 26.9877Z"/>
+        <path fill="currentColor" d="M220.001 27.4543C220.001 27.2476 219.909 27.0517 219.749 26.9202L200.162 10.75C199.71 10.3771 199.028 10.6984 199.028 11.2842L199.028 222.055C199.028 222.636 199.7 222.959 200.154 222.596L219.741 206.92C219.905 206.789 220.001 206.59 220.001 206.38L220.001 27.4543Z"/>
+      </svg>
+      <span class="sponsor-sep" aria-hidden="true"></span>
+      <svg class="sponsor-mark nmwc" viewBox="0 0 200 200" role="img" aria-label="NMWC">
+        <g fill="currentColor">
+          <rect x="42" y="45" width="116" height="20" rx="10"/>
+          <rect x="57" y="75" width="86" height="20" rx="10"/>
+          <rect x="72" y="105" width="56" height="20" rx="10"/>
+          <rect x="86" y="135" width="28" height="20" rx="10"/>
+        </g>
+      </svg>
+    </div>
+    <p class="sponsor-lead">이 프로그램은 <strong>ANTIEGG</strong>와 <strong>NMWC</strong>의 후원으로 진행됩니다.</p>
   </div>
 
   <form id="applyForm" novalidate>
