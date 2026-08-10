@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TYPE LOUNGE — 공간 지원 프로그램 신청</title>
+<meta name="robots" content="noindex">
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<!--
+  공간 지원 프로그램 신청서. 접수는 `supabase/functions/apply`가 받는다.
+
+  ⚠️ **`noindex`는 지금이 임시 문구이기 때문이다.** 프로그램 내용(지원 대상·혜택·마감)이
+  확정돼 아래 안내가 채워지면 이 줄을 지워 검색에 걸리게 한다. 비어 있는 지금 색인되면
+  placeholder가 검색 결과에 남는다.
+
+  **이 페이지의 검증은 검증이 아니다.** 소스가 그대로 공개되므로 누구나 `fetch`로 함수를
+  직접 부를 수 있다 — `required`·`type=email`·동의 체크박스는 전부 화면 장치일 뿐이고,
+  진짜 판정은 서버(`apply/validate.ts`)에 있다. 여기를 고쳐도 저기가 안 바뀌면 아무 효과가 없다.
+
+  ⚠️ **admin.html의 코드를 복사해 오지 않는다.** admin 비밀번호는 예약자 이름·연락처를 여는
+  admin_* RPC의 열쇠라, 이 공개 페이지에 들어가면 개인정보가 통째로 새어 나간다.
+
+  개인정보 동의 문구의 **보유기간(1년)은 마이그레이션의 정리 크론
+  (`20260810000000_support_applications.sql`의 support-applications-purge)과 같은 값이어야 한다.**
+  실제로 지우는 것은 그 크론뿐이고 이 문구는 그걸 사람에게 설명하는 문장이다 — 한쪽만 고치면
+  우리가 신청자에게 한 약속과 실제가 어긋난다(CCTV 보관기간과 같은 구조).
+
+  admin.html·guest-control.html과 스타일이 일부 겹친다. 이 레포는 빌드 단계가 없고 각 HTML이
+  단독 배포물이라 공유 파일을 만들지 않았다. 토큰 값이 바뀌면 03-identity/design-tokens.md가
+  정본이고 각 파일이 따라온다.
+-->
+<style>
+  :root{
+    --ink:#16130F;
+    --white:#ffffff;
+    --orange:#E2531E;
+    --hair: rgba(22,19,15,.12);
+    --mute:#6b665c;
+  }
+  :root[data-theme="dark"]{
+    --ink:#F2EDE6;
+    --white:#16130F;
+    --hair: rgba(242,237,230,.14);
+    --mute:#A39D90;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  html, body{overflow-x:hidden;max-width:100%;}
+  body{
+    font-family:'Paperlogy', sans-serif;
+    background:var(--white);
+    color:var(--ink);
+    line-height:1.6;
+  }
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;font-family:inherit;}
+  button:active{opacity:.7;}
+  button:disabled{opacity:.5;cursor:default;}
+  input:focus-visible, textarea:focus-visible, button:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+
+  #app{max-width:520px;margin:0 auto;padding:0 24px 72px;}
+  .hero{text-align:center;padding:48px 0 28px;}
+  .hero .wordmark{font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1;}
+  .eIcon{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:.08em;}
+  .hero .sub{font-size:15px;color:var(--mute);margin-top:10px;}
+
+  h2{
+    font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--orange);margin:0 0 14px;
+  }
+
+  .intro{
+    border:1px solid var(--hair);border-radius:8px;padding:16px;margin-bottom:28px;
+    font-size:14px;color:var(--mute);
+  }
+
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-weight:600;font-size:14px;margin-bottom:7px;}
+  .req{color:var(--orange);}
+  .opt{font-weight:400;font-size:12px;color:var(--mute);margin-left:4px;}
+  /* 16px 미만이면 iOS Safari가 포커스할 때 화면을 확대한다 — 손님이 폼을 채우다 길을 잃는다. */
+  .field input, .field textarea{
+    width:100%;font-family:inherit;font-size:16px;color:var(--ink);
+    background:var(--white);border:1px solid var(--hair);border-radius:8px;
+    padding:14px;min-height:52px;
+  }
+  .field textarea{min-height:132px;resize:vertical;line-height:1.6;}
+  .field .hint{font-size:12px;color:var(--mute);margin-top:6px;}
+
+  .consent{border:1px solid var(--hair);border-radius:8px;padding:16px;margin:28px 0 20px;}
+  .consent h3{font-weight:600;font-size:14px;margin-bottom:10px;}
+  .consent dl{font-size:13px;color:var(--mute);}
+  .consent dt{font-weight:600;float:left;clear:left;width:72px;}
+  .consent dd{margin-left:72px;}
+  .consent .refuse{font-size:12px;color:var(--mute);margin-top:12px;}
+  .check-row{display:flex;gap:10px;align-items:flex-start;margin-top:16px;cursor:pointer;}
+  .check-row input{width:22px;height:22px;flex:0 0 22px;margin-top:1px;accent-color:var(--orange);}
+  .check-row span{font-size:14px;font-weight:600;}
+
+  .submit{
+    width:100%;font-weight:600;font-size:16px;cursor:pointer;
+    background:var(--ink);color:var(--white);border:1px solid var(--ink);border-radius:8px;
+    padding:16px;min-height:56px;
+  }
+  .error{color:var(--orange);font-size:14px;margin-top:14px;text-align:center;}
+
+  /* 스팸 덫. `display:none`은 흔한 봇도 건너뛴다 — 화면 밖으로 밀어내고 초점·낭독에서만 뺀다. */
+  .trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+
+  .done{text-align:center;padding:32px 0;}
+  .done .mark{font-size:40px;line-height:1;color:var(--orange);}
+  .done h3{font-weight:600;font-size:20px;margin:16px 0 10px;}
+  .done p{font-size:14px;color:var(--mute);}
+
+  .foot{border-top:1px solid var(--hair);margin-top:32px;padding-top:24px;}
+  .foot p{font-size:13px;color:var(--mute);}
+
+  .theme-toggle{
+    position:fixed;top:16px;right:16px;z-index:10;
+    width:40px;height:40px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--hair);background:var(--white);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .theme-toggle svg{width:20px;height:20px;color:var(--ink);}
+  .theme-toggle .icon-sun{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-moon{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-sun{display:block;}
+
+  @media (prefers-reduced-motion: no-preference){
+    body, .intro, .consent, .field input, .field textarea, .submit, .theme-toggle{
+      transition: background-color .12s ease-out, color .12s ease-out, border-color .12s ease-out;
+    }
+  }
+</style>
+</head>
+<body>
+<button type="button" id="themeToggle" class="theme-toggle" aria-label="다크 모드로 전환" onclick="toggleTheme()">
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.742 13.045a8.088 8.088 0 0 1-2.077.277c-4.508 0-8.16-3.653-8.16-8.16 0-.712.09-1.404.264-2.064a.75.75 0 0 0-.988-.869A10.098 10.098 0 0 0 3 12.1C3 17.523 7.477 22 12.9 22a10.098 10.098 0 0 0 9.716-6.804.75.75 0 0 0-1.874-.151Z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+</button>
+
+<div id="app">
+  <div class="hero">
+    <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
+    <p class="sub">공간 지원 프로그램</p>
+  </div>
+
+  <!-- 프로그램 내용(지원 대상 · 혜택 · 심사 · 마감)이 확정되면 이 자리에 넣는다.
+       확정 전까지는 우리가 실제로 약속할 수 있는 것만 적어 둔다 — 안 정한 것을
+       그럴듯하게 적어두면 신청자가 그걸 근거로 기대하게 된다. -->
+  <div class="intro">
+    타입라운지 공간 지원 프로그램 신청서예요. 남겨 주신 내용을 확인한 뒤 개별적으로 연락드립니다.
+  </div>
+
+  <form id="applyForm" novalidate>
+    <h2>신청 정보</h2>
+
+    <div class="field">
+      <label for="name">이름 <span class="req" aria-hidden="true">*</span></label>
+      <input type="text" id="name" name="name" maxlength="40" autocomplete="name" required>
+    </div>
+
+    <div class="field">
+      <label for="phone">연락처 <span class="req" aria-hidden="true">*</span></label>
+      <input type="tel" id="phone" name="phone" inputmode="tel" maxlength="30" autocomplete="tel" placeholder="010-0000-0000" required>
+    </div>
+
+    <div class="field">
+      <label for="email">이메일 <span class="req" aria-hidden="true">*</span></label>
+      <input type="email" id="email" name="email" inputmode="email" maxlength="120" autocomplete="email" required>
+    </div>
+
+    <div class="field">
+      <label for="instagram">인스타그램 <span class="opt">선택</span></label>
+      <input type="text" id="instagram" name="instagram" maxlength="60" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@typelounge">
+      <p class="hint">계정이 없으시면 비워 두셔도 돼요.</p>
+    </div>
+
+    <div class="field">
+      <label for="purpose">활용 목적 <span class="req" aria-hidden="true">*</span></label>
+      <textarea id="purpose" name="purpose" maxlength="1000" required placeholder="공간을 어떻게 쓰실 계획인지 편하게 적어 주세요."></textarea>
+      <p class="hint">1000자까지 쓰실 수 있어요.</p>
+    </div>
+
+    <!-- 사람에게는 안 보이는 칸. 자동 제출만 여기를 채운다(apply/validate.ts). -->
+    <div class="trap" aria-hidden="true">
+      <label for="website">이 칸은 비워 두세요</label>
+      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <div class="consent">
+      <h3>개인정보 수집·이용 동의</h3>
+      <dl>
+        <dt>수집 항목</dt>
+        <dd>이름 · 연락처 · 이메일 · 인스타그램 계정 · 활용 목적</dd>
+        <dt>이용 목적</dt>
+        <dd>공간 지원 프로그램 신청 접수와 결과 안내</dd>
+        <dt>보유 기간</dt>
+        <dd>접수일로부터 <strong>1년</strong> (이후 자동 파기)</dd>
+      </dl>
+      <p class="refuse">동의를 거부하실 수 있어요. 다만 이 정보가 없으면 접수와 연락이 어려워 신청은 진행되지 않습니다.</p>
+      <label class="check-row" for="consent">
+        <input type="checkbox" id="consent" name="consent" required>
+        <span>위 내용에 동의합니다</span>
+      </label>
+    </div>
+
+    <button type="submit" class="submit" id="submitBtn">신청서 보내기</button>
+    <p class="error" id="error" style="display:none;" role="alert"></p>
+  </form>
+
+  <div class="done" id="done" style="display:none;">
+    <div class="mark" aria-hidden="true">✓</div>
+    <h3>신청이 접수됐어요</h3>
+    <p>확인한 뒤 남겨 주신 연락처로 개별 연락드릴게요.</p>
+  </div>
+
+  <div class="foot">
+    <p>문의는 인스타그램 <strong>@typelounge</strong> 로 주시면 돼요.</p>
+  </div>
+</div>
+
+<script>
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var APPLY_URL = SUPABASE_URL + '/functions/v1/apply';
+
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    try{ localStorage.setItem('theme', t); }catch(e){}
+    document.getElementById('themeToggle').setAttribute('aria-label', t === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환');
+  }
+  function toggleTheme(){ applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); }
+  applyTheme(currentTheme());
+
+  var form = document.getElementById('applyForm');
+  var btn = document.getElementById('submitBtn');
+  var errorBox = document.getElementById('error');
+  var sending = false;
+
+  function val(id){ return document.getElementById(id).value.trim(); }
+
+  function showError(msg){
+    errorBox.textContent = msg;
+    errorBox.style.display = '';
+  }
+
+  /* 여기 검증은 **왕복 한 번을 아끼는 것**이 전부다. 진짜 판정은 서버에 있고, 서버가 돌려준
+     문구를 그대로 띄운다 — 양쪽에서 문구를 따로 관리하면 언젠가 서로 다른 말을 하게 된다. */
+  function firstLocalProblem(){
+    if(!val('name')) return '이름을 입력해 주세요';
+    if(!val('phone')) return '연락처를 입력해 주세요';
+    if(!val('email')) return '이메일을 입력해 주세요';
+    if(!val('purpose')) return '활용 목적을 입력해 주세요';
+    if(!document.getElementById('consent').checked) return '개인정보 수집·이용에 동의해 주세요';
+    return null;
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    /* 두 번 눌리면 행도 알림도 두 개가 된다. 폼에는 '취소'가 없어서 손님이 반응이 늦다고
+       느끼면 실제로 다시 누른다 — 버튼을 잠그는 것이 유일한 방어다. */
+    if(sending) return;
+
+    errorBox.style.display = 'none';
+
+    var problem = firstLocalProblem();
+    if(problem){ showError(problem); return; }
+
+    sending = true;
+    btn.disabled = true;
+    btn.textContent = '보내는 중…';
+
+    fetch(APPLY_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: val('name'),
+        phone: val('phone'),
+        email: val('email'),
+        instagram: val('instagram'),
+        purpose: val('purpose'),
+        website: val('website'),
+        consent: document.getElementById('consent').checked
+      })
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if(!res.ok){
+          var err = new Error(data.error || ('요청 실패 (' + res.status + ')'));
+          /* 서버가 한 말임을 표시해 둔다. 이게 없으면 아래 catch가 네트워크 장애까지
+             같은 것으로 묶어 `Failed to fetch` 같은 브라우저 영문을 신청자에게 보여준다. */
+          err.fromServer = true;
+          throw err;
+        }
+        return data;
+      });
+    }).then(function(){
+      form.style.display = 'none';
+      document.getElementById('done').style.display = '';
+      document.getElementById('done').scrollIntoView({ block: 'center' });
+    }).catch(function(err){
+      /* 실패하면 **버튼을 되돌린다.** 잠긴 채로 두면 손님이 적어둔 내용을 그대로 가진 채
+         아무것도 못 하게 된다. */
+      sending = false;
+      btn.disabled = false;
+      btn.textContent = '신청서 보내기';
+      /* **서버가 한 말만 그대로 옮긴다.** 연결 자체가 안 된 경우의 `err.message`는
+         브라우저가 만든 영문(`Failed to fetch`·`NetworkError...`)이라 신청자에게
+         아무것도 알려주지 못한다 — 뭐가 잘못됐는지도, 다시 해도 되는지도. */
+      showError(err.fromServer ? err.message : '연결에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    });
+  });
+</script>
+</body>
+</html>

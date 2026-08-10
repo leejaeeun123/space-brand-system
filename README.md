@@ -41,13 +41,13 @@ PLAN.md            초기 구축 계획 (이력 — 현재 상태는 이 README�
                    + 로고 SVG · 탐색 시안 HTML(v2~v18)
 04-signage/        signage-system · exterior-signage · interior-wayfinding · pictograms · notice-copy
 05-design-system/  README (우산 문서) · concept-keywords
-06-applications/   admin.html · guest-guide.html · guest-control.html · cleaning-done.html
+06-applications/   admin.html · guest-guide.html · guest-control.html · cleaning-done.html · apply.html
                    사이니지 시안 · 목업 PNG
                    설치 체크리스트(control/cctv/onsite)
                    automation/     스페이스클라우드 예약 자동 반영 (파트너 API + Gmail)
                    control-agent/  합정 상주 맥 에이전트 (MQTT 중계 + MediaMTX 관찰)
 07-brand-book/     brand · bx · product (+ 렌더 HTML) — 위 정본에서 파생된 문서
-supabase/          migrations/ · functions/control/ (Edge Function)
+supabase/          migrations/ · functions/control/ · functions/apply/ (Edge Function)
 public/            배포 대상 — 06-applications/ 심링크
 assets/            무드보드 · 레퍼런스 · 목업
 ```
@@ -69,6 +69,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 | 안내 문자 | SOLAPI LMS — 예약별 자동발송 옵트인, 보증금 유무로 2벌 | [`control-setup.md` J절](./06-applications/control-setup.md) · 문구 [`_sms-templates.html`](./06-applications/_sms-templates.html) |
 | 청소 안내 문자 | 담당자에게 매일 07:00 당일 스케줄 + 청소 가능 구간, 바뀌면 변경 안내 | [`control-setup.md` K절](./06-applications/control-setup.md) · 설계 [`.specs/spec_cleaning_sms/`](./.specs/spec_cleaning_sms/spec.md) |
 | 청소 완료 QR | 현장 QR을 찍으면 그 시각 이전에 끝난 예약이 전부 청소 완료 + Mattermost 알림 | [`control-setup.md` L절](./06-applications/control-setup.md) · `06-applications/cleaning-done.html` → `/cleaning` |
+| 공간 지원 신청 | 공개 신청서 → `support_applications` 저장 + Mattermost 알림 (보유 1년) | [`functions/apply/`](./supabase/functions/apply/README.md) · `06-applications/apply.html` → `/apply` |
 
 **합정에 맥 1대가 상주한다** — 조명과 CCTV가 여기에 의존한다(냉난방은 클라우드라 무관).
 **영상은 Supabase를 지나가지 않는다** — 서버는 '카메라가 살아 있나'만 알고, 프레임은
