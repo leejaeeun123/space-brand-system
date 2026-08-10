@@ -1,3 +1,14 @@
+# public/ → typelounge.vercel.app 배포. **머지하면 자동으로 돌고 프로덕션에 올라간다.**
+#
+# ⚠️ `vercel inspect`에 git 커밋 메타데이터가 안 보이는 건 정상이다 — 여기서는 Git 연동이
+# 아니라 토큰으로 `vercel deploy`를 부르므로 메타데이터가 안 붙는다. 메타데이터가 없다고
+# '자동 배포가 아니구나'로 읽으면 틀린다(2026-08-09에 그렇게 오진했다).
+#
+# 반영 여부는 **라이브 페이지를 직접 보고** 판정한다. `cleanUrls: true`라 `.html`은 308로
+# 리다이렉트되므로 `-L`을 빼면 15바이트 리다이렉트 본문을 보게 된다:
+#
+#   curl -sL https://typelounge.vercel.app/admin | grep -c '<찾는 문자열>'
+
 name: Deploy to Vercel
 
 on:
@@ -5,9 +16,12 @@ on:
     branches: [main]
     paths:
       - "public/**"
-      - "06-applications/admin.html"
-      - "06-applications/guest-guide.html"
-      - "06-applications/guest-control.html"
+      # ⚠️ **파일 이름을 하나씩 열거하지 않는다.** `public/*.html`은 여기로의 심링크라,
+      # 대상 파일만 고치면 심링크 자체는 그대로여서 `public/**`에 안 걸린다.
+      # 그래서 열거된 셋에 없던 `cleaning-done.html`을 고친 #46~#48이 조용히
+      # 배포를 건너뛰었고, 몇 시간을 '왜 안 바뀌지'로 보냈다. 글로브로 둔다 —
+      # 새 페이지를 추가할 때 여기를 같이 고쳐야 한다는 걸 아무도 기억 못 한다.
+      - "06-applications/*.html"
       - "vercel.json"
       - ".github/workflows/deploy.yml"
 

@@ -21,17 +21,31 @@
 > 절차를 섞지 않았다 — 영상은 서버를 지나가지 않아서 경로가 통째로 다르고, 무엇보다 카메라는
 > **법·고지가 선행**이라 순서가 뒤엉키면 안 된다.
 
-> ⚠️ **`public/`(→ `typelounge.vercel.app`)은 GitHub 자동 배포가 아니다.** main에 머지·push해도
-> 사이트엔 반영되지 않는다 — 이 프로젝트는 **`vercel --prod`를 수동으로 돌려야** 배포된다
-> (2026-08-09 확인: PR을 4개 연달아 머지했는데 사이트는 그대로였다. `vercel inspect`로 봐도
-> 배포에 git 커밋 메타데이터가 없어 GitHub 연동이 아님을 확인했다). `supabase/functions/`
-> (Edge Function)는 별개로 `supabase functions deploy control`이 필요하다 — 이것도 자동이 아니다.
-> HTML·서버 코드를 고친 뒤에는 **둘 다** 잊지 않는다.
+> ⚠️ **`public/`(→ `typelounge.vercel.app`)은 main에 머지하면 자동 배포된다.** GitHub Actions의
+> `deploy.yml`이 돌아 프로덕션에 올린다(2026-08-10 실증: 머지 1분 뒤 라이브 페이지에 반영됐고,
+> `vercel inspect`의 배포 생성 시각이 Actions 실행 시각과 일치했다).
+>
+> **단 트리거 경로에 걸린 파일을 고쳤을 때만 돈다.** `public/*.html`은 `06-applications/`로의
+> 심링크라, 대상 파일만 고치면 심링크는 그대로여서 `public/**`에 안 걸린다. 2026-08-09에
+> "PR 4개를 머지했는데 사이트가 그대로"였던 건 배포가 수동이어서가 아니라 **당시 트리거가
+> `cleaning-done.html`을 빠뜨렸기 때문**이다. 지금은 `06-applications/*.html` 글로브라 해소됐다.
+>
+> ⚠️ **`vercel inspect`에 git 커밋 메타데이터가 없는 건 자동 배포가 아니라는 증거가 아니다.**
+> Actions는 Git 연동이 아니라 토큰으로 `vercel deploy`를 부르므로 메타데이터가 안 붙는다.
+> 2026-08-09에 이걸 근거로 "수동 배포 프로젝트"라고 오진했다 — 반영 여부는 **라이브 페이지를
+> 직접 보고** 판정한다.
+>
+> `supabase/functions/`(Edge Function)는 **여전히 자동이 아니다** — 따로 배포해야 한다.
 
 ```bash
-cd <이 레포>
-vercel --prod --yes        # public/ → typelounge.vercel.app
-supabase functions deploy control   # Edge Function (필요할 때만)
+# 반영됐는지 확인 (cleanUrls 때문에 .html은 308 → -L 필수)
+curl -sL https://typelounge.vercel.app/admin | grep -c '<찾는 문자열>'
+
+# Edge Function은 수동
+supabase functions deploy control
+
+# 배포가 안 걸렸거나 급할 때만 (평소엔 머지로 충분하다)
+vercel --prod --yes
 ```
 
 ---
