@@ -13,11 +13,19 @@
  * **순서가 계약이다 — 저장 먼저, 알림 나중.** 뒤집으면 웹훅이 죽어 있던 동안의 신청이 통째로
  * 사라지고, 신청자는 보냈다고 믿는다. 알림은 못 가도 되고(장부에 null로 남는다), 저장은 못 하면
  * 실패로 답해야 한다.
+ *
+ * **부르는 쪽이 둘이다.** 접수(`submit`)는 공개고, 선정·보류(`decide`·`preview`·`mark_manual`)는
+ * 어드민 전용이다 — 후자는 손님에게 문자를 보내는 일이라 아무나 부르면 안 된다.
+ * 판정은 `isAdmin` 하나에 있고, `claim`과 같은 방식이다.
  */
 
 import { validate } from "./validate.ts";
 import { dbClient, insert, markNotified } from "./store.ts";
 import { notify } from "./notify.ts";
+import { decide } from "./decide.ts";
+import { markManual } from "./dispatch.ts";
+import { APPLICATION_SMS_KINDS, type ApplicationSmsKind, render } from "./templates.ts";
+import { HandlerError } from "./errors.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -32,17 +40,29 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "POST만 허용합니다" }, 405);
-
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "JSON 본문이 필요합니다" }, 400);
+/**
+ * 어드민인가. **미설정이면 전면 거부**다(`claim/index.ts`·`control/auth.ts`와 같은 태도) —
+ * 비밀번호가 없는 상태가 '누구나 손님에게 문자를 보낼 수 있다'로 해석되면 안 된다.
+ */
+function isAdmin(supplied: string): boolean {
+  const admin = Deno.env.get("ADMIN_PASSWORD");
+  if (!admin) {
+    console.error("ADMIN_PASSWORD 미설정 — 어드민 요청을 거부합니다");
+    throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
+  return supplied !== "" && supplied === admin;
+}
 
+function parseKind(body: Record<string, unknown>): ApplicationSmsKind {
+  const kind = String(body.decision ?? body.kind ?? "");
+  if (!APPLICATION_SMS_KINDS.includes(kind as ApplicationSmsKind)) {
+    throw new HandlerError(400, `알 수 없는 결과: ${kind}`);
+  }
+  return kind as ApplicationSmsKind;
+}
+
+/** 접수 — 공개 경로. 이 함수의 원래 일이다. */
+async function submit(body: Record<string, unknown>): Promise<Response> {
   const parsed = validate(body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
 
@@ -67,4 +87,64 @@ Deno.serve(async (req) => {
   if (await notify(parsed.value, at)) await markNotified(sb, id, at);
 
   return json({ ok: true });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ error: "POST만 허용합니다" }, 405);
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "JSON 본문이 필요합니다" }, 400);
+  }
+
+  // action이 없으면 접수다 — 기존 `apply.html`이 action 없이 부르고 있어 그 계약을 지킨다.
+  const action = String(body.action ?? "submit");
+
+  try {
+    if (action === "submit") return await submit(body);
+
+    // ── 여기부터 어드민 전용. 손님에게 문자를 보내는 일이라 아무나 부르면 안 된다. ──
+    if (!isAdmin(String(body.password ?? ""))) {
+      return json({ error: "invalid password" }, 401);
+    }
+
+    // 미리보기는 DB를 건드리지 않는다 — 문구만 만들어 돌려준다.
+    // 어드민이 이걸 보고 승인해야 발송되므로, **문구를 만드는 곳이 서버 한 곳**이라는 점이
+    // 미리보기와 실제 발송이 같다는 유일한 보장이다.
+    if (action === "preview") return json({ body: render(parseKind(body)) });
+
+    const id = Number(body.id);
+    if (!Number.isInteger(id) || id <= 0) return json({ error: "id가 필요합니다" }, 400);
+
+    const sb = dbClient();
+    const memo = String(body.memo ?? "").trim().slice(0, 500);
+
+    switch (action) {
+      case "decide":
+        return json(await decide(sb, id, parseKind(body), memo));
+
+      case "mark_manual": {
+        // 문자가 못 나간 건을 사람이 직접 보낸 뒤 장부를 닫는다.
+        const { data, error } = await sb
+          .from("support_applications")
+          .select("id,name,phone")
+          .eq("id", id)
+          .maybeSingle();
+        if (error) throw new Error(`신청 조회 실패: ${error.message}`);
+        if (!data) throw new HandlerError(404, "해당 신청을 찾을 수 없습니다");
+        await markManual(sb, data, parseKind(body));
+        return json({ ok: true });
+      }
+
+      default:
+        return json({ error: `알 수 없는 action: ${action}` }, 400);
+    }
+  } catch (e) {
+    if (e instanceof HandlerError) return json({ error: e.message }, e.status);
+    console.error("apply 처리 실패", e);
+    return json({ error: "처리 중 오류가 발생했습니다" }, 500);
+  }
 });

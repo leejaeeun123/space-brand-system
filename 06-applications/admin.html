@@ -206,7 +206,7 @@
     background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
     padding:14px;cursor:pointer;width:100%;min-height:48px;margin-top:14px;
   }
-  #addModal .modal-box, #hvacModal .modal-box, #lightModal .modal-box, #cameraModal .modal-box, #smsCopyModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
+  #addModal .modal-box, #hvacModal .modal-box, #lightModal .modal-box, #cameraModal .modal-box, #smsCopyModal .modal-box, #decideModal .modal-box{max-width:520px;text-align:left;max-height:85vh;overflow-y:auto;}
   .modal-box-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .modal-box-header h2{margin:0;}
   .modal-close{
@@ -622,6 +622,32 @@
 </div>
 
 <!-- 번호가 없거나 발송이 실패했을 때 사람이 직접 보내는 경로. API가 죽어도 손님에게 안내는 가야 한다. -->
+<!--
+  선정·보류 확인 모달. **누르자마자 보내지 않는다** — 실제로 나갈 문구를 그대로 보여주고
+  여기서 한 번 더 눌러야 발송된다. 문자는 되돌릴 수 없고, 받는 사람에게는 그게 통보다.
+
+  문구는 서버(`apply/templates.ts`)가 만들어 내려준다. 여기서 조립하면 미리보기와 실제
+  발송이 갈라질 수 있고, 그 순간 이 모달은 승인 장치가 아니라 장식이 된다.
+-->
+<div id="decideModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-box-header">
+      <h2 id="decideTitle" style="font-size:16px;">결과 안내</h2>
+      <button type="button" class="modal-close" onclick="closeDecideModal()">✕</button>
+    </div>
+    <p id="decideWho" style="font-size:14px;color:#8a8478;margin-bottom:12px;"></p>
+    <textarea id="decideBody" readonly rows="14"
+              style="width:100%;font-size:12px;font-family:inherit;border:1px solid var(--hair);border-radius:8px;padding:10px;margin-bottom:10px;resize:vertical;line-height:1.6;"></textarea>
+    <label style="display:block;font-size:13px;margin-bottom:6px;">메모 (선택) — 선정·보류 사유</label>
+    <input type="text" id="decideMemo" maxlength="500"
+           style="width:100%;font-size:14px;font-family:inherit;border:1px solid var(--hair);border-radius:8px;padding:10px;margin-bottom:14px;min-height:44px;">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeDecideModal()">취소</button>
+      <button class="confirm" id="decideConfirmBtn" onclick="confirmDecide()">이 문자로 보내기</button>
+    </div>
+  </div>
+</div>
+
 <div id="smsCopyModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-box-header">
@@ -722,6 +748,15 @@
 
   // 지원금 신청. **RPC는 마스킹된 값만 내린다** — 암호문은 브라우저가 쓸 일이 없고,
   // 안 내리면 안 새는 값이다. 복호화가 필요하면 Edge Function의 reveal을 한 건씩 부른다.
+  // 결과 안내 문자 이력. 신청 목록과 따로 받는다 — `admin_list_applications`가
+  // `setof support_applications`라 반환 형태를 바꾸면 그 화면 전체가 같이 위험해진다.
+  function fetchApplicationSms(password){
+    return sb.rpc('admin_list_application_sms', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+
   function fetchPaybacks(password){
     return sb.rpc('admin_list_paybacks', { p_password: password }).then(function(res){
       if(res.error) throw res.error;
@@ -1460,6 +1495,29 @@
      (같은 판정을 서버도 한다 — supabase/functions/apply/message.ts) */
 
   var applicationsCache = [];
+  var applicationSmsCache = [];
+  var APPLY_URL = SUPABASE_URL + '/functions/v1/apply';
+
+  var APP_STATUS_LABEL = { received: '접수', selected: '선정', held: '보류' };
+  /* 실패 계열만 적는다 — 성공은 위에서 따로 문장으로 만든다. */
+  var SMS_FAIL_LABEL = {
+    sending: '발송 중(멈춤)', failed: '발송 실패', no_phone: '번호 문제로 못 보냄'
+  };
+
+  function applyCall(action, extra){
+    var body = { action: action, password: currentPassword };
+    if(extra) Object.keys(extra).forEach(function(k){ body[k] = extra[k]; });
+    return fetch(APPLY_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(data){
+        if(!res.ok) throw new Error(data.error || ('요청 실패 (' + res.status + ')'));
+        return data;
+      });
+    });
+  }
 
   function appNotice(msg, isWarn){
     var box = document.getElementById('appNotice');
@@ -1469,8 +1527,14 @@
   }
 
   function refreshApplications(){
-    return fetchApplications(currentPassword).then(function(list){
-      applicationsCache = list;
+    /* 문자 이력은 **같이 받되 실패해도 목록은 그린다.** 이력을 못 받았다고 신청 목록까지
+       안 보이면, 결과를 정하는 일 자체가 막힌다. 대신 이력 칸만 비어 보인다. */
+    return Promise.all([
+      fetchApplications(currentPassword),
+      fetchApplicationSms(currentPassword).catch(function(){ return null; })
+    ]).then(function(r){
+      applicationsCache = r[0];
+      if(r[1] !== null) applicationSmsCache = r[1];
       appNotice('');
       renderApplications();
     }).catch(function(err){
@@ -1521,19 +1585,161 @@
       /* 활용 목적은 신청자가 나눠 쓴 줄을 그대로 살린다(.pre). */
       rows += '<dt>활용 목적</dt><dd class="pre">' + escapeHtml(a.purpose || '') + '</dd>';
 
+      if(a.admin_memo) rows += '<dt>메모</dt><dd>' + escapeHtml(a.admin_memo) + '</dd>';
+
+      /* 결과 문자가 어떻게 됐는지. **못 간 것을 숨기지 않는 것이 이 줄의 목적이다** —
+         상태는 '선정'인데 문자가 안 갔으면 당사자는 아무것도 모르고 있다. */
+      var sms = applicationSmsCache.filter(function(s){
+        return s.application_id === a.id && s.status !== 'superseded';
+      });
+      if(sms.length){
+        var smsText = sms.map(function(s){
+          var label = s.kind === 'selected' ? '선정' : '보류';
+          if(s.status === 'sent' || s.status === 'manual'){
+            return label + ' ' + (s.status === 'manual' ? '직접 보냄' : '발송됨');
+          }
+          return '<span class="dev-warn">' + label + ' ' + SMS_FAIL_LABEL[s.status] + '</span>';
+        }).join(' · ');
+        rows += '<dt>결과 문자</dt><dd>' + smsText + '</dd>';
+      }
+
       /* 알림이 못 간 건은 제목에서 바로 보이게 한다. 이 탭이 그걸 볼 수 있는 유일한 곳이다. */
-      var warn = a.notified_at ? '' : ' <span class="warn-badge">알림 못 감</span>';
+      var badges = '';
+      if(a.status && a.status !== 'received'){
+        badges += ' <span class="' + (a.status === 'selected' ? 'src' : 'cancel-badge') +
+                  '">' + APP_STATUS_LABEL[a.status] + '</span>';
+      }
+      if(!a.notified_at) badges += ' <span class="warn-badge">알림 못 감</span>';
+
+      /* 결정 버튼은 **언제나 둘 다 보인다.** 보류였다가 선정되는 경로가 정상이고(형운 확인),
+         선정을 보류로 되돌려야 할 일도 생긴다. 다만 같은 결과를 다시 눌러도 문자는 한 번만
+         나간다 — 서버의 유니크 인덱스가 막는다. */
+      var buttons =
+        '<button type="button" class="status-btn' + (a.status === 'selected' ? ' done' : '') +
+          '" onclick="openDecideModal(' + a.id + ', \'selected\')">선정</button>' +
+        '<button type="button" class="status-btn' + (a.status === 'held' ? ' done' : '') +
+          '" onclick="openDecideModal(' + a.id + ', \'held\')">보류</button>';
+
+      /* 문자가 못 나간 건은 문구를 복사해 직접 보낼 수 있어야 한다. 번호가 잘못 적혔거나
+         벤더가 거절한 경우가 여기 걸린다 — 그대로 두면 당사자만 모른 채 남는다. */
+      var failed = sms.filter(function(s){ return s.status === 'failed' || s.status === 'no_phone'; });
+      if(failed.length){
+        buttons += '<button type="button" class="status-btn" onclick="openManualModal(' + a.id +
+                   ', \'' + failed[0].kind + '\')">문구 복사 · 직접 발송</button>';
+      }
 
       item.innerHTML =
         '<div class="top">' +
           '<div>' +
-            '<div class="time">' + escapeHtml(a.name || '') + warn + '</div>' +
-            '<div class="no">' + stampKst(a.created_at) + ' 접수</div>' +
+            '<div class="time">' + escapeHtml(a.name || '') + badges + '</div>' +
+            '<div class="no">' + stampKst(a.created_at) + ' 접수' +
+              (a.decided_at ? ' · ' + stampKst(a.decided_at) + ' 결정' : '') + '</div>' +
           '</div>' +
         '</div>' +
-        '<dl>' + rows + '</dl>';
+        '<dl>' + rows + '</dl>' +
+        '<div class="status-row">' + buttons + '</div>';
 
       list.appendChild(item);
+    });
+  }
+
+  /* ── 선정·보류 결정 ──────────────────────────────────────────────────────
+
+     **누르자마자 보내지 않는다.** 서버에서 실제 문구를 받아 보여주고, 거기서 한 번 더
+     눌러야 발송된다. 문자는 되돌릴 수 없고 받는 사람에게는 그게 통보다.
+
+     문구를 여기서 조립하지 않는 것이 핵심이다 — 조립하면 미리보기와 실제 발송이 갈라질 수
+     있고, 그 순간 이 확인 절차는 승인 장치가 아니라 장식이 된다. */
+
+  var decideTarget = null;   // { id, kind, mode: 'send' | 'manual' }
+
+  function openDecideModal(id, kind){
+    var app = applicationsCache.filter(function(a){ return a.id === id; })[0];
+    if(!app) return;
+    decideTarget = { id: id, kind: kind, mode: 'send' };
+
+    var label = kind === 'selected' ? '선정' : '보류';
+    document.getElementById('decideTitle').textContent = label + ' 안내 문자';
+    document.getElementById('decideWho').textContent =
+      app.name + ' · ' + (app.phone || '연락처 없음');
+    document.getElementById('decideMemo').value = app.admin_memo || '';
+    document.getElementById('decideBody').value = '문구를 불러오는 중…';
+    document.getElementById('decideConfirmBtn').textContent = '이 문자로 보내기';
+    document.getElementById('decideConfirmBtn').disabled = true;
+    document.getElementById('decideModal').style.display = 'flex';
+
+    applyCall('preview', { decision: kind }).then(function(data){
+      document.getElementById('decideBody').value = data.body;
+      document.getElementById('decideConfirmBtn').disabled = false;
+    }).catch(function(err){
+      document.getElementById('decideBody').value = '문구를 불러오지 못했어요: ' + err.message;
+    });
+  }
+
+  /* 문자가 못 나간 건. 같은 모달을 쓰되 버튼이 하는 일이 다르다 —
+     여기서는 발송이 아니라 '사람이 직접 보냈다'는 장부 기록이다. */
+  function openManualModal(id, kind){
+    var app = applicationsCache.filter(function(a){ return a.id === id; })[0];
+    if(!app) return;
+    decideTarget = { id: id, kind: kind, mode: 'manual' };
+
+    var label = kind === 'selected' ? '선정' : '보류';
+    document.getElementById('decideTitle').textContent = label + ' 문구 복사';
+    document.getElementById('decideWho').textContent =
+      app.name + ' · ' + (app.phone || '연락처 없음') + ' — 문자가 나가지 못했어요. 아래 문구를 복사해 직접 보내주세요.';
+    document.getElementById('decideMemo').value = app.admin_memo || '';
+    document.getElementById('decideBody').value = '문구를 불러오는 중…';
+    document.getElementById('decideConfirmBtn').textContent = '직접 보냈어요';
+    document.getElementById('decideConfirmBtn').disabled = true;
+    document.getElementById('decideModal').style.display = 'flex';
+
+    applyCall('preview', { decision: kind }).then(function(data){
+      document.getElementById('decideBody').value = data.body;
+      document.getElementById('decideConfirmBtn').disabled = false;
+    }).catch(function(err){
+      document.getElementById('decideBody').value = '문구를 불러오지 못했어요: ' + err.message;
+    });
+  }
+
+  function closeDecideModal(){
+    document.getElementById('decideModal').style.display = 'none';
+    decideTarget = null;
+  }
+
+  /* 발송 결과를 사람 말로 옮긴다. 코드값을 그대로 띄우면 무슨 일이 일어났는지 알 수 없다. */
+  var DISPATCH_MESSAGE = {
+    sent: '문자를 보냈어요.',
+    already: '이미 보낸 문자라 다시 보내지 않았어요. 상태는 바뀌었습니다.',
+    failed: '상태는 바뀌었지만 문자가 나가지 못했어요. 문구를 복사해 직접 보내주세요.',
+    no_phone: '상태는 바뀌었지만 문자를 받을 수 없는 번호예요. 문구를 복사해 직접 보내주세요.',
+    not_configured: '상태는 바뀌었지만 문자 발송이 설정되지 않아 보내지 못했어요.'
+  };
+
+  function confirmDecide(){
+    if(!decideTarget) return;
+    var t = decideTarget;
+    var btn = document.getElementById('decideConfirmBtn');
+    var memo = document.getElementById('decideMemo').value;
+
+    btn.disabled = true;
+    btn.textContent = '처리 중…';
+
+    var call = t.mode === 'manual'
+      ? applyCall('mark_manual', { id: t.id, decision: t.kind })
+      : applyCall('decide', { id: t.id, decision: t.kind, memo: memo });
+
+    call.then(function(data){
+      closeDecideModal();
+      return refreshApplications().then(function(){
+        if(t.mode === 'manual'){ appNotice('직접 보내신 것으로 기록했어요.'); return; }
+        var msg = DISPATCH_MESSAGE[data.status] || ('처리했어요 (' + data.status + ')');
+        // 실패 계열은 경고로 띄운다 — 성공과 같은 색이면 못 간 것을 못 알아챈다.
+        appNotice(msg, data.status !== 'sent' && data.status !== 'already');
+      });
+    }).catch(function(err){
+      btn.disabled = false;
+      btn.textContent = t.mode === 'manual' ? '직접 보냈어요' : '이 문자로 보내기';
+      appNotice('처리하지 못했어요: ' + err.message, true);
     });
   }
 
