@@ -125,6 +125,16 @@
   }
   .res-item dt{color:#8a8478;}
   .res-item dd{word-break:break-all;}
+
+  /* 공간 지원 신청 — 카드 모양은 예약(.res-item)을 그대로 쓴다. 다른 것만 여기 적는다. */
+  /* 활용 목적은 여러 줄로 들어온다. 기본값으로는 줄바꿈이 사라져 한 덩어리로 읽히는데,
+     그건 신청자가 나눠 쓴 단락을 우리가 지우는 셈이다. */
+  .res-item dd.pre{white-space:pre-line;word-break:break-word;}
+  /* 알림이 못 간 신청. `notified_at`이 null인 행이 바로 그것이고, 사람이 그걸 볼 수 있는
+     곳은 이 탭뿐이다 — 채널만 보고 있으면 영원히 모른다. */
+  .res-item .warn-badge{display:inline-block;font-size:10px;color:#fff;background:var(--orange);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+  /* 예약은 라벨이 짧지만('연락처'·'메모') 신청은 '활용 목적'이 있어 64px에서 줄이 접힌다. */
+  #appList .res-item dl{grid-template-columns:76px 1fr;}
   .status-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
   .status-btn{
     font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
@@ -292,6 +302,7 @@
       <button type="button" class="side-link" data-view="reservations">예약관리</button>
       <button type="button" class="side-link" data-view="control">공간 제어</button>
       <button type="button" class="side-link" data-view="cctv">CCTV</button>
+      <button type="button" class="side-link" data-view="applications">공간 지원 신청</button>
     </nav>
     <button type="button" class="side-logout" onclick="lock()">로그아웃</button>
   </aside>
@@ -351,6 +362,19 @@
         지난 영상이 필요하면 카메라 SD카드에서 Tapo 앱으로 꺼냅니다.
       </div>
 
+    </section>
+
+    <section class="view" id="view-applications">
+      <h2>신청 내역</h2>
+      <div id="appNotice" class="ctl-notice" style="display:none;"></div>
+      <div id="appList"></div>
+      <button type="button" class="add-btn" onclick="refreshApplications()">새로고침</button>
+
+      <div class="warn">
+        공개 신청서(<strong>/apply</strong>)로 들어온 내역입니다. 수집·이용 동의를 받은
+        개인정보라 <strong>접수일로부터 1년이 지나면 자동으로 파기됩니다</strong> — 신청자에게
+        그렇게 고지했고, 실제로 지우는 정리 크론이 돕니다. 남겨야 할 건 따로 적어 두세요.
+      </div>
     </section>
   </div>
 </div>
@@ -663,6 +687,15 @@
     });
   }
 
+  // 공간 지원 신청. 문자 이력과 같은 이유로 따로 받고, **잠금 해제 경로에는 안 올린다** —
+  // 이걸 같이 묶었다가 실패하면 비밀번호가 맞는데도 "맞지 않아요"가 뜬다. 탭에 들어갈 때 받는다.
+  function fetchApplications(password){
+    return sb.rpc('admin_list_applications', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+
   function tryUnlock(){
     var val = document.getElementById('pw').value;
     document.getElementById('pwError').textContent = '확인 중...';
@@ -701,7 +734,7 @@
   }
 
   /* 메뉴 — 추가하려면 VIEWS에 한 줄, 사이드바에 data-view 버튼, 본문에 <section id="view-이름"> 하나 */
-  var VIEWS = { reservations: '예약관리', control: '공간 제어', cctv: 'CCTV' };
+  var VIEWS = { reservations: '예약관리', control: '공간 제어', cctv: 'CCTV', applications: '공간 지원 신청' };
   var currentView = 'reservations';
 
   function showView(name){
@@ -716,6 +749,9 @@
     });
     document.getElementById('pageTitle').textContent = VIEWS[name];
     if(name === 'control') refreshDevices();
+    // 신청 내역도 탭에 들어올 때 받는다. 잠금 해제 때 미리 받아두지 않는 이유는 fetchApplications
+    // 주석에 있다 — 부가 정보 하나가 실패해서 로그인 자체가 막히면 안 된다.
+    if(name === 'applications') refreshApplications();
     // CCTV를 떠나면 재생을 반드시 끊는다. 안 끊으면 다른 화면을 보는 내내 스트림이 계속
     // 흐르고, 그건 합정 맥 업링크와 이 기기 데이터를 조용히 태운다.
     if(name === 'cctv') enterCctv(); else leaveCctv();
@@ -1379,6 +1415,91 @@
     }).catch(function(err){
       document.getElementById('ctlList').innerHTML = '';
       ctlNotice('기기 목록을 불러오지 못했어요: ' + err.message, true);
+    });
+  }
+
+  /* ── 공간 지원 신청 ──────────────────────────────────────────────────────────
+
+     이 화면이 다루는 값은 **공개 신청서에서 아무나 써 넣은 것**이다. 그리고 이 페이지는
+     어드민 비밀번호를 메모리에 들고 있다 — 그 둘이 만나는 지점이라 렌더가 곧 보안 경계다.
+     모든 값은 escapeHtml을 거치고, 인스타 링크는 핸들이 안전한 모양일 때만 만든다.
+     (같은 판정을 서버도 한다 — supabase/functions/apply/message.ts) */
+
+  var applicationsCache = [];
+
+  function appNotice(msg, isWarn){
+    var box = document.getElementById('appNotice');
+    box.textContent = msg || '';
+    box.style.display = msg ? 'block' : 'none';
+    box.classList.toggle('dev-warn', !!isWarn);
+  }
+
+  function refreshApplications(){
+    return fetchApplications(currentPassword).then(function(list){
+      applicationsCache = list;
+      appNotice('');
+      renderApplications();
+    }).catch(function(err){
+      /* **빈 목록으로 두지 않는다.** 조회가 실패했는데 '아직 신청이 없어요'가 뜨면
+         읽는 사람은 신청이 안 들어온 줄 알고 그냥 닫는다 — 조용히 사라진 신청이
+         없는 기능보다 나쁘다. */
+      document.getElementById('appList').innerHTML = '';
+      appNotice('신청 내역을 불러오지 못했어요: ' + (err && err.message ? err.message : err), true);
+    });
+  }
+
+  /* '2026. 08. 10. 14:32' — 알림 메시지와 같은 모양으로 찍는다(KST 고정). */
+  function stampKst(iso){
+    if(!iso) return '';
+    return new Date(iso).toLocaleString('ko-KR', {
+      timeZone: 'Asia/Seoul', hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  /* 서버(message.ts)와 같은 판정. 이 모양이 아니면 링크로 만들지 않고 글자로만 둔다 —
+     검증 안 한 값을 href 속성에 끼워 넣는 것이 이 화면에서 가장 위험한 한 줄이다. */
+  var SAFE_HANDLE = /^[A-Za-z0-9._]+$/;
+
+  function instagramHtml(handle){
+    if(!handle) return '';
+    var safe = escapeHtml(handle);
+    if(!SAFE_HANDLE.test(handle)) return safe;
+    return '<a href="https://instagram.com/' + safe + '" target="_blank" rel="noopener noreferrer">@' + safe + '</a>';
+  }
+
+  function renderApplications(){
+    var list = document.getElementById('appList');
+    if(applicationsCache.length === 0){
+      list.innerHTML = '<div class="empty-note">아직 신청이 없어요.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    applicationsCache.forEach(function(a){
+      var item = document.createElement('div');
+      item.className = 'res-item';
+
+      var rows = '';
+      rows += '<dt>연락처</dt><dd>' + escapeHtml(a.phone || '') + '</dd>';
+      rows += '<dt>이메일</dt><dd>' + escapeHtml(a.email || '') + '</dd>';
+      rows += '<dt>인스타</dt><dd>' + (instagramHtml(a.instagram) || '—') + '</dd>';
+      /* 활용 목적은 신청자가 나눠 쓴 줄을 그대로 살린다(.pre). */
+      rows += '<dt>활용 목적</dt><dd class="pre">' + escapeHtml(a.purpose || '') + '</dd>';
+
+      /* 알림이 못 간 건은 제목에서 바로 보이게 한다. 이 탭이 그걸 볼 수 있는 유일한 곳이다. */
+      var warn = a.notified_at ? '' : ' <span class="warn-badge">알림 못 감</span>';
+
+      item.innerHTML =
+        '<div class="top">' +
+          '<div>' +
+            '<div class="time">' + escapeHtml(a.name || '') + warn + '</div>' +
+            '<div class="no">' + stampKst(a.created_at) + ' 접수</div>' +
+          '</div>' +
+        '</div>' +
+        '<dl>' + rows + '</dl>';
+
+      list.appendChild(item);
     });
   }
 

@@ -61,7 +61,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 |---|---|---|
 | 게스트 가이드 | 이용 안내 + 영상정보처리기기 법정 고지 | `06-applications/guest-guide.html` → `/` |
 | 손님 제어 | 조명 켜기/끄기 + 냉난방 **온도·모드·바람 세기** (비밀번호 없음 — 서버가 **예약 시간 안에서만** 연다) | `06-applications/guest-control.html` → `/control` |
-| 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV | `06-applications/admin.html` → `/admin` |
+| 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV · 공간 지원 신청 | `06-applications/admin.html` → `/admin` |
 | 예약 자동 반영 | 파트너 API(주) + Gmail 15분 트리거(백업) → Supabase RPC | [`automation/`](./06-applications/automation/README.md) |
 | 냉난방 | LG ThinQ Cloud API (HTTPS) — 현장 장비 불필요 | [`functions/control/`](./supabase/functions/control/README.md) |
 | 조명 | Tasmota → 로컬 mosquitto → 상주 에이전트 → Supabase Realtime | [`control-agent/`](./06-applications/control-agent/README.md) |
