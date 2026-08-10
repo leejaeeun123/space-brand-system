@@ -1708,7 +1708,8 @@
     players: {},          // hls.js 인스턴스 (재생 불가 브라우저에서는 비어 있다)
     attached: {},         // 붙이기를 시도한 카메라. players와 달리 실패한 것도 포함한다
     errors: {}, ids: '', spans: [], spanPath: '',
-    retries: {},          // 카메라별 연속 재연결 횟수. 화면이 들어오면 0으로 되돌린다
+    retries: {},          // 카메라별 연속 재연결 횟수. 재생이 충분히 이어지면 0으로 되돌린다
+    lastFail: {},         // 카메라별 마지막 fatal 시각. '살아났나'를 시간으로 판정하려고 둔다
     timers: {},           // 예약된 재연결. destroyCamPlayers에서 반드시 같이 끈다
     objectUrl: null,      // 되감기 blob. 새로 받을 때마다 이전 것을 반드시 해제한다
   };
@@ -1764,13 +1765,17 @@
   }
 
   function destroyCamPlayers(){
-    // 예약된 재연결부터 끊는다. 남겨두면 화면을 떠난 뒤에 되살아나 스트림이 다시 흐른다.
-    Object.keys(CAM.timers).forEach(function(id){ clearTimeout(CAM.timers[id]); });
-    CAM.timers = {};
-    CAM.retries = {};
+    /* 플레이어를 먼저 부순 뒤에 타이머를 비운다. 반대로 하면 파괴 도중 오류 핸들러가
+       타이머를 다시 무장할 여지가 생긴다 — 지금 hls.js는 destroy 안에서 리스너를 먼저
+       떼서 그런 일이 없지만, 라이브러리 내부 구현에 기대지 않는 편이 안전하다.
+       남겨두면 화면을 떠난 뒤에 되살아나 스트림이 다시 흐른다. */
     Object.keys(CAM.players).forEach(function(id){
       try { CAM.players[id].destroy(); } catch(e){ /* 이미 정리됨 */ }
     });
+    Object.keys(CAM.timers).forEach(function(id){ clearTimeout(CAM.timers[id]); });
+    CAM.timers = {};
+    CAM.retries = {};
+    CAM.lastFail = {};
     CAM.players = {};
     CAM.attached = {};
     CAM.errors = {};
@@ -1897,6 +1902,16 @@
      이 코드가 맡는 일은 끊김을 없애는 게 아니라 **되돌아오게** 만드는 것뿐이다. */
   var CAM_RETRY_MAX = 6;
 
+  /** 마지막 실패로부터 이만큼 재생이 이어져야 '살아났다'로 본다. 조각 하나만 보고
+      되돌리면 안 되는 이유는 FRAG_BUFFERED 핸들러 주석에 있다. */
+  var CAM_STABLE_MS = 30000;
+
+  /** 재생이 실제로 이어졌을 때만 백오프를 처음으로 되돌린다. 이 판단도 검증 대상이라
+      한 줄이지만 이름을 준다(admin-retry.test.js). */
+  function camMarkAlive(c){
+    if(Date.now() - (CAM.lastFail[c.id] || 0) > CAM_STABLE_MS) CAM.retries[c.id] = 0;
+  }
+
   /** 1s → 2s → … → 30s 상한. 끝없이 1초마다 두드리면 이미 버거운 업링크를 더 태운다. */
   function camRetryDelay(n){ return Math.min(30000, 1000 * Math.pow(2, n)); }
 
@@ -1905,7 +1920,15 @@
   function camRetry(c, fn){
     var n = CAM.retries[c.id] || 0;
     if(n >= CAM_RETRY_MAX){
-      CAM.errors[c.id] = '재연결 실패 — 새로고침이 필요해요';
+      /* 빠른 백오프를 다 썼다. 여기서 그냥 멈추면 CAM.attached가 true로 남아 목록 갱신이
+         다시 붙이지 않는다 — 그게 이 커밋이 없애려던 바로 그 상태이고, 6회 뒤에 그대로
+         재현된다. 그래서 인스턴스를 정리해 부착 표시를 지운다. 그러면 15초 목록 갱신이
+         느린 재시도 역할을 한다. retries는 한도에 남겨두어 매번 즉시 이 자리로 돌아오므로
+         빠른 백오프로 되돌아가지 않는다(폭주하지 않는다). */
+      CAM.errors[c.id] = '연결 실패 — 15초마다 다시 시도해요';
+      try { if(CAM.players[c.id]) CAM.players[c.id].destroy(); } catch(e){ /* 이미 정리됨 */ }
+      delete CAM.players[c.id];
+      delete CAM.attached[c.id];
       paintCameraMeta(cameraById(c.id) || c);
       return;
     }
@@ -1925,9 +1948,54 @@
     attachLive(cameraById(c.id) || c);
   }
 
+  /**
+   * fatal 오류 하나를 어떻게 되살릴지 고른다. 싼 수단부터 시도하고 마지막에 재부착한다.
+   *
+   * attachLive 안에 인라인으로 두지 않은 이유는 **이 판단이 검증 대상**이어서다
+   * (admin-retry.test.js). 핸들러 안에 묻어두면 hls 인스턴스를 실제로 만들지 않고는
+   * 분기를 확인할 방법이 없다.
+   */
+  function handleCamFatal(c, hls, d){
+    CAM.lastFail[c.id] = Date.now();
+    CAM.errors[c.id] = (d.details || d.type) + ' · 재연결 중';
+    paintCameraMeta(cameraById(c.id) || c);
+
+    /* ⚠️ 매니페스트 단계 실패는 startLoad로 되살릴 수 없다. hls.js에서 MANIFEST_LOADING을
+       트리거하는 건 loadSource 하나뿐이고 startLoad는 네트워크 컨트롤러만 다시 돌린다 —
+       즉 이 부류에 대해 startLoad는 no-op이라, 백오프만 61초 헛돌고 포기한다.
+       하필 터널이 내려갔을 때 제일 먼저 나오는 오류라 인스턴스를 새로 만드는 수밖에 없다. */
+    var manifestStage = d.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR
+                     || d.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT
+                     || d.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR;
+    if(manifestStage){
+      camRetry(c, function(){ reattachLive(c); });
+      return;
+    }
+
+    if(d.type === Hls.ErrorTypes.MEDIA_ERROR){
+      /* 디코더만 어긋난 경우라 인스턴스를 안 버려도 된다. 다만 **다른 분기와 같은 회계를
+         태운다** — 예전엔 camRetry를 건너뛰어서, 코덱이 계속 안 맞으면 지연 0으로 무한
+         반복하며 한도에도 안 닿고 사용자는 이유를 영영 못 봤다. */
+      camRetry(c, function(){
+        try { hls.recoverMediaError(); } catch(e){ reattachLive(c); }
+      });
+      return;
+    }
+
+    if(d.type === Hls.ErrorTypes.NETWORK_ERROR){
+      // 연결만 끊긴 경우. 같은 인스턴스로 다시 당기면 되므로 재부착보다 훨씬 싸다.
+      camRetry(c, function(){
+        try { hls.startLoad(); } catch(e){ reattachLive(c); }
+      });
+      return;
+    }
+
+    camRetry(c, function(){ reattachLive(c); });
+  }
+
   function attachLive(c){
     var video = document.querySelector('video[data-camid="' + c.id + '"]');
-    if(!video || !CAM.cfg.live_base || !CAM.creds) return;
+    if(!video || !CAM.cfg || !CAM.cfg.live_base || !CAM.creds) return;
     var url = CAM.cfg.live_base + '/' + encodeURIComponent(c.path) + '/index.m3u8';
 
     if(window.Hls && Hls.isSupported()){
@@ -1949,35 +2017,29 @@
           xhr.setRequestHeader('Authorization', auth);
         },
       });
+      /* 핸들러를 걸기 **전에** 등록한다. attachMedia는 인자가 잘못되면 동기로 fatal을
+         던지는데, 그때 아직 등록 전이면 reattachLive의 `if(CAM.players[c.id])`가 거짓이 돼
+         옛 인스턴스를 안 버린 채 새로 만든다 — 고아 둘이 같이 세그먼트를 당긴다. */
+      CAM.players[c.id] = hls;
+      CAM.attached[c.id] = true;
+
       hls.on(Hls.Events.ERROR, function(_evt, d){
-        if(!d.fatal) return;
-        CAM.errors[c.id] = (d.details || d.type) + ' · 재연결 중';
-        paintCameraMeta(cameraById(c.id) || c);
-        if(d.type === Hls.ErrorTypes.MEDIA_ERROR){
-          // 디코더만 어긋난 경우다. 인스턴스를 버릴 필요가 없어 제일 싸고 제일 빠르다.
-          try { hls.recoverMediaError(); return; } catch(e){ /* 아래로 넘긴다 */ }
-        }
-        if(d.type === Hls.ErrorTypes.NETWORK_ERROR){
-          // 연결만 끊긴 경우. 같은 인스턴스로 다시 당기면 되므로 재부착보다 훨씬 싸다.
-          camRetry(c, function(){
-            try { hls.startLoad(); } catch(e){ reattachLive(c); }
-          });
-          return;
-        }
-        camRetry(c, function(){ reattachLive(c); });
+        if(d.fatal) handleCamFatal(c, hls, d);
       });
       // 실제로 화면이 들어오면 실패 표시를 지운다. 안 지우면 잠깐 끊겼다 붙은 카메라가
       // 영영 '실패'로 남아, 진짜 실패와 구분되지 않는다.
       hls.on(Hls.Events.FRAG_BUFFERED, function(){
-        CAM.retries[c.id] = 0;   // 살아 돌아왔다 — 다음 끊김은 백오프를 처음부터 다시 센다
+        /* ⚠️ 조각 하나 들어왔다고 살아난 게 아니다. 끊김 사이에 조각이 하나씩만 들어오는
+           플래핑에서 매번 0으로 되돌리면 백오프가 1초에 고정되고 한도에도 영영 안 닿는다
+           — 이미 버거운 업링크를 1초마다 두드리게 되고, 진단 문구도 안 뜬다.
+           왕복 0.9초에 1초 세그먼트 3대인 이 환경에서는 플래핑이 예외가 아니라 기본값이다. */
+        camMarkAlive(c);
         if(!CAM.errors[c.id]) return;
         delete CAM.errors[c.id];
         paintCameraMeta(cameraById(c.id) || c);
       });
       hls.loadSource(url);
       hls.attachMedia(video);
-      CAM.players[c.id] = hls;
-      CAM.attached[c.id] = true;
     } else {
       /* hls.js가 못 도는 환경(구형 iOS 사파리 등). native 재생은 요청을 가로채 헤더를
          붙일 수 없고, MediaMTX는 헤더 외에 자격증명을 받는 경로가 없다. 즉 방법이 없다 —

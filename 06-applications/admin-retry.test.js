@@ -9,7 +9,9 @@
  *
  * 그래서 함수 본문을 이름으로 잘라내 스텁 환경에서 돌린다. 잘라내기가 실패하면 조용히
  * 통과하지 않고 **즉시 죽는다**(아래 extract의 assert) — 구조가 바뀌었는데 테스트만
- * 초록으로 남는 게 제일 나쁘다.
+ * 초록으로 남는 게 제일 나쁘다. handleCamFatal·camMarkAlive를 굳이 이름 있는 함수로
+ * 뽑아둔 것도 이 파일 때문이다. 핸들러 안에 인라인으로 두면 실제 hls 인스턴스 없이는
+ * 분기를 확인할 방법이 없다.
  *
  * 시계도 스텁이다. 실제 setTimeout을 기다리면 백오프 상한(30s)까지 검증하는 데 분 단위가
  * 걸리고, 그런 테스트는 결국 아무도 안 돌린다.
@@ -19,9 +21,7 @@
 
 import { assert, assertEquals } from "jsr:@std/assert@1";
 
-const html = Deno.readTextFileSync(
-  new URL("./admin.html", import.meta.url),
-);
+const html = Deno.readTextFileSync(new URL("./admin.html", import.meta.url));
 
 /** 이름으로 함수(또는 var) 본문을 중괄호 균형으로 잘라낸다. */
 function extract(name, kind) {
@@ -37,16 +37,38 @@ function extract(name, kind) {
 }
 
 const CAM_RETRY_MAX = Number(html.match(/var CAM_RETRY_MAX = (\d+)/)?.[1]);
+const CAM_STABLE_MS = Number(html.match(/var CAM_STABLE_MS = (\d+)/)?.[1]);
 assert(CAM_RETRY_MAX > 0, "CAM_RETRY_MAX를 못 읽었다");
+assert(CAM_STABLE_MS > 0, "CAM_STABLE_MS를 못 읽었다");
 
-/** 스텁 환경을 새로 차리고 대상 함수 세 개를 돌려준다. */
+/** hls.js가 실제로 노출하는 상수들(v1). 이름이 틀리면 분기가 통째로 안 걸린다. */
+const Hls = {
+  ErrorTypes: { NETWORK_ERROR: "networkError", MEDIA_ERROR: "mediaError", OTHER_ERROR: "otherError" },
+  ErrorDetails: {
+    MANIFEST_LOAD_ERROR: "manifestLoadError",
+    MANIFEST_LOAD_TIMEOUT: "manifestLoadTimeOut",
+    MANIFEST_PARSING_ERROR: "manifestParsingError",
+    FRAG_LOAD_ERROR: "fragLoadError",
+    BUFFER_STALLED_ERROR: "bufferStalledError",
+  },
+};
+
+/** 스텁 환경을 새로 차리고 대상 함수들을 돌려준다. */
 function harness() {
   const env = {
-    CAM: { players: {}, attached: {}, errors: {}, retries: {}, timers: {} },
+    CAM: { players: {}, attached: {}, errors: {}, retries: {}, lastFail: {}, timers: {} },
     cardExists: true,
     attachCalls: [],
     timers: [],
     clock: 0,
+    // 가짜 hls 인스턴스가 무엇을 불렸는지 기록한다.
+    calls: { startLoad: 0, recoverMediaError: 0, destroy: 0 },
+  };
+
+  env.hls = {
+    startLoad: () => env.calls.startLoad++,
+    recoverMediaError: () => env.calls.recoverMediaError++,
+    destroy: () => env.calls.destroy++,
   };
 
   const setTimeoutStub = (fn, ms) => {
@@ -65,36 +87,32 @@ function harness() {
   };
 
   // CAM은 admin.html에서 같은 스코프의 var다. new Function은 전역 스코프라 여기로 넘긴다.
-  Object.defineProperty(globalThis, "CAM", {
-    get: () => env.CAM,
-    configurable: true,
-  });
+  Object.defineProperty(globalThis, "CAM", { get: () => env.CAM, configurable: true });
 
   const src = [
     extract("CAM_RETRY_MAX", "var"),
+    extract("CAM_STABLE_MS", "var"),
     extract("camRetryDelay"),
+    extract("camMarkAlive"),
     extract("camRetry"),
     extract("reattachLive"),
+    extract("handleCamFatal"),
   ].join("\n");
 
   const fns = new Function(
-    "setTimeout",
-    "clearTimeout",
-    "document",
-    "paintCameraMeta",
-    "cameraById",
-    "attachLive",
-    `${src}; return { camRetryDelay, camRetry, reattachLive };`,
+    "setTimeout", "clearTimeout", "document", "Hls",
+    "paintCameraMeta", "cameraById", "attachLive",
+    `${src}; return { camRetryDelay, camMarkAlive, camRetry, reattachLive, handleCamFatal };`,
   )(
-    setTimeoutStub,
-    clearTimeoutStub,
+    setTimeoutStub, clearTimeoutStub,
     { querySelector: () => (env.cardExists ? {} : null) },
+    Hls,
     () => {},
     (id) => ({ id, name: "stub" }),
     (c) => {
       env.attachCalls.push(c.id);
       env.CAM.attached[c.id] = true;
-      env.CAM.players[c.id] = { destroy() {} };
+      env.CAM.players[c.id] = env.hls;
     },
   );
 
@@ -103,6 +121,14 @@ function harness() {
 
 const CAM_ID = "cam1";
 const cam = { id: CAM_ID, name: "라운지 우측" };
+
+/** fatal 한 번을 흘려보내고 예약된 재시도까지 실행한다. */
+function fireFatal(h, type, details) {
+  h.handleCamFatal(cam, h.env.hls, { fatal: true, type, details });
+  h.env.advance(60000);
+}
+
+// ── 백오프·회계 ────────────────────────────────────────────────────────────
 
 Deno.test("백오프가 1s에서 시작해 30s에서 멈춘다", () => {
   const { camRetryDelay } = harness();
@@ -144,7 +170,9 @@ Deno.test("재연결 예약이 중첩되지 않는다", () => {
   assertEquals(ran, 1, `동시 실행 ${ran}회 — 직전 타이머를 안 끊었다`);
 });
 
-Deno.test(`${CAM_RETRY_MAX}회를 넘으면 포기하고 이유를 남긴다`, () => {
+// ── 한도 소진 후 (자동 복구 경로가 남아야 한다) ─────────────────────────────
+
+Deno.test(`${CAM_RETRY_MAX}회를 넘으면 빠른 재시도를 멈추고 이유를 남긴다`, () => {
   const { camRetry, env } = harness();
   let ran = 0;
   for (let i = 0; i < CAM_RETRY_MAX; i++) {
@@ -157,34 +185,122 @@ Deno.test(`${CAM_RETRY_MAX}회를 넘으면 포기하고 이유를 남긴다`, (
   env.advance(60000);
   assertEquals(ran, CAM_RETRY_MAX, "한도를 넘어도 재시도하면 업링크를 계속 태운다");
   // 검은 화면만 남으면 '재연결 중'과 '포기했다'가 구분되지 않는다.
+  assert(/실패/.test(env.CAM.errors[CAM_ID] ?? ""), "포기했으면 화면에 이유가 있어야 한다");
+});
+
+Deno.test("한도 소진 시 부착 표시를 지워 15초 목록 갱신이 다시 붙일 수 있게 한다", () => {
+  const { camRetry, env } = harness();
+  env.CAM.players[CAM_ID] = env.hls;
+  env.CAM.attached[CAM_ID] = true;
+  for (let i = 0; i <= CAM_RETRY_MAX; i++) {
+    camRetry(cam, () => {});
+    env.advance(60000);
+  }
+  // attached가 true로 남으면 renderCameras가 걸러내 영영 안 붙는다 — 이 커밋이 없애려던 상태다.
+  assertEquals(env.CAM.attached[CAM_ID], undefined, "attached가 남아 자동 복구 경로가 끊겼다");
+  assertEquals(env.CAM.players[CAM_ID], undefined, "죽은 인스턴스를 안 버렸다");
+  assert(env.calls.destroy > 0, "포기하면서 인스턴스를 정리하지 않았다");
+});
+
+// ── '살아났다' 판정 ────────────────────────────────────────────────────────
+
+Deno.test("조각 하나로는 백오프가 리셋되지 않는다 (플래핑 방어)", () => {
+  const { camMarkAlive, env } = harness();
+  env.CAM.retries[CAM_ID] = 4;
+  env.CAM.lastFail[CAM_ID] = Date.now(); // 방금 실패했다
+  camMarkAlive(cam);
+  // 매번 리셋되면 백오프가 1초에 고정되고 한도에도 영영 안 닿는다.
+  assertEquals(env.CAM.retries[CAM_ID], 4, "방금 실패했는데 살아난 것으로 쳤다");
+});
+
+Deno.test("충분히 이어지면 백오프가 리셋된다", () => {
+  const { camMarkAlive, env } = harness();
+  env.CAM.retries[CAM_ID] = 4;
+  env.CAM.lastFail[CAM_ID] = Date.now() - (CAM_STABLE_MS + 1000);
+  camMarkAlive(cam);
+  assertEquals(env.CAM.retries[CAM_ID], 0, "안정됐는데도 백오프가 안 풀렸다");
+});
+
+Deno.test("한 번도 실패한 적 없으면 리셋된 상태다", () => {
+  const { camMarkAlive, env } = harness();
+  env.CAM.retries[CAM_ID] = 3;
+  camMarkAlive(cam); // lastFail 없음
+  assertEquals(env.CAM.retries[CAM_ID], 0);
+});
+
+// ── fatal 분기 ─────────────────────────────────────────────────────────────
+
+Deno.test("매니페스트 실패는 startLoad가 아니라 재부착으로 간다", () => {
+  for (const details of [
+    Hls.ErrorDetails.MANIFEST_LOAD_ERROR,
+    Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT,
+    Hls.ErrorDetails.MANIFEST_PARSING_ERROR,
+  ]) {
+    const h = harness();
+    fireFatal(h, Hls.ErrorTypes.NETWORK_ERROR, details);
+    /* hls.js에서 MANIFEST_LOADING을 트리거하는 건 loadSource 하나뿐이라 startLoad는
+       이 부류에 no-op이다. 여기로 보내면 터널이 내려간 사이 60초를 헛돌고 포기한다. */
+    assertEquals(h.env.calls.startLoad, 0, `${details}를 startLoad로 보냈다 — no-op이다`);
+    assertEquals(h.env.attachCalls, [CAM_ID], `${details}가 재부착되지 않았다`);
+  }
+});
+
+Deno.test("일반 네트워크 오류는 같은 인스턴스의 startLoad로 되살린다", () => {
+  const h = harness();
+  fireFatal(h, Hls.ErrorTypes.NETWORK_ERROR, Hls.ErrorDetails.FRAG_LOAD_ERROR);
+  assertEquals(h.env.calls.startLoad, 1);
+  // 재부착은 인스턴스를 새로 만드는 값비싼 수단이라 여기서 쓰면 안 된다.
+  assertEquals(h.env.attachCalls, [], "싼 수단으로 될 걸 재부착했다");
+});
+
+Deno.test("미디어 오류도 백오프와 한도를 거친다", () => {
+  const h = harness();
+  h.handleCamFatal(cam, h.env.hls, {
+    fatal: true, type: Hls.ErrorTypes.MEDIA_ERROR, details: Hls.ErrorDetails.BUFFER_STALLED_ERROR,
+  });
+  // 예전엔 camRetry를 건너뛰어 지연 0으로 무한 반복했다 — 즉시 불리면 안 된다.
+  assertEquals(h.env.calls.recoverMediaError, 0, "지연 없이 즉시 복구를 시도했다");
+  assertEquals(h.env.CAM.retries[CAM_ID], 1, "회계를 안 태웠다 — 한도에 영영 안 닿는다");
+  h.env.advance(60000);
+  assertEquals(h.env.calls.recoverMediaError, 1);
+});
+
+Deno.test("미디어 오류가 계속되면 결국 포기하고 이유를 남긴다", () => {
+  const h = harness();
+  for (let i = 0; i <= CAM_RETRY_MAX; i++) {
+    fireFatal(h, Hls.ErrorTypes.MEDIA_ERROR, Hls.ErrorDetails.BUFFER_STALLED_ERROR);
+  }
+  assertEquals(h.env.calls.recoverMediaError, CAM_RETRY_MAX, "한도를 넘어서도 계속 시도했다");
+  assert(/실패/.test(h.env.CAM.errors[CAM_ID] ?? ""), "사용자가 이유를 볼 수 없다");
+});
+
+Deno.test("분류되지 않은 fatal은 재부착으로 간다", () => {
+  const h = harness();
+  fireFatal(h, Hls.ErrorTypes.OTHER_ERROR, "internalException");
+  assertEquals(h.env.attachCalls, [CAM_ID]);
+});
+
+Deno.test("fatal은 마지막 실패 시각과 화면 문구를 남긴다", () => {
+  const h = harness();
+  h.handleCamFatal(cam, h.env.hls, {
+    fatal: true, type: Hls.ErrorTypes.NETWORK_ERROR, details: Hls.ErrorDetails.FRAG_LOAD_ERROR,
+  });
+  assert(h.env.CAM.lastFail[CAM_ID] > 0, "lastFail이 없으면 '살아났나' 판정이 무너진다");
   assert(
-    /재연결 실패/.test(env.CAM.errors[CAM_ID] ?? ""),
-    "포기했으면 화면에 이유가 있어야 한다",
+    /fragLoadError/.test(h.env.CAM.errors[CAM_ID] ?? ""),
+    "어느 계층이 죽었는지 화면에 남아야 원인을 좁힐 수 있다",
   );
 });
 
-Deno.test("화면이 들어와 카운터가 0이 되면 다시 처음부터 센다", () => {
-  const { camRetry, env } = harness();
-  let ran = 0;
-  for (let i = 0; i < CAM_RETRY_MAX; i++) {
-    camRetry(cam, () => ran++);
-    env.advance(60000);
-  }
-  env.CAM.retries[CAM_ID] = 0; // FRAG_BUFFERED 핸들러가 하는 일
-  camRetry(cam, () => ran++);
-  env.advance(60000);
-  // 리셋이 안 먹으면 하루 종일 켜둔 정상 스트림이 6번째 끊김 이후로 영영 안 붙는다.
-  assertEquals(ran, CAM_RETRY_MAX + 1, "리셋 뒤에도 포기 상태로 남았다");
-});
+// ── 재부착 ─────────────────────────────────────────────────────────────────
 
 Deno.test("reattachLive는 옛 인스턴스를 버리고 새로 붙인다", () => {
   const { reattachLive, env } = harness();
-  let destroyed = false;
-  env.CAM.players[CAM_ID] = { destroy() { destroyed = true; } };
+  env.CAM.players[CAM_ID] = env.hls;
   env.CAM.attached[CAM_ID] = true;
 
   reattachLive(cam);
-  assert(destroyed, "옛 인스턴스를 안 버리면 둘이 같이 스트림을 당긴다");
+  assert(env.calls.destroy > 0, "옛 인스턴스를 안 버리면 둘이 같이 스트림을 당긴다");
   assertEquals(env.attachCalls, [CAM_ID]);
 });
 
