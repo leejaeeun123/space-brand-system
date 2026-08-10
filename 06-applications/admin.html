@@ -345,38 +345,12 @@
       <div id="camList"></div>
       <button type="button" class="add-btn" onclick="openCameraModal()">+ 카메라 추가</button>
 
-      <h2>녹화 되감기</h2>
-      <div class="row2">
-        <div>
-          <label>카메라</label>
-          <select id="camPlayTarget"></select>
-        </div>
-        <div>
-          <label>길이</label>
-          <!-- 30분에서 끊는다: 재생이 blob이라 통째로 받아야 하고, 고화질 1분이 20~40MB다.
-               그 이상은 브라우저 메모리를 넘본다(admin.html의 playRecording 주석 참조). -->
-          <select id="camPlayDur">
-            <option value="60">1분</option>
-            <option value="300" selected>5분</option>
-            <option value="900">15분</option>
-            <option value="1800">30분</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>시작 시각</label>
-        <input type="datetime-local" id="camPlayStart">
-      </div>
-      <button type="button" onclick="loadRecordingSpans()">이 시각 주변 녹화 찾기</button>
-      <div id="camPlayMsg" class="dev-meta"></div>
-      <div id="camSpans"></div>
-      <video id="camPlayer" class="cam-video" controls playsinline style="display:none;"></video>
-
       <div class="warn">
-        영상은 합정 맥에 저장되고 이 페이지로 직접 흘러옵니다 — 서버(Supabase)에는 카메라 목록과
-        상태만 있습니다. 녹화는 보관기간이 지나면 자동으로 지워지고, 그 일수는 현장 안내판에
-        적은 값과 같아야 합니다.
+        영상은 <strong>저장하지 않고 지나갑니다</strong> — 합정 맥에도 서버(Supabase)에도
+        남지 않고, 이 페이지로 실시간으로만 흘러옵니다. 서버가 아는 건 카메라 목록과 상태뿐입니다.
+        지난 영상이 필요하면 카메라 SD카드에서 Tapo 앱으로 꺼냅니다.
       </div>
+
     </section>
   </div>
 </div>
@@ -1707,11 +1681,10 @@
     cfg: null, creds: null,
     players: {},          // hls.js 인스턴스 (재생 불가 브라우저에서는 비어 있다)
     attached: {},         // 붙이기를 시도한 카메라. players와 달리 실패한 것도 포함한다
-    errors: {}, ids: '', spans: [], spanPath: '',
+    errors: {}, ids: '',
     retries: {},          // 카메라별 연속 재연결 횟수. 재생이 충분히 이어지면 0으로 되돌린다
     lastFail: {},         // 카메라별 마지막 fatal 시각. '살아났나'를 시간으로 판정하려고 둔다
     timers: {},           // 예약된 재연결. destroyCamPlayers에서 반드시 같이 끈다
-    objectUrl: null,      // 되감기 blob. 새로 받을 때마다 이전 것을 반드시 해제한다
     /* `?debug=1`에서만 켜지는 진단. 켜져 있으면 카드에 hls.js의 실패 이유를 그대로 적는다.
        iPhone은 맥에 USB로 물리기 전에는 콘솔을 못 보는데, 재생 문제는 iPhone에서만 나는 게
        있어서(ManagedMediaSource) 이 통로가 없으면 추측으로 배포를 반복하게 된다. */
@@ -1763,12 +1736,6 @@
   function enterCctv(){
     if(!currentPassword) return;
     if(CAM.debug) camNotice(camDebugEnv(), false);
-    var start = document.getElementById('camPlayStart');
-    // 되감기 기본값은 10분 전. 대개 "방금 뭐였지"를 확인하러 오기 때문이다.
-    if(!start.value){
-      var t = new Date(Date.now() - 10*60000 - new Date().getTimezoneOffset()*60000);
-      start.value = t.toISOString().slice(0, 16);
-    }
     refreshCameras();
   }
 
@@ -1776,10 +1743,6 @@
      합정 맥 업링크와 이 기기 데이터를 조용히 태운다. */
   function leaveCctv(){
     destroyCamPlayers();
-    var v = document.getElementById('camPlayer');
-    v.pause(); v.removeAttribute('src'); v.load(); v.style.display = 'none';
-    // 받아둔 녹화는 메모리에 그대로 있다 — 화면을 떠나면 해제한다.
-    if(CAM.objectUrl){ URL.revokeObjectURL(CAM.objectUrl); CAM.objectUrl = null; }
   }
 
   function destroyCamPlayers(){
@@ -1840,21 +1803,26 @@
     if(s.never_seen){
       parts.push('아직 보고를 받은 적 없음');
     } else {
-      parts.push(s.recording ? '녹화 중' : '녹화 안 됨');
+      /* '녹화 중/안 됨'과 '남은 용량'은 뺐다. 2026-08-10에 서버 녹화를 끄면서 둘 다
+         고정값이 됐기 때문이다 — 늘 '녹화 안 됨'이 떠 있으면 그게 정상인지 장애인지
+         구분이 안 되고, 그 자리를 장애 신호로 쓰던 습관이 진짜 문제를 가린다.
+         지금 이 줄에서 봐야 할 건 '연결됨'과 마지막 보고 시각이다. */
       parts.push(s.online ? '연결됨' : '연결 끊김');
       if(s.is_stale) parts.push('보고 끊김');
       if(s.updated_at) parts.push(timeAgo(s.updated_at));
-      if(s.disk_free_gb !== null && s.disk_free_gb !== undefined){
-        parts.push('남은 용량 ' + s.disk_free_gb + 'GB');
-      }
     }
-    parts.push('보관 ' + data.retention_days + '일');
+    // 이제 보관하는 주체는 맥이 아니라 카메라 SD카드다. 출처를 적어두지 않으면
+    // 이 숫자를 서버가 지키는 값으로 오해한다.
+    parts.push('SD 보관 ' + data.retention_days + '일');
     return parts.join(' · ');
   }
 
   function cameraBad(c){
     var s = c.state || {};
-    return !!(s.has_audio || CAM.errors[c.id] || s.never_seen || s.is_stale || !s.online || !s.recording);
+    /* ⚠️ `!s.recording`을 여기 다시 넣지 마라. 서버 녹화를 끈 뒤로 recording은 늘 false라,
+       넣는 순간 **모든 카드가 항상 경고 색**이 된다 — 그러면 오디오 감지나 연결 끊김 같은
+       진짜 경고가 그 안에 묻혀 아무도 안 본다. */
+    return !!(s.has_audio || CAM.errors[c.id] || s.never_seen || s.is_stale || !s.online);
   }
 
   /* 카드 한 장의 상태 줄을 다시 칠한다. 주기 갱신과 재생 오류 두 경로가 같은 함수를 써야
@@ -1882,7 +1850,6 @@
   function renderCameras(data){
     var list = document.getElementById('camList');
     var cams = data.cameras || [];
-    syncPlaybackTargets(cams);
 
     if(!cams.length){
       destroyCamPlayers();
@@ -2132,118 +2099,6 @@
     controlCall('camera_delete', { camera_id: el.dataset.camremove })
       .then(refreshCameras)
       .catch(function(err){ camNotice(err.message, true); });
-  });
-
-  /* ── 되감기 ── */
-
-  function syncPlaybackTargets(cams){
-    var sel = document.getElementById('camPlayTarget');
-    var keep = sel.value;
-    var next = cams.map(function(c){ return c.path + '|' + c.name; }).join(',');
-    if(sel.dataset.sig === next) return;   // 바뀐 게 없으면 손대지 않는다(선택이 풀린다)
-    sel.dataset.sig = next;
-    sel.innerHTML = cams.map(function(c){
-      return '<option value="' + escapeHtml(c.path) + '">' + escapeHtml(c.name) + '</option>';
-    }).join('');
-    if(keep) sel.value = keep;
-  }
-
-  /**
-   * 녹화 구간을 받아서 재생한다.
-   *
-   * `<video src="...">`로 바로 못 거는 이유: MediaMTX는 자격증명을 Authorization 헤더로만
-   * 받는데, 미디어 엘리먼트 요청에는 헤더를 붙일 방법이 없다. 그래서 fetch로 받아 blob으로
-   * 물린다 — 요청은 fetch가 하니 헤더를 붙일 수 있고, 재생은 로컬 blob이라 인증이 필요 없다.
-   *
-   * **대가는 통째로 받은 뒤에 재생이 시작된다는 것**이다. 고화질 기준 1분이 20~40MB라
-   * 30분이면 0.6~1.2GB고, 그 이상은 브라우저 메모리를 넘본다. 그래서 길이 선택지를 30분에서
-   * 끊었다. 더 긴 구간이 상시로 필요해지면 그때 합정 맥에 쿼리→헤더 변환 프록시를 두고
-   * 이 함수를 `<video src>` 한 줄로 되돌리는 게 맞다 — 지금 짓는 건 아직 이르다.
-   */
-  function playRecording(path, startIso, durationSec){
-    var v = document.getElementById('camPlayer');
-    var msg = document.getElementById('camPlayMsg');
-    var url = CAM.cfg.playback_base + '/get?path=' + encodeURIComponent(path) +
-      '&start=' + encodeURIComponent(startIso) + '&duration=' + durationSec;
-
-    msg.textContent = '녹화를 받는 중... (다 받아야 재생이 시작돼요)';
-    fetch(url, { headers: { 'Authorization': camAuthHeader() } }).then(function(res){
-      if(!res.ok) throw new Error(res.status === 401 ? '인증 실패' : ('HTTP ' + res.status));
-      return res.blob();
-    }).then(function(blob){
-      if(blob.size === 0) throw new Error('그 구간에 녹화가 없어요');
-      // 이전 blob을 해제하지 않으면 되감기를 반복할수록 메모리가 그대로 쌓인다.
-      if(CAM.objectUrl) URL.revokeObjectURL(CAM.objectUrl);
-      CAM.objectUrl = URL.createObjectURL(blob);
-      v.style.display = 'block';
-      v.src = CAM.objectUrl;
-      msg.textContent = '재생 중 · ' + Math.round(blob.size / 1e6) + 'MB';
-      v.play().catch(function(){ /* 자동재생이 막히면 사용자가 누르면 된다 */ });
-    }).catch(function(err){
-      v.style.display = 'none';
-      msg.textContent = '녹화를 불러오지 못했어요: ' + err.message;
-    });
-  }
-
-  function loadRecordingSpans(){
-    var msg = document.getElementById('camPlayMsg');
-    var box = document.getElementById('camSpans');
-    var path = document.getElementById('camPlayTarget').value;
-    var raw = document.getElementById('camPlayStart').value;
-    var duration = Number(document.getElementById('camPlayDur').value);
-    box.innerHTML = '';
-
-    if(!CAM.cfg || !CAM.cfg.playback_base || !CAM.creds){
-      msg.textContent = 'CCTV가 아직 설정되지 않아 되감기를 쓸 수 없어요.';
-      return;
-    }
-    if(!path){ msg.textContent = '카메라를 먼저 등록하세요.'; return; }
-    if(!raw){ msg.textContent = '시작 시각을 골라주세요.'; return; }
-
-    var start = new Date(raw);
-    if(isNaN(start.getTime())){ msg.textContent = '시작 시각을 읽지 못했어요.'; return; }
-
-    msg.textContent = '녹화를 찾는 중...';
-    var from = new Date(start.getTime() - 6*3600*1000).toISOString();
-    var to = new Date(start.getTime() + 6*3600*1000).toISOString();
-    var listUrl = CAM.cfg.playback_base + '/list?path=' + encodeURIComponent(path) +
-      '&start=' + encodeURIComponent(from) + '&end=' + encodeURIComponent(to);
-
-    fetch(listUrl, { headers: { 'Authorization': camAuthHeader() } }).then(function(res){
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    }).then(function(spans){
-      CAM.spans = spans || [];
-      CAM.spanPath = path;
-      if(!CAM.spans.length){
-        msg.textContent = '그 시각 앞뒤 6시간에는 녹화가 없어요.';
-        return;
-      }
-      msg.textContent = '구간을 고르면 그 지점부터 재생해요.';
-      box.innerHTML = CAM.spans.map(function(s, i){
-        var st = new Date(s.start);
-        return '<button type="button" class="cam-span" data-spanidx="' + i + '">' +
-          escapeHtml(st.toLocaleString('ko-KR') + ' 부터 ' + Math.round((s.duration||0)/60) + '분') +
-          '</button>';
-      }).join('');
-      // 고른 시각이 녹화 구간 안에 있으면 굳이 고르게 하지 않고 바로 튼다.
-      playRecording(path, start.toISOString(), duration);
-    }).catch(function(){
-      /* 목록을 못 받아도 재생은 별개 요청이라 될 수 있다 — 고른 시각으로 바로 틀어본다.
-         목록이 없으면 '어디에 녹화가 있는지'만 못 보는 것이지 재생 경로가 막힌 게 아니다. */
-      msg.textContent = '녹화 목록은 못 불러왔어요. 고른 시각으로 바로 재생해볼게요.';
-      playRecording(path, start.toISOString(), duration);
-    });
-  }
-
-  document.getElementById('camSpans').addEventListener('click', function(e){
-    var el = e.target.closest('button[data-spanidx]');
-    if(!el) return;
-    var span = CAM.spans[Number(el.dataset.spanidx)];
-    if(!span) return;
-    document.querySelectorAll('#camSpans .cam-span').forEach(function(b){ b.classList.remove('on'); });
-    el.classList.add('on');
-    playRecording(CAM.spanPath, span.start, Number(document.getElementById('camPlayDur').value));
   });
 
   /* ── 등록 ── */
