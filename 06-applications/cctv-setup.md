@@ -157,7 +157,7 @@ brew install mediamtx
 
 ```bash
 cd 06-applications/control-agent
-cp mediamtx/mediamtx.yml "$(brew --prefix)/etc/mediamtx.yml"
+cp mediamtx/mediamtx.yml "$(brew --prefix)/etc/mediamtx/mediamtx.yml"   # ← 디렉터리 안이다. brew 가 만든다
 # 편집: <스트림계정> <스트림비번> <녹화경로> <카메라계정> <카메라비번> <카메라IP>
 ```
 
@@ -408,7 +408,8 @@ Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다�
 | 로컬은 되는데 외부에서 안 된다 | 터널. `cloudflared` 로그와 DNS 라우팅(C-6) |
 | 자격증명 없이도 보인다 | **즉시 멈춘다.** `mediamtx.yml`의 `<스트림계정>` 자리가 안 채워졌다 |
 | 카드는 뜨는데 영상만 안 나온다 | 스트림 이름 오타(C-9). `paths` 키와 대조 |
-| 크롬은 되는데 사파리만 안 된다 | hls.js가 안 실린 것. CDN 차단 여부 |
+| 크롬은 되는데 **iPhone 사파리만** 안 된다 | **CDN 차단이 아니다**(2026-08-10에 그렇게 오진했다). 아래 "사파리만 302에서 죽는 이유"를 읽는다. `index.m3u8` 뒤에 `?cookieCheck=1`이 붙어 있는지부터 본다 |
+| **세 대 다 화면이 안 나온다** (카드는 `연결됨`) | 오디오를 떼는 **ffmpeg 재발행이 죽은 것**이다. 아래 "카메라 오디오를 떼는 재발행"을 본다. `curl -s localhost:9997/v3/paths/list`에서 `ready: false`면 확정이다 |
 | `녹화 안 됨` 인데 화면은 나온다 | **정상적인 경고다.** 디스크가 찼거나 `<녹화경로>` 권한. `df -h` |
 | `아직 보고를 받은 적 없음` | 에이전트가 CCTV 설정을 못 읽었다(C-8) |
 | 되감기 목록만 안 나온다 | `/list` 응답만 실패한 것. 재생은 별개 요청이라 시각을 직접 골라 틀면 된다 |
@@ -447,6 +448,71 @@ Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다�
 > (a) 매니페스트 실패가 61초 헛돌지 않는지 (b) 플래핑에서 지연이 실제로 늘어나는지
 > 눈으로 봐야 끝난다.
 
+### 카메라 오디오를 떼는 재발행 — **이게 죽으면 영상이 통째로 없다** (2026-08-10)
+
+카메라 3대 모두 **마이크가 꺼지지 않는다**(설정을 껐는데도 `pcm_alaw` 트랙이 나온다).
+MediaMTX는 받은 트랙을 그대로 넘기고 녹화하므로, 카메라 RTSP를 직접 소스로 걸면
+그 순간 위법 녹음이 된다(C-2). 그래서 구조가 이렇다:
+
+```
+카메라 RTSP (영상+오디오)  →  로컬 ffmpeg (-an 으로 오디오 폐기)  →  MediaMTX (127.0.0.1:8554)
+```
+
+`mediamtx.yml`의 `paths`가 전부 `source: publisher`이고 `rtspAddress`가 `127.0.0.1`로 묶인
+이유가 이것이다. **카메라가 MediaMTX에 직접 붙지 않는다** — 중간의 ffmpeg가 유일한 경로다.
+
+> #### 이 재발행이 40시간 공백을 만들었다
+>
+> 2026-08-09 19:29~20:05에 셋 다 `Broken pipe`로 죽었고, 8/10 오전까지 아무도 살리지 않았다.
+> **그 구간은 실시간도 서버 녹화도 없다.** 손으로 띄운 프로세스라 관리 주체가 없었고,
+> 절차가 레포에도 문서에도 없어서 "왜 안 나오지"를 터널과 어드민 코드에서 찾았다.
+>
+> 카드가 `연결됨`으로 보이는 것에 속으면 안 된다 — 그건 에이전트가 살아 있다는 뜻이지
+> 영상이 흐른다는 뜻이 아니다. **`paths/list`의 `ready`가 유일한 판정 기준이다.**
+
+띄우는 법. 스크립트는 `control-agent/camera-republish.sh`에 있고 자격증명은 같은 폴더 `.env`의
+`CAM_RTSP_USER`/`CAM_RTSP_PASS`에서 읽는다:
+
+```bash
+cd ~/Dev/space-brand-system/06-applications/control-agent
+nohup ./camera-republish.sh office       192.168.200.148 >> ~/Library/Logs/typelounge/camera-office.log 2>&1 &
+nohup ./camera-republish.sh lounge_left  192.168.200.193 >> ~/Library/Logs/typelounge/camera-lounge_left.log 2>&1 &
+nohup ./camera-republish.sh lounge_right 192.168.200.134 >> ~/Library/Logs/typelounge/camera-lounge_right.log 2>&1 &
+
+# 판정 — 셋 다 ready 이고 tracks 가 ['H264'] 여야 한다. 오디오가 섞이면 즉시 멈춘다.
+curl -s http://127.0.0.1:9997/v3/paths/list | python3 -c "import json,sys
+for p in json.load(sys.stdin).get('items',[]): print(' ', p['name'], p['ready'], p.get('tracks'))"
+```
+
+> ⚠️ **아직 자동 복구가 없다. 맥을 재부팅하면 위 명령을 다시 쳐야 한다.**
+> launchd로 올리려 했으나 **macOS 26이 Homebrew ffmpeg의 로컬 네트워크 접근을 막는다** —
+> launchd에서 돌리면 카메라 IP에 `No route to host`가 나고, 같은 스크립트를 터미널에서
+> 돌리면 된다(터미널의 로컬 네트워크 권한을 물려받기 때문). Apple 서명 도구인 `nc`는
+> launchd에서도 통과하므로 launchd 전체가 막힌 게 아니라 **ffmpeg 바이너리만** 막힌 것이다.
+> 시스템 설정 > 개인정보 보호 및 보안 > 로컬 네트워크 목록에 ffmpeg 항목이 아예 없어
+> 토글로도 못 푼다. `.app` 번들로 감싸 TCC 항목을 만드는 우회가 남아 있다.
+
+### 사파리만 302에서 죽는 이유 (2026-08-10)
+
+PC 크롬은 멀쩡한데 iPhone 사파리에서만 `영상 연결 실패`가 떴다.
+
+MediaMTX v1.18이 HLS에 세션 쿠키 검사를 넣으면서 `index.m3u8` 최초 요청이 `?cookieCheck=1`로
+302 리다이렉트된다. 어드민 요청은 `Authorization` 헤더 때문에 프리플라이트가 필요한데,
+**사파리는 프리플라이트가 필요한 요청이 리다이렉트되면 그대로 실패시킨다.** 크롬은 리다이렉트
+뒤에 프리플라이트를 다시 해서 진행한다 — 그래서 같은 코드가 한쪽에서만 깨졌다.
+
+쿠키를 넘기는 방향은 답이 아니다. **서버는 쿠키를 요구하지 않는다** — 쿠키를 하나도 안 보내는
+교차 출처 `fetch`가 플레이리스트와 세그먼트까지 전부 200으로 통과하는 것을 확인했다.
+그래서 어드민이 쿼리를 처음부터 붙여 **리다이렉트 자체를 만들지 않는다**(`admin.html` `attachLive`).
+
+```
+index.m3u8                 → 302
+index.m3u8?cookieCheck=1   → 200 (리다이렉트 없음)
+```
+
+MediaMTX 내부 구현에 기댄 우회다. **업그레이드하면 위 두 줄을 다시 재본다** — 302가 사라졌으면
+쿼리를 떼도 되고, 형태가 바뀌었으면 어드민도 같이 고쳐야 한다.
+
 ### 터널이 태평양을 두 번 건너는 문제 (2026-08-10 실측)
 
 **`cam.nmwc.ai.kr` 요청이 Cloudflare LAX(로스앤젤레스) 엣지로 들어간다.** 서울 KT 회선에서
@@ -462,8 +528,8 @@ Cloudflare **Free 플랜**은 한국 ISP 피어링 비용 때문에 국내 트�
 | 요인 | 내용 | 고칠 수 있나 |
 |---|---|---|
 | 프리플라이트 미캐싱 | MediaMTX가 `Access-Control-Max-Age`를 안 보낸다 → 매 요청 앞에 OPTIONS가 붙는다 | 서버 설정 필요 |
-| `cookieCheck` 302 | v1.18의 세션 쿠키. **교차 출처 XHR은 쿠키를 못 보관**해 매번 302를 다시 받는다 | MediaMTX에 끄는 옵션이 없다 |
-| 1초 세그먼트 × 3대 | `hlsSegmentDuration: 1s`에 카메라 3대가 동시 재생된다 | **현장 맥에서 제일 쉽게 고친다** |
+| `cookieCheck` 302 | v1.18의 세션 쿠키. **교차 출처 XHR은 쿠키를 못 보관**해 매번 302를 다시 받는다 | ~~MediaMTX에 끄는 옵션이 없다~~ → **2026-08-10 우회함.** 어드민이 `?cookieCheck=1`을 처음부터 붙여 302 자체를 안 만든다 |
+| 1초 세그먼트 × 3대 | `hlsSegmentDuration: 1s`에 카메라 3대가 동시 재생된다 | **2026-08-10에 4초로 올렸다** |
 
 쥘 수 있는 수단을 싼 순서대로:
 
@@ -498,13 +564,11 @@ Cloudflare **Free 플랜**은 한국 ISP 피어링 비용 때문에 국내 트�
 **실기기로는 확인하지 못했다.** 카메라가 없어 RTSP 왕복을 못 돌렸고, MediaMTX·터널도
 설정만 작성했다. 이 절차를 밟으면서 처음 확인된다. 특히 두 가지를 눈으로 봐야 한다:
 
-1. **HLS 세그먼트 인증** — 재생목록은 되는데 세그먼트만 401인 경우.
-
-   양쪽 다 소스로 확인은 했다. hls.js는 `xhrSetup`을 `open()` 전에 부르고 이어지는
-   `openAndSendXhr`가 `if (!xhr.readyState)`로 감싸 있어, 우리가 먼저 열고 헤더를 붙이면
-   그대로 나간다(기본 loader도 `XhrLoader`). MediaMTX 쪽은 HLS·playback 서버 모두
-   `Access-Control-Allow-Headers: Authorization`을 세팅하고 OPTIONS 프리플라이트를 처리한다.
-   남은 건 이 둘이 실제로 맞물리는지 — 카메라가 붙는 날 처음 확인된다.
+1. ~~**HLS 세그먼트 인증**~~ — **2026-08-10 검증 완료.** 실카메라 3대로 전 구간이 통과했다.
+   플레이리스트 → 하위 플레이리스트 → 세그먼트(290KB)까지 터널 경유 200이고, 인증을 빼면 401이다.
+   브라우저 컨텍스트에서도 같은 결과를 받았고 PC 어드민에서 영상 재생을 눈으로 확인했다.
+   추가로 알게 된 것: **교차 출처라 쿠키가 하나도 안 실리는데도 통과한다** — MediaMTX는
+   `session` 쿼리로 판정하고 쿠키를 요구하지 않는다. 이 사실이 사파리 302 문제의 해법 근거가 됐다.
 2. **되감기 재생의 메모리** — `<video src>`에는 헤더를 못 붙여서 fetch로 받아 blob으로 문다.
    즉 **통째로 받은 뒤에 재생이 시작된다.** 30분(고화질 0.6~1.2GB)에서 끊어뒀지만, 실제로
    버거우면 길이를 줄이거나 `stream2`로 낮춘다. 상시로 긴 구간이 필요해지면 그때 합정 맥에

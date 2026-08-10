@@ -30,7 +30,7 @@ launchctl print gui/$(id -u)/kr.nmwc.typelounge.control-agent 2>/dev/null | grep
 grep -E "^MEDIAMTX" 06-applications/control-agent/.env || echo "  ⚠️ MEDIAMTX 항목이 없다"
 
 echo "── MediaMTX 설정"
-grep -E "recordPath|hlsSegment|recordDeleteAfter" "$(brew --prefix)/etc/mediamtx.yml"
+grep -E "recordPath|hlsSegment|recordDeleteAfter" "$(brew --prefix)/etc/mediamtx/mediamtx.yml"
 
 echo "── 스트림 상태 (tracks에 오디오가 섞이면 위법이다)"
 curl -s http://127.0.0.1:9997/v3/paths/list | python3 -c "import json,sys
@@ -73,7 +73,7 @@ tail -f agent.log     # "[camera] 카메라 3대 관찰 시작" 이 떠야 한�
 
 ```bash
 # hlsSegmentDuration: 1s → 4s  (hlsSegmentCount: 7 은 그대로 둔다)
-open -e "$(brew --prefix)/etc/mediamtx.yml"
+open -e "$(brew --prefix)/etc/mediamtx/mediamtx.yml"
 brew services restart mediamtx
 ```
 

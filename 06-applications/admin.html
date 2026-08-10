@@ -1712,6 +1712,11 @@
     lastFail: {},         // 카메라별 마지막 fatal 시각. '살아났나'를 시간으로 판정하려고 둔다
     timers: {},           // 예약된 재연결. destroyCamPlayers에서 반드시 같이 끈다
     objectUrl: null,      // 되감기 blob. 새로 받을 때마다 이전 것을 반드시 해제한다
+    /* `?debug=1`에서만 켜지는 진단. 켜져 있으면 카드에 hls.js의 실패 이유를 그대로 적는다.
+       iPhone은 맥에 USB로 물리기 전에는 콘솔을 못 보는데, 재생 문제는 iPhone에서만 나는 게
+       있어서(ManagedMediaSource) 이 통로가 없으면 추측으로 배포를 반복하게 된다. */
+    debug: /[?&]debug=1\b/.test(location.search),
+    diag: {},
   };
 
   function camNotice(msg, isError){
@@ -1743,8 +1748,21 @@
     return 'Basic ' + btoa(bin);
   }
 
+  /** `?debug=1`에서 이 기기가 어떤 재생 경로를 타는지 한 줄로 알려준다.
+      iPhone에는 일반 MediaSource가 없고 ManagedMediaSource만 있어 hls.js가 다른 길로 간다 —
+      '어느 길로 갔는지'를 모르면 iPhone 전용 증상을 영영 좁힐 수 없다. */
+  function camDebugEnv(){
+    var mse = (typeof window.MediaSource !== 'undefined') ? 'MSE'
+            : (typeof window.ManagedMediaSource !== 'undefined') ? 'ManagedMediaSource(iPhone)'
+            : '없음';
+    return 'hls.js ' + (window.Hls ? Hls.version : '안 실림') +
+           ' · 지원 ' + (window.Hls ? Hls.isSupported() : '-') +
+           ' · 소스 ' + mse;
+  }
+
   function enterCctv(){
     if(!currentPassword) return;
+    if(CAM.debug) camNotice(camDebugEnv(), false);
     var start = document.getElementById('camPlayStart');
     // 되감기 기본값은 10분 전. 대개 "방금 뭐였지"를 확인하러 오기 때문이다.
     if(!start.value){
@@ -1816,6 +1834,9 @@
     // 재생 실패는 서버가 모르는 사실이다(서버는 '녹화가 도나'만 안다). 여기서 합쳐 두지 않으면
     // 15초 뒤 갱신이 오류 문구를 덮어써서, 계속 실패 중인 화면이 멀쩡해 보인다.
     if(CAM.errors[c.id]) parts.push('영상 연결 실패 (' + CAM.errors[c.id] + ')');
+    // `?debug=1`에서만. hls.js가 준 실패 이유를 가공 없이 보여준다 — iPhone은 콘솔을 못 봐서
+    // 이게 없으면 원인을 추측으로 좁히게 된다.
+    if(CAM.debug && CAM.diag[c.id]) parts.push('🔧 ' + CAM.diag[c.id]);
     if(s.never_seen){
       parts.push('아직 보고를 받은 적 없음');
     } else {
@@ -2043,6 +2064,18 @@
       CAM.players[c.id] = hls;
       CAM.attached[c.id] = true;
 
+      /* iPhone 진단용. `?debug=1`일 때만 카드에 hls.js가 준 실패 이유를 그대로 적는다.
+         평소에 안 켜두는 이유는 손님 응대 중에 읽을 문구가 아니어서다 — 다만 iPhone은
+         맥에 USB로 물리기 전에는 콘솔을 못 봐서, 이게 없으면 추측으로 배포를 반복하게 된다. */
+      if(CAM.debug){
+        hls.on(Hls.Events.ERROR, function(_e, d){
+          CAM.diag[c.id] = (d.fatal ? 'fatal ' : '') + d.details +
+            (d.response && d.response.code ? ' http=' + d.response.code : '') +
+            (d.err && d.err.name ? ' ' + d.err.name : '');
+          paintCameraMeta(cameraById(c.id) || c);
+        });
+      }
+
       hls.on(Hls.Events.ERROR, function(_evt, d){
         if(d.fatal) handleCamFatal(c, hls, d);
       });
@@ -2059,7 +2092,22 @@
         paintCameraMeta(cameraById(c.id) || c);
       });
       hls.loadSource(url);
-      hls.attachMedia(video);
+      /* attachMedia를 **다음 이벤트 루프로 미룬다.** 동기로 부르면 iPhone에서 영상이 안 나온다.
+         iPhone 사파리에는 일반 MediaSource가 없고 iOS 17.1+의 ManagedMediaSource만 있는데,
+         hls.js는 그 경우 `media.disableRemotePlayback = true`를 세팅한다. 사파리는 이 속성을
+         **DOM 삽입 직후에 건드리면 InvalidStateError**를 던진다(hls.js #6197). 우리는 카드를
+         칠한 직후에 attachLive를 부르므로 정확히 그 타이밍이다.
+         맥 사파리가 멀쩡한 건 거기엔 일반 MediaSource가 있어 이 경로를 아예 안 타기 때문이다 —
+         '사파리 문제'가 아니라 'iPhone 문제'인 이유가 이것이다. */
+      setTimeout(function(){
+        // 그 사이 등록이 해제되거나 다른 인스턴스로 교체됐으면 붙이지 않는다.
+        if(CAM.players[c.id] !== hls) return;
+        if(!document.querySelector('video[data-camid="' + c.id + '"]')) return;
+        try { hls.attachMedia(video); }
+        catch(e){
+          if(CAM.debug){ CAM.diag[c.id] = 'attachMedia ' + (e && e.name || e); paintCameraMeta(cameraById(c.id) || c); }
+        }
+      }, 0);
     } else {
       /* hls.js가 못 도는 환경(구형 iOS 사파리 등). native 재생은 요청을 가로채 헤더를
          붙일 수 없고, MediaMTX는 헤더 외에 자격증명을 받는 경로가 없다. 즉 방법이 없다 —
