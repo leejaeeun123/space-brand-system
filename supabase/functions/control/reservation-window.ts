@@ -4,13 +4,24 @@
  * 손님 role은 비밀번호가 없어(auth.ts) URL만 알면 누구나 요청을 보낼 수 있다. 그래서
  * "언제" 열려 있는지도 서버가 정해야 한다 — 클라이언트 시계를 보고 버튼을 감추는 방식으로는
  * 아무것도 막지 못한다. admin은 이 게이트를 거치지 않는다(index.ts에서 role로 분기).
+ * `automate`도 거치지 않는다 — 자동화가 일하는 순간은 정의상 예약 구간 밖이다(index.ts).
  *
  * reservations는 예약자 개인정보(이름·연락처)를 담고 있어 admin_* RPC 뒤에 있고 손님 role로는
  * 못 읽는다. 이 파일만 service_role로 "지금 시각이 예약 구간 안인가"라는 boolean 하나를 뽑아
  * 손님에게 개인정보를 노출하지 않고 판정한다.
+ *
+ * ⚠️ **판정은 SQL이 아니라 `automation/windows.ts`가 한다.** 예전에는 여기서 `date`·`time`
+ * 문자열을 그대로 SQL 비교(`start_time <= now < end_time`)했는데, 그러면 자정을 넘기는 예약
+ * (`19:00~00:00`)이 **예약 진행 중에도 항상 거짓**이 된다 — `00:00 > 19:00`이 거짓이라서다.
+ * 2026-08-11 한승주 예약(19:00~00:00)에서 손님 페이지가 예약 내내 안 열린 것이 이 경로였다.
+ * 기기 자동화·문자·청소는 이미 `endTime()`을 통해 같은 함정을 피하고 있었고(#41), 여기만
+ * 따로 SQL로 판정하고 있었다. 판정을 한 함수로 모으는 것이 어긋남을 막는 유일한 방법이다.
  */
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { endTime, kstDay, targetTime } from "./automation/windows.ts";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * UTC now → KST(UTC+9, 한국은 DST 없음) 기준 날짜·시각 문자열.
@@ -23,26 +34,30 @@ export function kstParts(now: Date): { date: string; time: string } {
 }
 
 /**
- * 취소되지 않은 예약 중 [start_time, end_time) 구간에 지금이 들어가는 게 하나라도 있으면 true.
+ * 취소되지 않은 예약 중 [시작, 종료) 구간에 지금이 들어가는 게 하나라도 있으면 true.
  * end_time은 스클 동기화 시점에 이미 배타적 상한으로 저장된다(예: 16~18시 이용 → end_time 19:00,
- * automation/spacecloud-api-sync.js 참고) — 그래서 end_time과의 비교도 배타적(<)이어야 맞다.
+ * automation/spacecloud-api-sync.js 참고) — 그래서 종료와의 비교도 배타적(<)이어야 맞다.
+ *
+ * **어제 날짜도 같이 읽는다.** 자정을 넘긴 예약은 `date`가 어제인 채로 오늘 새벽까지 이어진다
+ * (`22:00~02:00`). 오늘 것만 읽으면 그 손님은 01:00에 자기 예약 중인데도 페이지가 닫힌다.
  *
  * 조회가 실패하면 **false로 닫는다**. ADMIN_PASSWORD 미설정 시 전면 거부(auth.ts)와 같은 태도 —
  * 반쯤 실패한 채로 손님에게 제어를 열어주는 것보다, 예약 시간에 한 번 더 새로고침하게 하는 쪽이 낫다.
  */
 export async function withinReservationWindow(sb: SupabaseClient, now = new Date()): Promise<boolean> {
-  const { date, time } = kstParts(now);
+  const today = kstDay(now);
+  const yesterday = kstDay(new Date(now.getTime() - DAY_MS));
+
   const { data, error } = await sb
     .from("reservations")
-    .select("id")
-    .eq("date", date)
-    .eq("cancelled", false)
-    .lte("start_time", time)
-    .gt("end_time", time)
-    .limit(1);
+    .select("date,start_time,end_time")
+    .in("date", [yesterday, today])
+    .eq("cancelled", false);
+
   if (error) {
     console.error("예약 시간 조회 실패", error);
     return false;
   }
-  return (data?.length ?? 0) > 0;
+
+  return (data ?? []).some((r) => targetTime(r.date, r.start_time) <= now && now < endTime(r));
 }

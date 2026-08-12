@@ -77,7 +77,15 @@ Deno.serve(async (req) => {
     // 정한다(reservation-window.ts). admin은 예약 시간과 무관하게 늘 열려 있다.
     // code는 guest-control.html이 "일반 오류"와 "지금은 예약 시간이 아님"을 구분해
     // 안내 문구를 바꾸는 데 쓴다 — 메시지 문자열 비교는 문구가 바뀌면 조용히 깨진다.
-    if (role === "guest" && !(await withinReservationWindow(sb))) {
+    //
+    // ⚠️ **`automate`는 이 게이트를 거치지 않는다.** 이 action이 일해야 하는 순간은 전부
+    // 예약 구간 **밖**이다 — 입실 15분 전 준비, 그보다 앞선 안내 문자, 퇴실 시각 전원 끄기,
+    // 퇴실 후 10분 스윕. 게이트를 통과하는 시간대에는 할 일이 없고, 할 일이 있는 시간대에는
+    // 통과를 못 한다. 2026-08-09(#44)에 이 게이트가 들어오면서 자동화가 통째로 죽었고,
+    // pg_cron은 매분 403만 받았다 — cron 실행은 '성공'으로 남아 침묵으로 보였다.
+    // 여기서 여는 것이 안전한 이유는 auth.ts에 이미 적혀 있다: 대상 예약을 호출자가 고르지
+    // 못하고 서버가 지금 시각으로 직접 계산한다(형운 결정, 2026-08-07).
+    if (role === "guest" && action !== "automate" && !(await withinReservationWindow(sb))) {
       return json({ error: "지금은 예약 시간이 아니에요", code: "outside_reservation_window" }, 403);
     }
 
