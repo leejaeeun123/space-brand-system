@@ -17,7 +17,12 @@ export type EventKind =
   | "remote_admin" // 어드민이 원격에서
   | "remote_guest" // 손님이 /control에서
   | "onsite" // 현장 조작 (추론)
-  | "idle"; // 예약 없이 켜져 있음 (관측만 — 끄지 않는다)
+  | "idle" // 예약 없이 켜져 있음 (관측만 — 끄지 않는다)
+  | "device_offline" // 조명·냉난방 연결 끊김 (관측)
+  | "device_recovered" // 조명·냉난방 연결 복구 (관측)
+  | "camera_offline" // CCTV 연결 끊김 (관측)
+  | "camera_recovered" // CCTV 연결 복구 (관측)
+  | "system_error"; // automate 서브시스템 실패 (관측)
 
 /**
  * **우리가 기기에 보낸 명령**인 종류. 현장 조작 대조는 이 목록만 '설명'으로 인정한다.
@@ -39,6 +44,8 @@ export const COMMAND_KINDS: EventKind[] = [
 export interface EventInput {
   /** null = 특정 기기가 아니라 공간 전체의 사건(전환 만료·전환 자체의 실패). */
   device_id: string | null;
+  /** camera_id와 device_id는 배타적 — 최대 하나만 채운다. 둘 다 null = 공간 전체 사건. */
+  camera_id?: string | null;
   kind: EventKind;
   action: string;
   value?: string | null;
@@ -70,6 +77,7 @@ export interface EventRow extends Required<Omit<EventInput, "value" | "detail" |
 export async function record(sb: SupabaseClient, event: EventInput): Promise<void> {
   const { error } = await sb.from("device_events").insert({
     device_id: event.device_id,
+    camera_id: event.camera_id ?? null,
     kind: event.kind,
     action: event.action,
     value: event.value ?? null,
@@ -88,6 +96,7 @@ export async function recordMany(sb: SupabaseClient, events: EventInput[]): Prom
   const { error } = await sb.from("device_events").insert(
     events.map((e) => ({
       device_id: e.device_id,
+      camera_id: e.camera_id ?? null,
       kind: e.kind,
       action: e.action,
       value: e.value ?? null,
@@ -180,7 +189,7 @@ const PENDING_LIMIT = 200;
 export async function fetchPending(sb: SupabaseClient): Promise<EventRow[]> {
   const { data, error } = await sb
     .from("device_events")
-    .select("id,device_id,at,kind,action,value,status,detail")
+    .select("id,device_id,camera_id,at,kind,action,value,status,detail")
     .is("notified_at", null)
     .order("at", { ascending: true })
     .limit(PENDING_LIMIT);
@@ -208,7 +217,7 @@ export async function claimPending(sb: SupabaseClient, now: Date): Promise<Event
     .update({ notified_at: now.toISOString() })
     .in("id", pending.map((e) => e.id))
     .is("notified_at", null)
-    .select("id,device_id,at,kind,action,value,status,detail");
+    .select("id,device_id,camera_id,at,kind,action,value,status,detail");
   if (error) {
     console.error("이벤트 선점 실패 — 이번 틱은 알리지 않는다", error.message);
     return [];
@@ -241,4 +250,97 @@ export async function release(sb: SupabaseClient, ids: number[]): Promise<void> 
     .update({ notified_at: null })
     .in("id", ids);
   if (error) console.error("선점 해제 실패 — 이 알림은 유실된다", ids.length, error.message);
+}
+
+/** 대상별 최신 이벤트 하나. `connectivity.ts`가 끊김/복구 전환을 판단하는 근거. */
+export interface LatestEvent {
+  kind: EventKind;
+  at: string;
+}
+
+/**
+ * `device_id`/`camera_id`별 최신 이벤트(둘 중 지정한 kind만) — 끊김이 지금 새로 생긴 것인지,
+ * 이미 알린 채 이어지는 중인지, 방금 복구된 것인지를 가른다.
+ *
+ * **집합(`fetchActedDevices`)이 아니라 최신 한 건을 쓰는 이유**: 끊김→복구→끊김이 창 안에서
+ * 반복되면(플래핑) 두 kind의 집합에 같은 기기가 동시에 들어가 버려, 집합 소속만으로는 두 번째
+ * 끊김을 다시 알려야 하는지 알 수 없다. 대상별 마지막 한 건의 kind를 봐야 방향을 안다.
+ *
+ * 조회 실패는 빈 Map으로 — `fetchActedDevices`와 같은 이유로 **알리는 쪽**으로 기운다(끊김을
+ * 놓치는 것이 중복 알림보다 비싸다).
+ */
+export async function fetchLatestByTarget(
+  sb: SupabaseClient,
+  kinds: EventKind[],
+  column: "device_id" | "camera_id",
+  since: Date,
+): Promise<Map<string, LatestEvent>> {
+  const { data, error } = await sb
+    .from("device_events")
+    .select(`${column},kind,at`)
+    .in("kind", kinds)
+    .gte("at", since.toISOString())
+    .not(column, "is", null)
+    .order("at", { ascending: false });
+  if (error) {
+    console.warn(`최근 연결 이벤트 조회 실패 — 이번엔 알리는 쪽으로 간다(${column})`, error.message);
+    return new Map();
+  }
+  const out = new Map<string, LatestEvent>();
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    const id = r[column] as string;
+    // 내림차순이라 각 대상의 첫 등장이 곧 최신 행이다.
+    if (!out.has(id)) out.set(id, { kind: r.kind as EventKind, at: r.at as string });
+  }
+  return out;
+}
+
+/** 같은 `kind`·`action`의 가장 최근 행 하나. `recordSystemError`의 재알림 간격 판단 근거. */
+export async function fetchLatestByAction(
+  sb: SupabaseClient,
+  kind: EventKind,
+  action: string,
+  since: Date,
+): Promise<EventRow | null> {
+  const { data, error } = await sb
+    .from("device_events")
+    .select("id,device_id,camera_id,at,kind,action,value,status,detail")
+    .eq("kind", kind)
+    .eq("action", action)
+    .gte("at", since.toISOString())
+    .order("at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.warn("최근 시스템 오류 조회 실패 — 이번엔 알리는 쪽으로 간다", action, error.message);
+    return null;
+  }
+  return data as EventRow | null;
+}
+
+/** 같은 원인이 이 시간 안에 이미 알려졌으면 재알림을 참는다. */
+const SYSTEM_ERROR_BACKOFF_MINUTES = 15;
+
+/**
+ * `automate`의 서브시스템(관측·문자·청소·알림)이 삼켰던 예외를 장부에 남긴다.
+ *
+ * **같은 서브시스템(action)의 오류가 이미 backoff 창 안에 있으면 원인 문구와 무관하게
+ * 조용히 넘어간다.** 온도 하한 강제가 겪은 사고(`enforce.ts`의 주석 — 만료된 PAT 하나가
+ * 3시간 예약 동안 175건을 남겼다)가 여기서도 재현될 수 있다.
+ *
+ * 원인 문자열이 같을 때만 억제하는 방식은 처음엔 "다른 문제면 즉시 알린다"는 장점처럼
+ * 보였지만, 벤더 에러 메시지에 요청 ID·소요 시간처럼 매번 바뀌는 값이 섞여 있으면(예: Solapi)
+ * 문자열이 절대 같아지지 않아 **매 틱 알리는 최악의 경우**로 조용히 퇴화한다. 그래서
+ * `enforce.ts`의 5분 backoff(온도 하한 재시도)와 같은 태도로, 무조건 억제한다.
+ */
+export async function recordSystemError(
+  sb: SupabaseClient,
+  action: string,
+  detail: string,
+  now: Date,
+): Promise<void> {
+  const since = new Date(now.getTime() - SYSTEM_ERROR_BACKOFF_MINUTES * 60_000);
+  const latest = await fetchLatestByAction(sb, "system_error", action, since);
+  if (latest) return; // 이 서브시스템의 오류가 아직 대기 창 안 — 원인이 달라졌어도 조용히 넘어간다
+  await record(sb, { device_id: null, camera_id: null, kind: "system_error", action, status: "ok", value: detail });
 }

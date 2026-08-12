@@ -23,7 +23,31 @@ const TITLE: Record<EventKind, string> = {
   onsite: "현장 조작",
   // 이건 status가 'ok'라(아무 명령도 실패하지 않았다) 제목이 스스로 경고를 달아야 한다.
   idle: "⚠️ 예약 없이 켜져 있음",
+  // 아래 다섯도 idle과 같은 이유로 status는 항상 'ok'다 — '명령이 실패했다'가 아니라
+  // '이런 상태를 관측했다'이므로, 경고는 title에 미리 박아둔다.
+  device_offline: "⚠️ 기기 연결 끊김",
+  device_recovered: "기기 연결 복구",
+  camera_offline: "⚠️ CCTV 연결 끊김",
+  camera_recovered: "CCTV 연결 복구",
+  system_error: "⚠️ 자동화 시스템 오류",
 };
+
+/**
+ * status와 무관하게 '관측 문장'을 그대로 보여주는 kind들.
+ *
+ * onsite·idle이 원래 이랬다 — value가 이미 완성된 문장이라 액션 라벨을 앞에 붙이면
+ * 뜻이 겹친다("변화 — 전원 꺼짐 → 켜짐"). 연결 끊김/복구/시스템 오류도 같은 모양이라
+ * 여기 합류시킨다.
+ */
+const OBSERVED_KINDS = new Set<EventKind>([
+  "onsite",
+  "idle",
+  "device_offline",
+  "device_recovered",
+  "camera_offline",
+  "camera_recovered",
+  "system_error",
+]);
 
 const ACTION_LABEL: Record<string, string> = {
   power_on: "켜기",
@@ -106,11 +130,12 @@ function deviceName(names: Map<string, string>, id: string | null): string {
 function outcome(e: EventRow): string {
   // 관측된 사건은 value가 그대로 문장이다. 액션 라벨을 앞에 붙이면 '변화 — 전원 꺼짐 → 켜짐'
   // 처럼 같은 말이 두 번 나온다.
-  if (e.kind === "onsite" || e.kind === "idle") return e.value ?? "변화";
+  if (OBSERVED_KINDS.has(e.kind)) return e.value ?? "변화";
 
   // 공간 전체 사건은 detail이 전부다 — 보내지도 못한 명령의 '켜기/끄기'를 적으면
-  // 마치 시도는 했다는 것처럼 읽힌다.
-  if (e.device_id === null) return `❌ ${e.detail ?? "실행하지 못했습니다"}`;
+  // 마치 시도는 했다는 것처럼 읽힌다. camera_id도 없어야 진짜 '공간 전체'다 — 카메라 사건은
+  // device_id가 항상 null이지만(카메라는 devices 테이블에 없다) 특정 카메라를 가리킨다.
+  if (e.device_id === null && e.camera_id === null) return `❌ ${e.detail ?? "실행하지 못했습니다"}`;
 
   const label = ACTION_LABEL[e.action] ?? e.action;
   let what = label;
@@ -130,13 +155,22 @@ function outcome(e: EventRow): string {
   return what;
 }
 
-/** 같은 기기의 여러 줄을 한 줄로 — 손님이 +/-를 여러 번 눌러도 표가 길어지지 않는다. */
+/**
+ * 같은 기기(또는 카메라)의 여러 줄을 한 줄로 — 손님이 +/-를 여러 번 눌러도 표가 길어지지 않는다.
+ *
+ * 그룹 키는 `device_id ?? camera_id` — 한 행에 최대 하나만 채워지므로(마이그레이션의
+ * `device_events_target_check`) 충돌하지 않는다. 둘 다 null(공간 전체)인 행끼리는 여전히
+ * 한 그룹으로 묶이는데, `system_error`처럼 서로 다른 서브시스템의 실패가 같은 틱에 섞이면
+ * 이 묶음이 마지막 한 건만 남기고 나머지를 지운다 — 그래서 `buildMessage`가 `system_error`는
+ * 아예 이 함수를 거치지 않고 `onsite`처럼 줄마다 따로 보여준다.
+ */
 function mergeByDevice(rows: EventRow[]): Map<string | null, EventRow[]> {
   const byDevice = new Map<string | null, EventRow[]>();
   for (const e of rows) {
-    const list = byDevice.get(e.device_id) ?? [];
+    const key = e.device_id ?? e.camera_id ?? null;
+    const list = byDevice.get(key) ?? [];
     list.push(e);
-    byDevice.set(e.device_id, list);
+    byDevice.set(key, list);
   }
   return byDevice;
 }
@@ -193,6 +227,16 @@ export function buildMessage(
     const lines = rows.map((e) =>
       `| ${deviceName(names, e.device_id)} | ${outcome(e)} (${observedWhen(e)}) |`
     );
+    return `**${title}**\n\n${[...head, ...fit(lines, title.length + 40)].join("\n")}`;
+  }
+
+  // system_error는 device_id/camera_id가 항상 null이라 mergeByDevice에 그대로 넘기면 같은 틱에
+  // 섞인 서로 다른 서브시스템 실패(예: 문자 스윕 + 알림 발송)가 한 줄로 뭉개져 마지막 것만
+  // 남는다. onsite와 같은 이유로 합치지 않는다 — 다만 시각은 `hhmm`만 쓴다. onsite는 알아챈
+  // 시각과 실제 조작 시각이 다를 수 있어 구간(`observedWhen`)이 필요했지만, system_error의
+  // `at`은 예외가 실제로 발생한 그 순간이라 구간을 쓸 이유가 없다.
+  if (kind === "system_error") {
+    const lines = rows.map((e) => `| 공간 전체 | ${outcome(e)} (${hhmm(e.at)}) |`);
     return `**${title}**\n\n${[...head, ...fit(lines, title.length + 40)].join("\n")}`;
   }
 

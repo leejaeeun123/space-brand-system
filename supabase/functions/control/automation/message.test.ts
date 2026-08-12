@@ -27,6 +27,7 @@ function ev(p: Partial<EventRow> & { device_id: string | null }): EventRow {
     value: null,
     status: "ok",
     detail: null,
+    camera_id: null,
     ...p,
   } as EventRow;
 }
@@ -231,6 +232,52 @@ Deno.test("표가 길어지면 자르고, 자른 사실을 남긴다", () => {
 
   assert(msg.length <= 3500, `상한을 넘었다: ${msg.length}자`);
   assertStringIncludes(msg, "건 생략 (길이 상한)");
+});
+
+Deno.test("기기 연결 끊김 — 제목에 경고, 원인이 그대로 보인다", () => {
+  const msg = buildMessage("device_offline", [
+    ev({ device_id: "ac", kind: "device_offline", action: "connectivity", value: "ThinQ PAT 만료/무효(401) — 재시도 안 함, 수동 갱신 필요" }),
+  ], NAMES);
+  assertStringIncludes(msg, "⚠️ 기기 연결 끊김");
+  assertEquals(msg.includes("실패 포함"), false); // status가 ok라 '실패 포함' 접미사가 안 붙는다
+  assertStringIncludes(msg, "| 에어컨 | ThinQ PAT 만료/무효(401) — 재시도 안 함, 수동 갱신 필요 |");
+});
+
+Deno.test("기기 연결 복구 — 제목엔 경고가 없다", () => {
+  const msg = buildMessage("device_recovered", [
+    ev({ device_id: "l1", kind: "device_recovered", action: "connectivity", value: "복구됨" }),
+  ], NAMES);
+  assertEquals(msg.includes("⚠️"), false);
+  assertStringIncludes(msg, "| 메인 조명 | 복구됨 |");
+});
+
+Deno.test("CCTV 연결 끊김 — device_id가 아니라 camera_id로 카메라 이름을 찾는다", () => {
+  const names = new Map([...NAMES, ["cam1", "입구 카메라"]]);
+  const msg = buildMessage("camera_offline", [
+    ev({
+      device_id: null,
+      camera_id: "cam1",
+      kind: "camera_offline",
+      action: "connectivity",
+      value: "MediaMTX 스트림이 연결되어 있지 않습니다",
+    }),
+  ], names);
+  assertStringIncludes(msg, "⚠️ CCTV 연결 끊김");
+  assertStringIncludes(msg, "| 입구 카메라 | MediaMTX 스트림이 연결되어 있지 않습니다 |");
+  assertEquals(msg.includes("공간 전체"), false);
+});
+
+Deno.test("시스템 오류 — 같은 틱의 서로 다른 서브시스템 실패가 한 줄로 뭉개지지 않는다", () => {
+  // device_id/camera_id가 둘 다 null이라 기본 병합 규칙(mergeByDevice)을 그대로 쓰면
+  // 마지막 한 건만 남는다. system_error는 onsite처럼 병합을 건너뛰어야 둘 다 보인다.
+  const msg = buildMessage("system_error", [
+    ev({ device_id: null, camera_id: null, kind: "system_error", action: "sms_sweep_failed", value: "타임아웃" }),
+    ev({ device_id: null, camera_id: null, kind: "system_error", action: "notify_flush_failed", value: "네트워크 오류" }),
+  ], NAMES);
+  assertStringIncludes(msg, "⚠️ 자동화 시스템 오류");
+  assertStringIncludes(msg, "타임아웃");
+  assertStringIncludes(msg, "네트워크 오류");
+  assertEquals(msg.split("\n").filter((l) => l.startsWith("| 공간 전체")).length, 2);
 });
 
 Deno.test("자를 땐 실패 줄이 먼저 남는다", () => {

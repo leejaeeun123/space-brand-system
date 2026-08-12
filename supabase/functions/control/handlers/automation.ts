@@ -12,13 +12,15 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { list } from "./list.ts";
 import { alertIdleDevices, enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
+import { checkConnectivity } from "../automation/connectivity.ts";
 import { flush } from "../automation/notify.ts";
 import { detectOnsite } from "../automation/observe.ts";
 import { firePrep, fireShutdown } from "../automation/schedule.ts";
-import { record } from "../automation/events.ts";
+import { record, recordSystemError } from "../automation/events.ts";
 import { claimTransition, fetchRecent, type Reservation } from "../automation/store.ts";
 import { sweepSms } from "../sms/sweep.ts";
 import { type CleaningSweepResult, sweepCleaning } from "../cleaning/sweep.ts";
+import { type Camera, type CameraState, listCameras } from "../cameras.ts";
 import {
   CATCHUP_WINDOW_MINUTES,
   dueState,
@@ -104,8 +106,28 @@ async function runTransition(
   }
 }
 
+/**
+ * 진짜 진입점. **틱 전체를 감싼다** — 아래 개별 서브시스템 격리(문자·청소·알림·연결 점검)는
+ * 이미 잡히는 예외만 막는다. `fetchRecent`·`db.listDevices`·`claimTransition`처럼 그 밖의
+ * 어디서든 예외가 새면 이 없이는 `automate`가 그대로 500을 내고 끝난다 — pg_net이 비동기라
+ * `cron.job_run_details`엔 '성공'만 남는다(#70). 그러면 "시스템 오류를 감지해 알린다"는
+ * 정확히 이 경우에 조용해진다.
+ *
+ * 원인을 장부에 남기고 **다시 던진다** — 이 틱의 500 응답은 그대로 두되(호출자가 알아야 할
+ * 정보다), 다음 틱의 `flush()`가 이번에 남긴 원인을 채널로 보낸다.
+ */
 export async function automate(sb: SupabaseClient) {
   const now = new Date();
+  try {
+    return await runAutomation(sb, now);
+  } catch (e) {
+    console.error("automate 전체 실패 — 원인을 장부에 남기고 다시 던진다", e);
+    await recordSystemError(sb, "automate_failed", e instanceof Error ? e.message : String(e), now);
+    throw e;
+  }
+}
+
+async function runAutomation(sb: SupabaseClient, now: Date) {
   const reservations = await fetchRecent(sb, now);
 
   // 이용 중이면 매 틱 신선하게, 빈 시간이면 10분까지 묵힌 것을 그대로 쓴다 — 후자는 ThinQ
@@ -116,8 +138,12 @@ export async function automate(sb: SupabaseClient) {
   // 틱당 한 번만 부른다. 이젠 알림을 위해 항상 불러야 한다 — 현장 조작은 예약과 무관하게
   // 일어나고, 그걸 보려면 상태를 봐야 하기 때문이다.
   let devices: DeviceList | null = null;
+  // 이번 틱에 실제로 ThinQ를 다시 물어본 기기의 실패 원인 — 연결 끊김 알림의 "왜"를 채운다.
+  // list()에 매개변수로 넘겨 채워 받는다(반환값이 아니다) — list()의 결과는 손님에게도
+  // 그대로 내려가는 공개 응답이라, 여기 새 필드를 얹으면 응답 스키마가 원치 않게 늘어난다.
+  const thinqErrors = new Map<string, string>();
   const getDevices = async (): Promise<DeviceList> => {
-    if (!devices) devices = (await list(sb, thinqMaxAge)).devices;
+    if (!devices) devices = (await list(sb, thinqMaxAge, thinqErrors)).devices;
     return devices;
   };
 
@@ -160,6 +186,7 @@ export async function automate(sb: SupabaseClient) {
       onsite = await detectOnsite(sb, current, now);
     } catch (e) {
       console.error("현장 조작 판별 실패 — 제어는 계속한다", e);
+      await recordSystemError(sb, "observe_failed", e instanceof Error ? e.message : String(e), now);
     }
 
     if (isSweeping(reservations, now)) {
@@ -174,6 +201,25 @@ export async function automate(sb: SupabaseClient) {
     }
   }
 
+  // 연결 상태 점검. **위 판정 체인(스윕/온도/유휴)과 달리 항상 돈다** — 예약 유무나 방금
+  // 전환이 일어났는지와 무관하게, 조명·냉난방·CCTV는 언제든 죽어 있을 수 있다. 이용 중에
+  // CCTV가 끊기는 것이 가장 비싼 경우인데, 그건 하필 `isOccupied` 분기라 `idle`(빈 시간
+  // 전용)로는 못 잡는다. 카메라는 여기서 처음 불러온다 — automate가 지금까진 CCTV를
+  // 아예 보지 않았다.
+  let deviceOffline = 0;
+  let cameraOffline = 0;
+  let cameraPairs: Array<[Camera, CameraState]> = [];
+  try {
+    const current = await getDevices();
+    cameraPairs = await listCameras(sb);
+    const result = await checkConnectivity(sb, current, cameraPairs, thinqErrors, now);
+    deviceOffline = result.deviceAlerts;
+    cameraOffline = result.cameraAlerts;
+  } catch (e) {
+    console.error("연결 상태 점검 실패 — 자동화 결과는 유지한다", e);
+    await recordSystemError(sb, "connectivity_failed", e instanceof Error ? e.message : String(e), now);
+  }
+
   // 손님 안내 문자. **기기 제어와 완전히 분리한다** — 여기서 예외가 새면 아래 알림이 안 가고,
   // 반대로 기기 자동화가 실패한 틱에도 문자는 나가야 한다(입실 준비가 실패했다고 손님에게
   // 길 안내를 안 보낼 이유가 없다). 위의 `prepFired` 스킵 조건에도 걸지 않는다 —
@@ -183,6 +229,7 @@ export async function automate(sb: SupabaseClient) {
     smsResult = await sweepSms(sb, reservations, now);
   } catch (e) {
     console.error("자동 문자 스윕 실패 — 기기 자동화 결과는 유지한다", e);
+    await recordSystemError(sb, "sms_sweep_failed", e instanceof Error ? e.message : String(e), now);
   }
 
   // 청소 담당자 안내. 같은 이유로 또 한 번 격리한다 — 손님 문자가 실패해도 청소 안내는
@@ -193,6 +240,7 @@ export async function automate(sb: SupabaseClient) {
     cleaningResult = await sweepCleaning(sb, reservations, now);
   } catch (e) {
     console.error("청소 안내 스윕 실패 — 앞의 결과는 유지한다", e);
+    await recordSystemError(sb, "cleaning_sweep_failed", e instanceof Error ? e.message : String(e), now);
   }
 
   // 알림은 마지막에 한 번 — 이번 틱에 생긴 것까지 모아 종류별로 묶어 보낸다.
@@ -200,13 +248,19 @@ export async function automate(sb: SupabaseClient) {
   // `devices`는 클로저(getDevices) 안에서 채워져 TS가 여기서는 여전히 null로 본다 —
   // 명시 타입으로 그 좁힘을 끊는다.
   const loaded: DeviceList = devices ?? [];
-  const names = new Map(loaded.map((d) => [d.id, d.name] as const));
+  // 카메라 이름도 같은 맵에 합친다 — device_id와 camera_id는 서로 다른 UUID 공간이라
+  // 충돌하지 않고, `message.ts`의 이름 해석이 대상 종류를 몰라도 그대로 동작한다.
+  const names = new Map<string, string>([
+    ...loaded.map((d) => [d.id, d.name] as const),
+    ...cameraPairs.map(([c]) => [c.id, c.name] as const),
+  ]);
   let notified = 0;
   try {
     notified = await flush(sb, names, now);
   } catch (e) {
     // 같은 이유로 삼킨다. 알림이 안 갔다고 이미 끝난 자동화를 실패로 만들지 않는다.
     console.error("알림 발송 실패 — 자동화 결과는 유지한다", e);
+    await recordSystemError(sb, "notify_flush_failed", e instanceof Error ? e.message : String(e), now);
   }
 
   return {
@@ -216,6 +270,8 @@ export async function automate(sb: SupabaseClient) {
     temp_corrected: tempCorrected,
     onsite,
     idle,
+    device_offline: deviceOffline,
+    camera_offline: cameraOffline,
     notified,
     sms: smsResult,
     cleaning: cleaningResult,

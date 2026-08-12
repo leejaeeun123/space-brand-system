@@ -16,6 +16,7 @@ function row(id: number, at: string): EventRow {
   return {
     id,
     device_id: "ac",
+    camera_id: null,
     at,
     kind: "remote_guest",
     action: "set_temp",

@@ -208,6 +208,64 @@ pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000
 상한(200)만으로는 길이를 못 막는다(현장 조작은 일부러 안 묶어 200건이 곧 200줄이다).
 자를 때는 실패 줄을 먼저 남기고, 자른 건수를 마지막 줄에 적는다.
 
+### 연결 끊김·시스템 오류 알림
+
+위 넷은 전부 "기기가 움직였다"였다. 여기 다섯(`device_offline`/`device_recovered`/
+`camera_offline`/`camera_recovered`/`system_error`)은 반대로 "**아무것도 안 움직여서**
+문제"다 — 조명이 MQTT에서 조용히 떨어지거나 CCTV 스트림이 죽어도, 지금까지는 사람이
+어드민을 열어보기 전까진 채널에 한 줄도 안 떴다(`automation/connectivity.ts`).
+
+**끊김 자체는 새로 관찰하지 않는다.** `device_state`/`camera_state`는 이미 있었다 — 조명은
+Tasmota LWT가, CCTV는 `control-agent/src/cameras.js`의 30초 보고가 채워 왔다. 이 알림은
+그 캐시를 매 `automate` 틱마다 읽어 **끊김/복구 전환**만 장부에 남긴다. 판정 기준은 기존
+값을 그대로 재사용한다 — `online === false`(명시적으로 끊겼다고 들었다) 또는
+`is_stale`(갱신이 600초/카메라 180초 넘게 없다). 한 번도 보고를 못 받은 기기(`never_seen`)는
+게이트에서 먼저 뺀다 — '모름'은 '끊김'이 아니다.
+
+**"불안정하면 즉시"를 만족시키는 것은 backoff가 아니라 전환 판단이다.** 대상별로 장부의
+**가장 최근 이벤트 하나**(`events.fetchLatestByTarget`)를 보고, 그 kind가 지금 상태와
+다르면(끊김 ↔ 정상) 즉시 새로 적는다. 같은 상태가 이어지는 동안에만 60분 backoff로
+재알림을 줄인다(`enforce.ts`의 유휴 경보와 같은 값 — PAT 만료처럼 며칠 이어지는 끊김에서
+15분이면 주말 동안 250건이 쌓인다). 이게 아니라 "최근에 이미 알렸나"를 **집합**으로만
+물으면, 끊김→복구→끊김이 창 안에서 반복될 때(플래핑) 두 kind의 집합에 같은 대상이 동시에
+들어가 두 번째 끊김을 놓친다 — 하필 그게 "불안정하다"고 알려야 하는 바로 그 상황이다.
+
+**ThinQ 원인은 그 자리에서만 안다.** `handlers/list.ts`의 `refreshThinq`가 401/400/그 외를
+구분해 원인을 알아낸 그 catch 블록에서 바로 넘긴다 — DB 스키마를 늘리지 않고, 호출 시점을
+벗어나면 사라질 정보를 그대로 건네는 것이 목적이다. `list()`가 이걸 **반환하지 않고** 호출자가
+미리 만든 `Map`(`errorSink` 매개변수)에 채워 넣는 이유는, `list()`의 반환값이 `case "list"`를
+거쳐 admin·guest 양쪽 공개 응답에 그대로 나가기 때문이다 — 반환값에 얹으면 아무도 안 쓰는
+필드가 공개 API에 새는 것과 같다. 조명·CCTV는 `online`/`is_stale` 자체가 원인이라 별도
+수집기가 필요 없다.
+
+**시스템 오류(`system_error`)는 기존에도 있던 예외를 새로 잇는 것뿐이다.** `automate`는
+관측·연결 점검·문자 스윕·청소 스윕·알림 발송 다섯을 서로 격리해 하나가 죽어도 나머지가
+돌게 해왔는데, 그 catch 블록은 지금까지 `console.error`뿐이었다. 격리되지 않은 나머지
+경로(`fetchRecent`·`db.listDevices`·`claimTransition` 등)는 여전히 `automate()` 자체를
+그대로 관통해 500을 낸다 — pg_net이 비동기라 `cron.job_run_details`엔 '성공'만 남는
+조용한 실패다(#70). 그래서 `automate()`를 얇은 래퍼로 한 번 더 감싸(`runAutomation`이
+실제 본문) 무엇이 새든 `recordSystemError(sb, "automate_failed", ...)`로 원인을 남기고
+**다시 던진다** — 이번 틱의 500 응답은 그대로 두되, 다음 틱의 `flush()`가 원인을 채널로
+보낸다.
+
+`events.recordSystemError`는 같은 서브시스템(action)의 오류가 60분 창 안에 이미 있으면
+**원인 문구와 무관하게** 억제한다. 처음엔 "원인 문자열이 같을 때만 억제"했는데, 벤더
+에러 메시지에 요청 ID·소요 시간처럼 매번 바뀌는 값이 섞이면(Solapi가 그렇다) 문자열이
+절대 같아지지 않아 매 틱 알리는 최악의 경우로 퇴화한다 — `enforce.ts`의 온도 하한 강제가
+겪은 사고(만료된 PAT 하나가 3시간 예약 동안 175건을 남겼다)와 같은 함정이다. `device_id`/
+`camera_id`가 둘 다 null이라 서로 다른 서브시스템의 실패가 같은 틱에 섞여도 `onsite`처럼
+병합 없이 줄마다 따로 보인다 — 안 그러면 마지막 원인만 남고 나머지가 조용히 사라진다.
+
+카메라는 `devices` 테이블에 없어(별도 `cameras` 테이블) 기존 `device_id`(devices FK)로
+가리킬 수 없다. `device_events.camera_id`를 nullable로 더하고 한 행은 둘 중 최대 하나만
+채운다(`20260812130000_device_events_connectivity.sql`) — `message.ts`의 이름 해석은
+device/camera 이름을 한 맵에 합쳐 받으므로 대상 종류를 몰라도 그대로 동작한다.
+
+**배포 순서 — 마이그레이션이 먼저다.** `record()`/`recordMany()`는 절대 던지지 않고
+`console.error`만 남기므로, 이 마이그레이션 전에 함수를 배포하면 새 kind 삽입이 전부
+`device_events_kind_check`에 막혀 **아무 알림도 안 가면서 automate는 평소처럼 200을
+반환한다** — 겉으로는 멀쩡해 보이는 조용한 무동작이다.
+
 ## 구조
 
 | 파일 | 책임 |
@@ -227,6 +285,7 @@ pg_cron이 1분마다 이 action을 찌른다(마이그레이션 `20260807000000
 | `automation/dispatch.ts` | **모든 기기 명령이 지나가는 문** — 발행 + 장부 기록 |
 | `automation/events.ts` | 조작 이벤트 장부(device_events) 접근 |
 | `automation/observe.ts` | 상태 변화 → 현장 조작 판별(추론) |
+| `automation/connectivity.ts` | 조명·냉난방·CCTV 연결 끊김/복구 판별(관측만, 새로 관찰하지 않음) |
 | `automation/message.ts` | 이벤트 → 사람이 읽는 표(순수 함수 — 테스트가 여기 붙는다) |
 | `automation/notify.ts` | 발송과 그 실패 처리(영구/일시 구분·순서 보존) |
 | `handlers/registry.ts` | 기기 등록/해제, ThinQ 계정 기기 목록 |
