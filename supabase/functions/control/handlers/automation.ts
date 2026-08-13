@@ -14,6 +14,7 @@ import { list } from "./list.ts";
 import { alertIdleDevices, enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
 import { checkConnectivity } from "../automation/connectivity.ts";
 import { flush } from "../automation/notify.ts";
+import { recordHeartbeat } from "../automation/heartbeat.ts";
 import { detectOnsite } from "../automation/observe.ts";
 import { firePrep, fireShutdown } from "../automation/schedule.ts";
 import { record, recordSystemError } from "../automation/events.ts";
@@ -23,11 +24,12 @@ import { type CleaningSweepResult, sweepCleaning } from "../cleaning/sweep.ts";
 import { type Camera, type CameraState, listCameras } from "../cameras.ts";
 import {
   CATCHUP_WINDOW_MINUTES,
+  checkinDueState,
+  type DueState,
   dueState,
   endTime,
   isOccupied,
   isSweeping,
-  prepTime,
   sweepElapsedMinutes,
 } from "../automation/windows.ts";
 
@@ -71,13 +73,16 @@ const TRANSITION_KIND = {
 async function runTransition(
   sb: SupabaseClient,
   r: Reservation,
-  target: Date,
+  // 판정을 호출부에서 받는다 — 입실과 퇴실의 만료 경계가 다르기 때문이다.
+  // 입실은 준비 시각(입실 15분 전)에 돌지만 만료는 **입실 시각**을 기준으로 재고(checkinDueState),
+  // 퇴실은 종료 시각이 곧 실행 시각이라 일반 dueState를 쓴다. 여기서 target 하나로 뭉뚱그리면
+  // 당일 즉시 예약의 준비가 통째로 스킵되면서 채널엔 장애처럼 읽히는 실패만 남는다.
+  state: DueState,
   now: Date,
   label: string,
   column: "checkin_automation_at" | "checkout_automation_at",
   fire: () => Promise<void>,
 ): Promise<boolean> {
-  const state = dueState(target, now);
   if (state === "wait") return false;
   if (!await claimTransition(sb, r.id, column, now)) return false;
 
@@ -113,16 +118,28 @@ async function runTransition(
  * `cron.job_run_details`엔 '성공'만 남는다(#70). 그러면 "시스템 오류를 감지해 알린다"는
  * 정확히 이 경우에 조용해진다.
  *
- * 원인을 장부에 남기고 **다시 던진다** — 이 틱의 500 응답은 그대로 두되(호출자가 알아야 할
- * 정보다), 다음 틱의 `flush()`가 이번에 남긴 원인을 채널로 보낸다.
+ * 원인을 장부에 남기고 **그 자리에서 보내본 다음 다시 던진다.**
+ *
+ * 예전엔 '다음 틱의 `flush()`가 보낸다'에 기대었다. 일시적 실패에서만 맞는 가정이다 —
+ * `flush()`는 `runAutomation`의 **끝**에서만 불리므로, `fetchRecent` 같은 초입이 지속적으로
+ * 죽으면 매 틱 그 줄에 도달하지 못해 `automate_failed`가 쌓기만 하고 한 건도 발송되지
+ * 않는다. 게다가 미발송분은 7일 뒤 정리 크론이 지워 증거까지 사라진다
+ * (20260807120000). 경보 벨이 불난 건물 안에 있으면 사실상 없는 것이다.
  */
 export async function automate(sb: SupabaseClient) {
   const now = new Date();
   try {
     return await runAutomation(sb, now);
   } catch (e) {
-    console.error("automate 전체 실패 — 원인을 장부에 남기고 다시 던진다", e);
+    console.error("automate 전체 실패 — 원인을 장부에 남기고 바로 알린다", e);
     await recordSystemError(sb, "automate_failed", e instanceof Error ? e.message : String(e), now);
+    // 이름표를 못 만든 상태라 빈 Map을 넘긴다 — 기기명 대신 id가 찍힐 뿐, 안 가는 것보다 낫다.
+    // 이것까지 실패해도 원래 예외를 가리지 않는다 — 진짜 원인은 `e` 쪽이다.
+    try {
+      await flush(sb, new Map(), now);
+    } catch (flushError) {
+      console.error("실패 알림 발송도 실패했다 — 다음 틱이 다시 시도한다", flushError);
+    }
     throw e;
   }
 }
@@ -153,14 +170,14 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
   for (const r of reservations) {
     if (!r.checkin_automation_at) {
       const ok = await runTransition(
-        sb, r, prepTime(r), now, "입실 준비", "checkin_automation_at",
+        sb, r, checkinDueState(r, now), now, "입실 준비", "checkin_automation_at",
         async () => await firePrep(sb, await getDevices()),
       );
       if (ok) prepFired++;
     }
     if (!r.checkout_automation_at) {
       const ok = await runTransition(
-        sb, r, endTime(r), now, "퇴실 종료", "checkout_automation_at",
+        sb, r, dueState(endTime(r), now), now, "퇴실 종료", "checkout_automation_at",
         async () => await fireShutdown(sb, await getDevices()),
       );
       if (ok) shutdownFired++;
@@ -262,6 +279,10 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
     console.error("알림 발송 실패 — 자동화 결과는 유지한다", e);
     await recordSystemError(sb, "notify_flush_failed", e instanceof Error ? e.message : String(e), now);
   }
+
+  // 한 바퀴 완주를 남긴다. **정상 종료 직전이어야 한다** — 앞에서 던졌으면 갱신되지 않고
+  // 낡아, 게이트 밖의 감시 잡이 정지를 알아차린다(20260813130000). 그게 이 설계의 목적이다.
+  await recordHeartbeat(sb, now);
 
   return {
     prep_fired: prepFired,

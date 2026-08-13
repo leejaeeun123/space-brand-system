@@ -76,6 +76,25 @@ export function dueState(target: Date, now: Date): DueState {
 }
 
 /**
+ * 입실 준비 전환의 due 판정 — 일반 `dueState`와 만료 경계가 다르다.
+ *
+ * 준비는 입실 15분 전(`prepTime`)에 돌지만, 만료 경계를 준비 시각이 아니라 **입실 시각 +
+ * 캐치업 창**에 둔다. 당일 즉시 예약이 '입실 5분 전~직후'에 처음 동기화되면 준비 시각은 이미
+ * 지났지만 손님 입실 전 시간이 남아 있는데, prep 시각 기준 10분 캐치업으로 판정하면 곧바로
+ * `expired`가 되어 준비가 통째로 스킵되고, 채널엔 장애처럼 읽히는 실패가 남는다(입실 전인데도).
+ *
+ * 그래서 준비 시각이 지났어도 **입실 시각 + 캐치업 창** 안이면 리드타임이 줄어든 채로라도
+ * 실행한다. 입실 시각까지 넘겼으면 손님이 이미 한참 이용 중이라, 뒤늦은 준비가 손님이 맞춰둔
+ * 값과 싸우므로 그때는 `expired`다. 퇴실 종료는 이 완화가 필요 없다 — 종료 시각이 곧 실행
+ * 시각이라 일반 `dueState(endTime, now)`를 그대로 쓴다.
+ */
+export function checkinDueState(r: ReservationWindow, now: Date): DueState {
+  if (now < prepTime(r)) return "wait";
+  const deadline = targetTime(r.date, r.start_time).getTime() + CATCHUP_WINDOW_MINUTES * 60000;
+  return now.getTime() <= deadline ? "fire" : "expired";
+}
+
+/**
  * 준비 중이거나 이용 중인가 — 즉 공간이 '쓰이는 중'인가.
  *
  * 퇴실 스윕을 막는 것도 이 판정이다: 다음 예약의 준비 시각이 이미 지났다면 그 예약을 위해

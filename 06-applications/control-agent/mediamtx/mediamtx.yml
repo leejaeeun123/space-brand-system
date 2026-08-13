@@ -1,7 +1,9 @@
-# MediaMTX — 합정 맥의 CCTV 서버. 실시간 시청과 녹화를 한 프로세스가 다 한다.
+# MediaMTX — 합정 맥의 CCTV 서버. **실시간 시청만** 한다. 서버 녹화는 껐다(record: no, 2026-08-10 현장 지시).
 #
-#   Tapo ──RTSP(LAN)──> [MediaMTX] ──HLS/재생──> cloudflared ──> admin.html
-#                            └──> 디스크(fMP4 세그먼트)
+#   카메라 ──RTSP(영상+오디오)──> ffmpeg(-an, 오디오 폐기) ──RTSP──> [MediaMTX](127.0.0.1:8554) ──HLS──> cloudflared ──> admin.html
+#
+#   ⚠️ 카메라는 MediaMTX에 **직접 붙지 않는다.** 중간의 ffmpeg -an 재발행(camera-republish.sh)이 유일 경로다(아래 paths·인증 참조).
+#   ⚠️ 서버 녹화는 껐다 — 영상은 카메라 SD카드에만 남고 맥에는 저장하지 않는다.
 #
 # 이 파일은 **템플릿이다.** <> 로 감싼 값을 채워 실제 설정 파일로 복사한다(cctv-setup.md).
 # 채우지 않은 채로 두면 MediaMTX가 뜨긴 하지만 인증이 비어 누구나 볼 수 있게 된다.
@@ -22,19 +24,27 @@ api: yes
 apiAddress: 127.0.0.1:9997
 
 # 안 쓰는 프로토콜은 전부 끈다. 열려 있는 포트는 언젠가 누가 찾아온다.
-rtsp: no
+# ⚠️ rtsp 는 켠다 — 다만 **127.0.0.1 에만 묶는다.** 카메라가 직접 붙는 게 아니라, 오디오를 떼는
+#    로컬 ffmpeg 재발행(camera-republish.sh)이 rtsp://127.0.0.1:8554/<path> 로 이 포트에 publish 한다.
+#    LAN에 열면 카메라 직결·가짜 스트림 덮어쓰기가 가능해지므로 반드시 localhost 한정이다.
+rtsp: yes
+rtspAddress: 127.0.0.1:8554
 rtmp: no
 srt: no
 webrtc: no      # WebRTC 미디어는 UDP라 Cloudflare Tunnel(TCP)을 못 지난다 — HLS로 본다
 hls: yes
-playback: yes
+# ⚠️ 되감기(playback)는 껐다 — 2026-08-10 현장 지시로 서버 녹화를 끄면서 같이 껐다. 되살리려면
+#    아래 녹화 절과 함께 켠다.
+playback: no
 
 ###############################################
 # 인증
 #
-# 계정은 하나뿐이고 **read/playback 만** 준다. publish 를 주지 않는 게 중요하다 —
-# 주면 자격증명을 쥔 사람이 카메라 스트림을 가짜 영상으로 덮어쓸 수 있다.
-# (아래 paths 의 source 는 서버가 직접 당겨오는 것이라 이 인증을 거치지 않는다.)
+# 스트림 계정(admin 시청용)에는 read/playback 만 준다(지금 playback 은 꺼져 있어 read 만 동작).
+# publish 는 주지 않는 게 중요하다 — 주면 자격증명을 쥔 사람이 카메라 화면을 가짜 영상으로 덮어쓴다.
+# ⚠️ 이제 paths 가 전부 source: publisher 라 publish 경로가 필요하다 — 아래 localhost(any) 계정에만
+# publish 를 준다. ffmpeg 재발행이 rtsp://127.0.0.1:8554 로 publish 하고, 그 포트는 rtspAddress 로
+# 127.0.0.1 에만 열려 있어 로컬 프로세스(재발행)만 publish 할 수 있다.
 #
 # 이 user/pass 는 Supabase 시크릿 CAMERA_STREAM_USER/CAMERA_STREAM_PASS 와 **같아야** 한다.
 # 회수할 때는 양쪽을 같이 바꾼다 — 한쪽만 바꾸면 화면이 통째로 안 나온다.
@@ -48,12 +58,14 @@ authInternalUsers:
       - action: read
       - action: playback
 
-  # API·메트릭은 위 계정과 무관하게 localhost 에서만 열린다(apiAddress 참조).
-  # 익명에 api 를 주지 않으면 에이전트가 매번 인증해야 하므로, localhost 한정으로 허용한다.
+  # localhost 전용 계정. api(에이전트가 '스트림 살아있나' 질의)와 publish(ffmpeg 재발행)를 준다.
+  # 익명에 api 를 주지 않으면 에이전트가 매번 인증해야 하고, publish 는 재발행이 자격증명 없이
+  # 127.0.0.1:8554 로 밀어넣기 위해 필요하다. 둘 다 localhost 한정이라 외부에서는 쓸 수 없다.
   - user: any
     ips: ['127.0.0.1', '::1']
     permissions:
       - action: api
+      - action: publish
 
 ###############################################
 # HLS — 실시간 시청
@@ -66,16 +78,19 @@ hlsVariant: mpegts
 # 기본값 7을 그대로 쓴다. 3으로 줄이면 라이브 윈도우가 3초뿐이라 터널 지터 한 번에
 # 플레이어가 윈도우 밖으로 밀려나 끊긴다 — 아낄 이유가 없는 3초다.
 hlsSegmentCount: 7
-hlsSegmentDuration: 1s
+hlsSegmentDuration: 4s   # 2026-08-10 1s→4s. Cloudflare Free 가 서울 트래픽을 LA 엣지로 보내(cctv-setup.md "태평양") 세그먼트 요청이 왕복마다 비싸다 — 4s면 요청 수가 1/4. count 7 그대로면 라이브 윈도우 28초
 hlsAlwaysRemux: yes   # 아무도 안 보고 있어도 remux 를 유지한다 — 열자마자 뜨게 하려고
 
 ###############################################
-# 재생 — 녹화 되감기
+# 재생 — 녹화 되감기. 지금은 playback: no 라 이 주소는 열리지 않는다(서버 녹화를 다시 켤 때 함께 켠다).
 
 playbackAddress: :9996
 
 ###############################################
-# 녹화
+# 녹화 — ⚠️ **지금은 껐다(record: no, 2026-08-10 현장 지시).** 서버는 아무것도 저장하지 않는다.
+#         그래서 아래 recordDeleteAfter·용량 계산·보관기간 동기화는 **전부 휴면**이다 — 집행할 녹화가 없다.
+#         서버 녹화를 다시 켜는 순간(record: yes) 아래가 되살아나므로, 그때 recordDeleteAfter 를 손님
+#         고지(guest-guide.html #cctv)·현장 안내판·시크릿 CAMERA_RETENTION_DAYS 와 같은 숫자로 맞춘다.
 #
 # ⚠️ 보관기간(recordDeleteAfter)은 **안내판·이용약관에 적은 일수 및 Supabase 시크릿
 # CAMERA_RETENTION_DAYS 와 같아야 한다.** 세 값이 어긋나면 어드민이 실제보다 긴
@@ -98,7 +113,7 @@ playbackAddress: :9996
 # 디스크가 차면 **녹화만 조용히 멈춘다**(실시간 화면은 멀쩡히 나온다). 그래서 에이전트가 남은 용량과
 # 최근 세그먼트 갱신 시각을 어드민에 계속 띄운다.
 
-record: yes
+record: no          # ⚠️ 껐다(2026-08-10). 켜면 위 주석대로 recordDeleteAfter 를 4곳과 맞춘다.
 recordPath: <녹화경로>/%path/%Y-%m-%d_%H-%M-%S-%f
 recordFormat: fmp4
 recordPartDuration: 1s
@@ -111,13 +126,14 @@ recordDeleteAfter: 7d
 # 이름(키)이 곧 어드민에 등록하는 **스트림 이름**이다. 한 글자라도 다르면 카드는 뜨는데
 # 영상만 안 나온다. 영소문자·숫자·_·- 32자 이내.
 #
-# Tapo RTSP 주소:
-#   rtsp://<카메라계정>:<카메라비번>@<카메라IP>:554/stream1   (고화질)
-#   rtsp://<카메라계정>:<카메라비번>@<카메라IP>:554/stream2   (저화질)
-# 카메라 계정은 Tapo 앱 → 고급 설정 → 카메라 계정에서 따로 만든다(Tapo 로그인 계정과 다르다).
+# ⚠️ paths 는 전부 source: publisher 다 — 카메라를 여기 직접 걸지 않는다.
+# 카메라 RTSP(오디오 포함)를 로컬 ffmpeg 가 -an 으로 오디오를 떼어 rtsp://127.0.0.1:8554/<path> 로
+# 다시 밀어넣고(camera-republish.sh), MediaMTX 는 그 무음 스트림을 받는다. 카메라를 source 로 직접
+# 걸면 오디오가 딸려 들어와 서버에 흐르고, record 를 켠 상태라면 그대로 위법 녹음이 된다(§25⑤).
+# 그래서 -an 재발행이 유일 경로다.
 #
-# sourceOnDemand: no — 아무도 안 보고 있어도 계속 물고 있는다. 녹화가 목적이므로 필수다.
-# 켜면 아무도 화면을 안 볼 때 녹화가 멈춘다.
+#   카메라 RTSP 주소·계정·IP 는 이 파일이 아니라 camera-republish.sh 와 그 폴더 .env
+#   (CAM_RTSP_USER/CAM_RTSP_PASS) · camera-relay-all.sh(카메라 IP 목록)에 있다.
 
 # ⚠️ **오디오를 받으면 위법이다.** 「개인정보 보호법」 제25조 제5항은 고정형 영상정보처리기기의
 # **녹음기능 사용을 금지**한다(과태료 대상). Tapo는 마이크가 내장돼 있고 RTSP 스트림에 오디오
@@ -135,14 +151,17 @@ recordDeleteAfter: 7d
 
 paths:
   # 출입구 — 누가 언제 드나들었나. 분쟁 때 가장 자주 다시 보게 되는 쪽이다.
-  entrance:
-    source: rtsp://<카메라계정>:<카메라비번>@<카메라 IP>:554/stream1
-    sourceOnDemand: no
+  office:
+    source: publisher
 
-  # 실내 라운지 — 무슨 일이 있었나. 화장실이 화각에 들어가면 위법이니 각도를 바꾼다
-  # (개인정보 보호법 §25, cctv-setup.md C-0). 용량이 모자라면 이쪽만 stream2로 낮춘다.
-  lounge:
-    source: rtsp://<카메라계정>:<카메라비번>@<카메라 IP2>:554/stream1
-    sourceOnDemand: no
+  # 실내 라운지(좌) — 무슨 일이 있었나. 화장실이 화각에 들어가면 위법이니 각도를 바꾼다
+  # (개인정보 보호법 §25, cctv-setup.md C-0).
+  lounge_left:
+    source: publisher
 
-  # 카메라를 더 늘릴 때 위 블록을 복사한다. 어드민에도 같은 이름으로 등록해야 보인다.
+  # 실내 라운지(우)
+  lounge_right:
+    source: publisher
+
+  # 카메라를 더 늘릴 때: 위 블록을 복사하고 camera-relay-all.sh 의 CAMERAS 배열에 IP 를 더한다.
+  # 어드민에도 같은 이름(키)으로 등록해야 보인다.

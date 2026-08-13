@@ -26,18 +26,30 @@ import { decide } from "./decide.ts";
 import { markManual } from "./dispatch.ts";
 import { APPLICATION_SMS_KINDS, type ApplicationSmsKind, render } from "./templates.ts";
 import { HandlerError } from "./errors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { constantTimeEqual } from "../_shared/secret.ts";
+import {
+  clientIp,
+  isThrottled,
+  recordFailure,
+  THROTTLED_MESSAGE,
+} from "../_shared/throttle.ts";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+type Json = (body: unknown, status?: number) => Response;
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
+/**
+ * 응답 헬퍼를 요청마다 만든다.
+ *
+ * CORS 헤더가 요청의 오리진에 따라 달라져서다(`_shared/cors.ts`의 화이트리스트).
+ * 모듈 수준 상수로 두면 동시에 들어온 요청이 서로의 오리진을 물려받는다.
+ */
+function makeJson(req: Request): Json {
+  const cors = corsHeaders(req);
+  return (body, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
 }
 
 /**
@@ -50,7 +62,7 @@ function isAdmin(supplied: string): boolean {
     console.error("ADMIN_PASSWORD 미설정 — 어드민 요청을 거부합니다");
     throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
-  return supplied !== "" && supplied === admin;
+  return supplied !== "" && constantTimeEqual(supplied, admin);
 }
 
 function parseKind(body: Record<string, unknown>): ApplicationSmsKind {
@@ -62,7 +74,7 @@ function parseKind(body: Record<string, unknown>): ApplicationSmsKind {
 }
 
 /** 접수 — 공개 경로. 이 함수의 원래 일이다. */
-async function submit(body: Record<string, unknown>): Promise<Response> {
+async function submit(body: Record<string, unknown>, json: Json): Promise<Response> {
   const parsed = validate(body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
 
@@ -90,7 +102,8 @@ async function submit(body: Record<string, unknown>): Promise<Response> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  const json = makeJson(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   if (req.method !== "POST") return json({ error: "POST만 허용합니다" }, 405);
 
   let body: Record<string, unknown>;
@@ -104,10 +117,21 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? "submit");
 
   try {
-    if (action === "submit") return await submit(body);
+    if (action === "submit") return await submit(body, json);
 
     // ── 여기부터 어드민 전용. 손님에게 문자를 보내는 일이라 아무나 부르면 안 된다. ──
-    if (!isAdmin(String(body.password ?? ""))) {
+    //
+    // 비밀번호를 던져볼 수 있는 횟수 자체를 자른다. 세 함수가 같은 `ADMIN_PASSWORD`를
+    // 검증하므로 카운터도 하나여야 한다 — 한 곳만 조이면 안 조인 표면으로 옮겨가면 그만이다.
+    // 공개 접수(`submit`)는 이 위에서 이미 끝났으므로 신청자는 영향받지 않는다.
+    const supplied = String(body.password ?? "");
+    const ip = clientIp(req);
+    const sbAuth = dbClient();
+    if (await isThrottled(sbAuth, ip)) {
+      return json({ error: THROTTLED_MESSAGE }, 429);
+    }
+    if (!isAdmin(supplied)) {
+      await recordFailure(sbAuth, ip, "apply");
       return json({ error: "invalid password" }, 401);
     }
 

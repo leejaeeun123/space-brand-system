@@ -35,6 +35,14 @@ function webhookUrl(): string | null {
  */
 type PostResult = "sent" | "retry" | "drop";
 
+/**
+ * 웹훅 왕복 상한. 틱 경로의 외부 호출 중 유일하게 타임아웃이 없었던 곳이다(ThinQ 10s·SOLAPI 15s는
+ * 있다). 웹훅이 에러가 아니라 **응답 없이 매달리면** flush가 `claimPending`으로 notified_at을
+ * 이미 찍은 뒤 무기한 블록되고, 런타임이 함수를 죽이면 release가 못 돌아 그 이벤트는 '알림됨'으로
+ * 표시된 채 발송되지 않는다. 타임아웃은 예외로 떨어져 아래 catch가 "retry"로 분류한다(release가 돌아).
+ */
+const POST_TIMEOUT_MS = 10000;
+
 /** 발송. **어떤 예외도 밖으로 던지지 않는다** — 알림 실패가 제어를 망가뜨리면 안 된다. */
 async function post(text: string): Promise<PostResult> {
   const url = webhookUrl();
@@ -49,6 +57,7 @@ async function post(text: string): Promise<PostResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(POST_TIMEOUT_MS),
     });
     if (res.ok) return "sent";
 

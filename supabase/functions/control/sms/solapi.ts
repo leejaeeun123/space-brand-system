@@ -102,9 +102,16 @@ export async function authHeader(cfg: SolapiConfig, now: Date): Promise<string> 
   return `HMAC-SHA256 apiKey=${cfg.apiKey}, date=${date}, salt=${salt}, signature=${signature}`;
 }
 
+/**
+ * 실패의 두 갈래. **이 구분이 이 타입의 존재 이유다.**
+ * rejected=벤더가 확정 거절(4xx·건별 거절, 재시도해도 같다) → 자동 재시도 허용.
+ * unknown=결과 불명(타임아웃·네트워크 예외·5xx — 벤더가 받았을 수 있다) → 자리를 막고 사람이 확인.
+ */
+export type SendFailure = "rejected" | "unknown";
+
 export type SendResult =
   | { ok: true; groupId: string | null }
-  | { ok: false; error: string };
+  | { ok: false; failure: SendFailure; error: string };
 
 /** 응답에서 사람이 읽을 실패 사유를 뽑는다. 벤더 원문을 지어내 덮지 않는다 —
  *  '잔액 부족'이나 '미등록 발신번호' 같은 진짜 원인이 거기에만 적혀 있다. */
@@ -114,6 +121,17 @@ function describeFailure(status: number, payload: unknown): string {
   const message = body?.errorMessage ?? body?.statusMessage;
   if (code || message) return `${code ?? status}: ${message ?? ""}`.trim();
   return `HTTP ${status}`;
+}
+
+/**
+ * HTTP 상태를 '확정 거절'과 '결과 불명'으로 가른다 — 순수 함수(테스트가 여기 붙는다).
+ *
+ * 4xx = 벤더가 요청을 확정적으로 거절(미등록 발신번호·잔액 부족 등, 다시 보내도 같다) → rejected.
+ * 5xx = 벤더 서버 오류 — 요청을 **처리했는지 알 수 없다** → unknown. 재시도하면 유료 문자가
+ *   손님에게 두 번 갈 수 있어, 자리를 막고 사람이 콘솔에서 확인한다.
+ */
+export function classifyHttpFailure(status: number): SendFailure {
+  return status >= 500 ? "unknown" : "rejected";
 }
 
 /**
@@ -137,11 +155,12 @@ export async function send(cfg: SolapiConfig, to: string, text: string): Promise
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (e) {
-    return { ok: false, error: `발송 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
+    // 타임아웃(AbortSignal)·네트워크 예외 — 벤더에 닿았는지, 닿았다면 처리됐는지 알 수 없다.
+    return { ok: false, failure: "unknown", error: `발송 요청 실패: ${e instanceof Error ? e.message : String(e)}` };
   }
 
   const payload = await res.json().catch(() => null);
-  if (!res.ok) return { ok: false, error: describeFailure(res.status, payload) };
+  if (!res.ok) return { ok: false, failure: classifyHttpFailure(res.status), error: describeFailure(res.status, payload) };
 
   // HTTP 200이어도 개별 건이 거절될 수 있다 — 그게 여기 실린다. 200만 보고 성공으로 적으면
   // 장부에는 '보냄'인데 손님은 못 받은 상태가 된다.
@@ -151,6 +170,8 @@ export async function send(cfg: SolapiConfig, to: string, text: string): Promise
     const first = failed[0] as Record<string, unknown>;
     return {
       ok: false,
+      // 벤더가 HTTP 200으로 받았지만 이 건을 확정 거절했다 — 재시도해도 같다.
+      failure: "rejected",
       error: `${first?.statusCode ?? "거절"}: ${first?.statusMessage ?? JSON.stringify(first)}`,
     };
   }

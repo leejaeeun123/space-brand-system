@@ -10,7 +10,7 @@
  * 보여 연달림 경고로 둔갑한다 — 연달림은 스케줄의 성질이지 지금 몇 시인가의 문제가 아니다.
  */
 
-import { endTime, kstDay, targetTime } from "../automation/windows.ts";
+import { endTime, kstDay, prepTime, targetTime } from "../automation/windows.ts";
 
 /** 이 간격 이상이어야 청소를 할 수 있다고 본다(형운 결정, 2026-08-09). */
 export const MIN_CLEANING_MINUTES = 30;
@@ -89,7 +89,11 @@ export function isCarryOver(r: CleaningReservation, now: Date): boolean {
  * 넘어온 예약은 구간을 만들지 않고 첫 경계만 민다 — 그 예약의 앞은 어제 얘기라
  * 오늘 문자가 다룰 일이 아니다.
  */
-export function planCleaning(reservations: CleaningReservation[], now: Date): CleaningPlan {
+export function planCleaning(
+  reservations: CleaningReservation[],
+  now: Date,
+  nextDayBoundary: Date | null = null,
+): CleaningPlan {
   const today = kstDay(now);
   const dayStart = targetTime(today, "00:00:00");
 
@@ -122,9 +126,40 @@ export function planCleaning(reservations: CleaningReservation[], now: Date): Cl
     cursor = later(cursor, endTime(r));
   }
 
-  // 마지막 퇴실 이후는 끝 경계가 없다.
-  windows.push({ from: cursor, to: null, minutes: null });
+  // 마지막 퇴실 이후. 내일 첫 예약의 준비 시각(nextDayBoundary)이 있으면 거기서 닫는다 — 없으면
+  // 끝 경계가 없다. 파티룸이라 자정 전후 청소가 현실적이고, 내일 새벽 예약은 fetchRecent에 이미
+  // 실려 온다. 담당자가 안내대로 자정 넘겨 들어가면 그 예약과 겹칠 수 있어, 사이 간격도
+  // 예약 사이와 같은 규칙으로 닫는다(30분 이상이면 창, 미만이면 연달림 경고).
+  if (nextDayBoundary && nextDayBoundary > cursor) {
+    const gap = minutesBetween(cursor, nextDayBoundary);
+    if (gap >= MIN_CLEANING_MINUTES) {
+      windows.push({ from: cursor, to: nextDayBoundary, minutes: gap });
+    } else if (cursor > dayStart) {
+      tight.push({ afterEnd: cursor, beforeStart: nextDayBoundary, minutes: Math.max(0, gap) });
+    }
+  } else {
+    windows.push({ from: cursor, to: null, minutes: null });
+  }
   return { windows, tight };
+}
+
+/**
+ * 내일 첫 예약의 준비 시각(입실 15분 전). 없으면 null.
+ *
+ * 마지막 청소 구간이 '끝 경계 없음'으로 나가면, 담당자가 자정을 넘겨 들어갔을 때 내일 새벽
+ * 예약과 겹칠 수 있다. `fetchRecent`가 어제~내일을 실어오므로 내일 예약이 이미 손에 있다 —
+ * 그중 가장 이른 준비 시각으로 마지막 구간을 닫는다. 호출부는 오늘 몫으로 줄이기 전의 전체
+ * 목록(`todayReservations` 이전)을 넘겨야 내일 예약이 보인다.
+ */
+export function nextDayFirstPrep(reservations: CleaningReservation[], now: Date): Date | null {
+  const tomorrow = kstDay(new Date(now.getTime() + DAY_MS));
+  let earliest: Date | null = null;
+  for (const r of reservations) {
+    if (r.date !== tomorrow) continue;
+    const prep = prepTime(r);
+    if (!earliest || prep < earliest) earliest = prep;
+  }
+  return earliest;
 }
 
 /**

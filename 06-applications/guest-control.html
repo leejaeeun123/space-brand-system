@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TYPE LOUNGE — 조명·냉난방</title>
 <meta name="robots" content="noindex">
 <script>
@@ -42,6 +42,10 @@
     --ink:#16130F;
     --white:#ffffff;
     --orange:#E2531E;
+    /* 소형 텍스트(오류·경고·h2)용 어두운 오렌지. 화이트 위 4.95:1로 AA 통과.
+       브랜드 오렌지(#E2531E)는 화이트 위 3.83:1이라 소형 텍스트에선 AA(4.5:1) 미달 —
+       대형 텍스트·아이콘엔 --orange 를 그대로 쓴다. */
+    --orange-text:#C74312;
     --hair: rgba(22,19,15,.12);
     --mute:#6b665c;
   }
@@ -50,6 +54,8 @@
     --white:#16130F;
     --hair: rgba(242,237,230,.14);
     --mute:#A39D90;
+    /* 다크 배경 위 --orange 는 4.84:1로 이미 AA. 여기서 #C74312 를 쓰면 3.74:1로 오히려 나빠진다. */
+    --orange-text:#E2531E;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;}
@@ -74,7 +80,7 @@
 
   h2{
     font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--orange);margin:0 0 14px;
+    color:var(--orange-text);margin:0 0 14px;
   }
 
   .all-row{display:flex;gap:8px;margin-bottom:14px;}
@@ -88,12 +94,14 @@
     border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:12px;
     font-size:13px;color:var(--mute);line-height:1.6;
   }
-  .notice.warn{color:var(--orange);}
+  .notice.warn{color:var(--orange-text);}
+  .notice p + p{margin-top:10px;}
+  .notice a{display:inline-block;margin-top:12px;color:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;}
 
   .dev-card{border:1px solid var(--hair);border-radius:8px;padding:16px;margin-bottom:10px;}
   .dev-name{font-weight:600;font-size:16px;}
   .dev-meta{font-size:12px;color:var(--mute);margin:4px 0 12px;}
-  .dev-meta.warn{color:var(--orange);}
+  .dev-meta.warn{color:var(--orange-text);}
   .dev-row{display:flex;gap:8px;}
   .dev-row button{
     font-weight:600;font-size:14px;flex:1;cursor:pointer;
@@ -224,6 +232,9 @@
           var err = new Error(data.error || ('요청 실패 (' + res.status + ')'));
           err.status = res.status;
           err.code = data.code;
+          /* 서버가 실제로 응답한 오류임을 표시한다. 이게 없으면 아래 catch 가 연결 실패(fetch 거부)의
+             브라우저 영문(`Failed to fetch`)까지 같은 것으로 묶어 손님에게 보여준다(apply.html 과 같은 패턴). */
+          err.fromServer = true;
           throw err;
         }
         return data;
@@ -240,12 +251,33 @@
     document.getElementById('mainSections').style.display = isClosed ? 'none' : '';
     var el = document.getElementById('closedNotice');
     el.style.display = isClosed ? 'block' : 'none';
-    if(isClosed) el.textContent = msg || '지금은 예약 시간이 아니에요.';
+    if(!isClosed) return;
+    /* 서버 문구(msg)는 신뢰 경계 밖이라 textContent 로만 넣는다. 그 아래 안내와 링크는 우리가 만드는
+       고정 노드다. 폴링이 계속 돌아 예약 시작 시각에 자동으로 열리므로(위 주석), 손님에게 '기다리면
+       열린다'를 말해 막다른 화면으로 느끼지 않게 한다. */
+    el.textContent = '';
+    var head = document.createElement('p');
+    head.textContent = msg || '지금은 예약 시간이 아니에요.';
+    var guide = document.createElement('p');
+    guide.textContent = '예약 시간이 되면 이 화면이 자동으로 열려요. 화면을 열어 둔 채 잠시만 기다려 주세요.';
+    var link = document.createElement('a');
+    link.href = '/';
+    link.textContent = '이용 안내 보기 →';
+    el.appendChild(head);
+    el.appendChild(guide);
+    el.appendChild(link);
   }
 
   function init(){
+    /* 첫 응답 전에는 devicesCache 가 빈 배열이라, 이때 전체/나이트모드를 누르면 '기기가 없어요' 같은
+       거짓 오류가 뜬다. 첫 refreshDevices 가 끝날 때까지 버튼을 잠그고 목록 자리엔 불러오는 중임을 알린다. */
+    allButtons().forEach(function(b){ b.disabled = true; });
+    document.getElementById('list').innerHTML = '<p class="dev-note">기기 상태를 불러오는 중이에요…</p>';
     startPolling();
-    refreshDevices().then(function(){ loaded = true; });
+    refreshDevices().then(function(){
+      loaded = true;
+      allButtons().forEach(function(b){ b.disabled = false; });
+    });
   }
 
   /* 화면을 안 보고 있으면 읽지 않는다 — 손님 휴대폰 배터리와 데이터를 조용히 태울 이유가 없다.
@@ -283,7 +315,7 @@
         setClosed(true, err.message);
         return;
       }
-      notice('기기 상태를 불러오지 못했어요: ' + err.message, true);
+      notice(err.fromServer ? ('기기 상태를 불러오지 못했어요: ' + err.message) : '연결이 불안정해요. 잠시 후 다시 시도해 주세요.', true);
     });
   }
 
@@ -293,7 +325,7 @@
     if(err.code === 'outside_reservation_window'){
       setClosed(true, err.message);
     } else {
-      notice(err.message, true);
+      notice(err.fromServer ? err.message : '연결이 불안정해요. 잠시 후 다시 시도해 주세요.', true);
     }
   }
 
@@ -430,7 +462,9 @@
     var list = document.getElementById('list');
     if(!devicesCache.length){
       list.innerHTML = '';
-      notice('아직 연결된 기기가 없어요. 조명·냉난방은 리모컨과 벽 스위치로 쓰실 수 있어요.');
+      /* 벽 스위치를 권하지 않는다 — guest-guide 는 수동 조작을 고장·비용 청구로 경고한다(정면 충돌).
+         냉난방은 가이드가 허용하는 흰색 리모컨이 대안이라 그것만 남긴다. 조명은 손으로 만질 대안이 없다. */
+      notice('아직 연결된 기기가 없어요. 냉난방은 거울 선반 위 작은 흰색 리모컨으로 조절하실 수 있어요.');
       return;
     }
     notice('');
@@ -457,7 +491,7 @@
       // render()가 성공 시 notice('')로 알림을 지운다 — 그래서 메시지는 새로고침 뒤에 세팅한다.
       return refreshDevices().then(function(){
         if(!failed.length) notice(successMsg);
-        else notice('일부는 안 됐어요: ' + failed.map(function(r){ return r.name; }).join(', '), true);
+        else notice('일부 기기는 반영되지 않았어요: ' + failed.map(function(r){ return r.name; }).join(', ') + '. 잠시 후 다시 시도해 주세요.', true);
         scheduleLateRefresh();
       });
     }).then(function(){
@@ -497,10 +531,9 @@
 
     var sihas = lights.filter(isSihasLight);
     var others = lights.filter(function(d){ return !isSihasLight(d); });
-    if(!confirm(
-      '나이트모드로 바꿀까요?\nSiHAS 조명 ' + sihas.length + '개는 끄고, ' +
-      '나머지 조명 ' + others.length + '개는 켭니다.\n냉난방은 그대로 둬요.'
-    )) return;
+    /* 손님에게 벤더명(SiHAS)은 의미가 없다 — 결과로 말한다. SiHAS=메인 조명(끔), 나머지=무드 조명(켬).
+       sihas/others 계산은 위에서 끝났고 여기선 확인만 받는다. */
+    if(!confirm('영화·모임에 맞게 메인 조명은 끄고 무드 조명만 켤까요? 냉난방은 그대로 둬요.')) return;
 
     runCommands(
       sihas.map(function(d){ return { device: d, command: 'power_off' }; })

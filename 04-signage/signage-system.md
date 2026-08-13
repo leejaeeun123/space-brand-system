@@ -30,8 +30,8 @@
 
 ## 4. 타이포 (사이니지)
 
-- 디스플레이: League Spartan(기하 산세) / 국문 Pretendard Black
-- 안내·픽토 라벨: Pretendard (국·영문 통일)
+- 디스플레이: **Paperlogy 600**(각진 기하 골격, 국·영문 한 가족) — 폰트 정본 `03-identity/typography.md`
+- 안내·픽토 라벨: **Paperlogy 400/600**(국·영문 통일). League Spartan·Pretendard 서술은 폐기
 - 타입 태그: `WORK · CLASS · GATHER`
 
 ## 5. 멀티유즈 타입 시나리오 (≥3, 페르소나 대응)

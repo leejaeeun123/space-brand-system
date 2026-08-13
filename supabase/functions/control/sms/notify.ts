@@ -99,3 +99,28 @@ export function notifyExpired(ctx: NotifyContext): Promise<void> {
     ].join("\n"),
   );
 }
+
+/**
+ * 결과 불명(타임아웃·네트워크 예외·5xx). **자동 재발송하지 않았다는 것을 분명히 한다.**
+ *
+ * 실패(`notifyFailed`)와 다른 문구를 쓰는 이유: 확정 거절은 다음 틱이 자동으로 다시 보내지만,
+ * 결과 불명은 벤더가 이미 보냈을 수 있어 일부러 멈췄다 — 사람이 SOLAPI 콘솔에서 실제 발송
+ * 여부를 확인해야 한다. 그냥 재발송하면 유료 LMS가 손님에게 중복 도달할 수 있다.
+ */
+export function notifyUnknown(
+  ctx: NotifyContext,
+  phone: string | null,
+  error: string,
+): Promise<void> {
+  const via = ctx.origin === "auto" ? "자동" : "어드민";
+  return post(
+    [
+      `**⚠️ 문자 결과 불명 · ${KIND_LABEL[ctx.kind]}** · ${ctx.name}`,
+      `${ctx.slot} · ${via} 발송`,
+      `수신 ${phone ?? "번호 없음"}`,
+      `사유: ${error}`,
+      "",
+      "보냈는지 불분명해 자동 재발송을 멈췄습니다. SOLAPI 콘솔에서 확인 후, 안 갔으면 어드민에서 재발송하세요.",
+    ].join("\n"),
+  );
+}

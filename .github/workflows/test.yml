@@ -47,6 +47,31 @@ jobs:
       - name: 테스트
         run: deno test --allow-env
 
+  # control 밖의 함수들. 이것들은 오랫동안 CI 밖에 있었다 — control 잡은 `working-directory`가
+  # `functions/control`이라 거기서 `deno test`를 돌려도 옆 디렉토리는 안 본다.
+  # 그사이 `apply`·`claim`에는 테스트가 45개 쌓였고(주민번호 암호화·검증 포함) 아무도 안 돌렸다.
+  # 사람이 기억해서 돌리는 검증은 결국 안 돌아간다(이 파일 머리말과 같은 이유다).
+  functions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [_shared, apply, claim]
+    defaults:
+      run:
+        working-directory: supabase/functions/${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: 린트
+        run: deno lint
+
+      - name: 테스트
+        run: deno test --allow-env
+
   # admin.html의 CCTV 재연결 상태머신. 빌드 단계가 없는 단일 HTML이라 테스트가 함수 본문을
   # 잘라내 돌린다 — 구조가 바뀌면 추출이 실패하며 죽는다(조용히 통과하지 않는다).
   #

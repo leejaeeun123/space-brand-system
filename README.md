@@ -75,20 +75,20 @@ assets/            무드보드 · 레퍼런스 · 목업
 
 **합정에 맥 1대가 상주한다** — 조명과 CCTV가 여기에 의존한다(냉난방은 클라우드라 무관).
 **영상은 Supabase를 지나가지 않는다** — 서버는 '카메라가 살아 있나'만 알고, 프레임은
-브라우저가 합정 맥에서 직접 받는다. 카메라는 **출입구(`entrance`) + 실내 라운지(`lounge`) 2대**다.
+브라우저가 합정 맥에서 직접 받는다. 카메라는 **출입구(`office`) + 실내 라운지(`lounge_left`·`lounge_right`) 3대**다. 서버 녹화는 꺼있고(2026-08-10), 영상은 카메라 SD카드에만 남는다.
 
 ### 배포
 
-`main`에 머지되면 GitHub Actions가 Vercel로 올린다(`public/**` · `admin.html` · `guest-guide.html` ·
-`guest-control.html` · `vercel.json` 변경 시). `public/`은 `06-applications/`를 가리키는 **심링크**라
-원본만 고치면 된다. 배포되는 페이지를 새로 추가하면 **`deploy.yml`의 `paths`에도 넣는다** —
-빠뜨리면 파일은 머지됐는데 사이트만 그대로다.
+`main`에 머지되면 GitHub Actions가 Vercel로 올린다 — 트리거는 `public/**` · `06-applications/*.html`(글로브) ·
+`vercel.json` · `.github/workflows/deploy.yml` 변경이다. `public/`은 `06-applications/`를 가리키는 **심링크**라
+원본만 고치면 되고, `06-applications/*.html` 글로브가 심링크가 `public/**`에 안 걸리는 문제를 덮어
+**새 페이지는 자동으로 배포 대상에 들어온다**(파일 이름을 하나씩 열거하지 않는다 — `deploy.yml` 주석 참조).
 
 ## 남은 일
 
 1. `[대기]` **가격대** — 확정 시 포지셔닝 톤 재조정
 2. **상표(KIPRIS 43·41류)·도메인·SNS 핸들 라이브 확인** — `02-naming/validation.md` §0
 3. **`ux.md`** — 앱·무인 자동화 UX 문서만 아직 없다(brand·bx·product는 작성 완료)
-4. **CCTV 실기기 검증** — 카메라 미구매. 가짜 스트림로 전 구간(C-4b)은 밟을 수 있다
+4. ~~**CCTV 실기기 검증**~~ — **완료(2026-08-10)**: 실카메라 3대로 전 구간 통과. 이후 서버 녹화·되감기는 껐다(영상은 카메라 SD카드에만)
 
 > 작업 규칙·정본 우선순위·되돌리면 안 되는 결정은 **[CLAUDE.md](./CLAUDE.md)** 에 있다.

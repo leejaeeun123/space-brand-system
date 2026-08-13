@@ -12,7 +12,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { loadConfig, normalizePhone, send } from "./solapi.ts";
 import { formatSlot, render, type SmsKind } from "./templates.ts";
-import { notifyExpired, notifyFailed, notifySent } from "./notify.ts";
+import { notifyExpired, notifyFailed, notifySent, notifyUnknown } from "./notify.ts";
 
 /** 문자를 보내는 데 필요한 예약 필드. 예약 행 전체를 알 필요가 없다. */
 export interface SmsReservation {
@@ -30,6 +30,8 @@ export type DispatchStatus =
   | "sent"
   /** 벤더가 거절했거나 못 닿았다. 장부에 사유가 남고 채널에 ⚠️가 뜬다. */
   | "failed"
+  /** 결과 불명(타임아웃·네트워크·5xx). 벤더가 받았을 수 있어 재발송하지 않고 자리를 막는다 — 사람이 콘솔 확인. */
+  | "unknown"
   /** 이미 보냈거나 다른 호출이 보내는 중. 아무것도 하지 않았다. */
   | "already"
   /** 연락처가 없거나 문자를 받을 수 없는 번호. 사람이 복사해 보내는 경로로 간다. */
@@ -95,6 +97,18 @@ export async function dispatch(
     return { status: "sent" };
   }
 
+  if (result.failure === "unknown") {
+    // 결과 불명 — 벤더가 받았을 수 있으므로 재발송하지 않는다. `unknown`은 유니크 인덱스
+    // 안이라 자리를 막아 다음 틱이 재시도하지 못한다 — 사람이 SOLAPI 콘솔에서 확인 후 어드민 재발송한다.
+    await sb
+      .from("reservation_sms")
+      .update({ status: "unknown", error: result.error })
+      .eq("id", claimed.id);
+    await notifyUnknown(ctx, phone, result.error);
+    return { status: "unknown", error: result.error };
+  }
+
+  // 확정 거절(4xx·건별 거절) — failed는 유니크 인덱스 밖이라 다음 틱이 자동 재시도한다.
   await sb
     .from("reservation_sms")
     .update({ status: "failed", error: result.error })

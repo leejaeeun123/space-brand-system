@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TYPE LOUNGE — 청소 완료</title>
 <meta name="robots" content="noindex">
 <script>
@@ -44,6 +44,10 @@
     --ink:#16130F;
     --white:#ffffff;
     --orange:#E2531E;
+    /* 소형 텍스트(오류·경고)용 어두운 오렌지. 화이트 위 4.95:1로 AA 통과.
+       브랜드 오렌지(#E2531E)는 화이트 위 3.83:1이라 소형 텍스트에선 AA(4.5:1) 미달 —
+       대형 텍스트(.count)·버튼 채움엔 --orange 를 그대로 쓴다. */
+    --orange-text:#C74312;
     --hair: rgba(22,19,15,.12);
     --mute:#6b665c;
   }
@@ -52,6 +56,8 @@
     --white:#16130F;
     --hair: rgba(242,237,230,.14);
     --mute:#A39D90;
+    /* 다크 배경 위 --orange 는 4.84:1로 이미 AA. 여기서 #C74312 를 쓰면 3.74:1로 오히려 나빠진다. */
+    --orange-text:#E2531E;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;}
@@ -97,7 +103,7 @@
   }
   .item .when{font-size:14px;font-variant-numeric:tabular-nums;}
   .item .when .day{color:var(--mute);margin-right:6px;}
-  .item .when .next{color:var(--orange);font-size:12px;margin-left:4px;}
+  .item .when .next{color:var(--orange-text);font-size:12px;margin-left:4px;}
   .item .who{font-size:15px;font-weight:600;text-align:right;}
   button.action{
     width:100%;padding:18px;border:none;border-radius:14px;
@@ -110,7 +116,7 @@
     border:1px solid var(--hair);border-radius:14px;padding:22px;margin-top:4px;
   }
   .done h2{font-size:19px;font-weight:600;margin-bottom:8px;}
-  .error{color:var(--orange);font-size:15px;line-height:1.7;}
+  .error{color:var(--orange-text);font-size:15px;line-height:1.7;}
   .hidden{display:none;}
 </style>
 </head>
@@ -155,6 +161,7 @@
   <div id="failed" class="hidden">
     <h1>문제가 생겼어요</h1>
     <p class="error" id="errorText"></p>
+    <button type="button" class="action" onclick="location.reload()" style="margin-top:20px;">다시 시도</button>
     <p class="note">다시 시도해도 같으면 형운(010-4810-9142)에게 알려 주세요.</p>
   </div>
 </div>
@@ -209,9 +216,14 @@
              준다. 그 문구를 그대로 보여주면 비밀번호를 가진 적도 없는 담당자가 영문
              메시지를 읽게 된다. 서버 응답은 admin.html이 의존하므로 건드리지 않고
              여기서 갈아 끼운다. */
-          if(res.status === 401) throw new Error('이 QR은 더 이상 쓸 수 없어요. 현장에 새로 붙은 QR로 찍어 주세요.');
-          if(res.status === 403) throw new Error('이 QR로는 할 수 없는 일이에요. 형운에게 알려 주세요.');
-          throw new Error(data.error || ('요청 실패 (' + res.status + ')'));
+          var err;
+          if(res.status === 401) err = new Error('이 QR은 더 이상 쓸 수 없어요. 현장에 새로 붙은 QR로 찍어 주세요.');
+          else if(res.status === 403) err = new Error('이 QR로는 할 수 없는 일이에요. 형운에게 알려 주세요.');
+          else err = new Error(data.error || ('요청 실패 (' + res.status + ')'));
+          /* 서버가 실제로 응답한 오류임을 표시한다(위 401 처리와 같은 취지). 이게 없으면 아래 catch 가
+             연결 실패(fetch 거부)의 브라우저 영문 `Failed to fetch` 까지 담당자에게 그대로 보여준다(apply.html 패턴). */
+          err.fromServer = true;
+          throw err;
         }
         return data;
       });
@@ -271,7 +283,7 @@
       renderList(document.getElementById('doneList'), data.items);
       show('result');
     }).catch(function(err){
-      fail(err.message);
+      fail(err.fromServer ? err.message : '연결에 실패했어요. 잠시 후 다시 시도해 주세요.');
     });
   }
 
@@ -285,7 +297,7 @@
       renderList(document.getElementById('pendingList'), data.items);
       show('ready');
     }).catch(function(err){
-      fail(err.message);
+      fail(err.fromServer ? err.message : '연결에 실패했어요. 잠시 후 다시 시도해 주세요.');
     });
   }
 </script>

@@ -2,13 +2,27 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TYPE LOUNGE — 어드민</title>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- CDN 스크립트는 **정확한 버전 + 무결성 해시**로 박아둔다.
+     예전엔 `@2`·`@1`처럼 메이저만 적어 새 릴리스가 자동으로 실렸다. 편하지만,
+     이 페이지는 어드민 비밀번호를 메모리에 들고 있고 그 값은 예약자 개인정보·주민번호
+     복호화·CCTV 영상까지 여는 열쇠다 — CDN 쪽 사고 한 번이 그걸 전부 가져간다.
+     버전을 고정하면 오염된 릴리스가 자동으로 전파되지 않고, `integrity`는 바이트가 하나라도
+     달라지면 브라우저가 실행 자체를 거부하게 한다.
+
+     ⚠️ 업그레이드할 땐 **버전과 해시를 같이** 바꿔야 한다. 해시만 남기면 페이지가 조용히 빈
+        화면이 된다(스크립트가 차단된다). 값은 이렇게 구한다:
+        curl -sL --compressed <url> | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"
+        integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC"
+        crossorigin="anonymous"></script>
 <!-- HLS 재생. 크롬·파이어폭스는 HLS를 native로 못 재생한다(사파리만 된다).
      자격증명을 세그먼트 요청마다 붙이려면 요청을 가로챌 수 있어야 해서, 사파리에서도 이걸 쓴다. -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.0"
+        integrity="sha384-NsaFqWMOpy26cQK1F9VfwDdMFB97h7JCesDaPSI1sr79bzoezFrUOTYBhdsLJgha"
+        crossorigin="anonymous"></script>
 <style>
   :root{
     --ink:#16130F;
@@ -776,8 +790,13 @@
       // 문자 이력은 목록을 띄운 다음에 채운다. 여기 같이 묶으면 이력 조회가 실패했을 때
       // 비밀번호가 맞는데도 "맞지 않아요"가 뜬다.
       return refresh();
-    }).catch(function(){
-      document.getElementById('pwError').textContent = '비밀번호가 맞지 않아요.';
+    }).catch(function(err){
+      // 실패 이유를 갈라서 말한다. 전부 "맞지 않아요"로 뭉개면 오프라인일 때 맞는 비밀번호를
+      // 계속 다시 치게 된다. 시도 제한(429)에 걸린 경우도 그 사실을 그대로 알려야
+      // 사람이 10분 뒤에 다시 온다.
+      document.getElementById('pwError').textContent =
+        isAuthError(err) ? '비밀번호가 맞지 않아요.'
+                         : '연결에 실패했어요. 잠시 후 다시 시도해 주세요.';
     });
   }
   function lock(){
@@ -1115,10 +1134,26 @@
       closeStatusModal();
     });
   }
+  // textContent→innerHTML은 &·<·>만 바꾸고 따옴표는 그대로 통과시킨다. 요소 안에 넣을 때는
+  // 그래도 안전하지만, 이 파일에는 값을 **큰따옴표 속성**에 끼워 넣는 자리가 있다(data-alias).
+  // 거기에 따옴표가 들어오면 속성을 빠져나와 onmouseover 같은 핸들러를 붙일 수 있고,
+  // 이 페이지는 어드민 비밀번호를 들고 있다. 그래서 따옴표까지 함께 막는다.
   function escapeHtml(s){
     var div = document.createElement('div');
     div.textContent = s || '';
-    return div.innerHTML;
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /**
+   * 인증 실패인가, 아니면 연결·서버 문제인가.
+   *
+   * 이걸 구분하지 않으면 와이파이가 잠깐 끊긴 것도 "비밀번호가 맞지 않아요"로 보인다 —
+   * 현장에서 그 문구를 본 사람은 비밀번호가 바뀐 줄 알고 맞는 값을 계속 다시 친다.
+   * `admin_*` RPC는 비밀번호가 틀리면 'invalid password'로 raise 한다(마이그레이션 참조).
+   */
+  function isAuthError(err){
+    var msg = (err && (err.message || err.error_description)) || '';
+    return msg.indexOf('invalid password') !== -1;
   }
 
   /* ── 손님 안내 문자 ────────────────────────────────────────────────────────
@@ -1258,7 +1293,13 @@
       smsNote(r.id, '실패: ' + (err && err.message ? err.message : err), true);
     }).then(function(){
       smsBusy[r.id] = false;
-      return refresh();
+      // refresh()가 실패하면 renderDayList가 다시 안 불려, 카드가 **버튼이 전부 잠긴 채**
+      // 굳는다 — 문자는 실제로 나갔는데 화면은 아무 반응이 없는 상태다. 그러면 사람이
+      // 다시 누르게 되고, 그게 곧 중복 발송이다. 목록 갱신이 실패해도 화면은 반드시 되돌린다.
+      return refresh().catch(function(){
+        smsNote(r.id, '목록 갱신에 실패했어요 — 새로고침해 주세요. (문자는 위 결과대로 처리됐어요)', true);
+        renderDayList();
+      });
     });
   }
 
@@ -1319,10 +1360,15 @@
       document.getElementById('timeModalError').textContent = '입실·퇴실 시각을 모두 넣어주세요.';
       return;
     }
-    if(end <= start){
-      document.getElementById('timeModalError').textContent = '퇴실 시각이 입실보다 늦어야 해요.';
+    if(end === start){
+      document.getElementById('timeModalError').textContent = '입실과 퇴실 시각이 같아요.';
       return;
     }
+    // 퇴실이 입실보다 이르면 **다음 날 퇴실**이다 — 이 공간은 자정 넘김 예약을 정식으로
+    // 받는다(19:00~00:00 같은). 예전엔 이걸 막아서 자정을 넘기는 연장이 아예 안 됐고,
+    // 그러면 삭제 후 재생성밖에 길이 없어 연락처·보증금·문자 이력이 날아갔다.
+    // 다만 오타로 뒤집어 넣는 경우와 구분이 안 되므로 한 번 확인만 받는다.
+    if(end < start && !confirm('퇴실을 다음 날 ' + end + '으로 저장할까요?')) return;
     var extended = end !== r.end;
     closeTimeModal();
     smsRun(r, function(){
@@ -1454,6 +1500,11 @@
      내려오면 안 되므로, Edge Function(control)이 유일한 경로다. */
   var CONTROL_URL = SUPABASE_URL + '/functions/v1/control';
   var devicesCache = [];
+  /* 지금 서버로 보낸 기기 명령이 몇 건인가.
+     15초 주기 폴링이 목록을 통째로 다시 그리면, 눌러서 disabled 된 버튼이 **활성 상태의 새
+     버튼**으로 갈리며 이중 전송 방어가 풀린다. 타이핑 중이던 온도 칸도 같이 사라진다.
+     그래서 명령이 도는 동안에는 다시 그리지 않는다(renderDevices 참조). */
+  var ctlBusy = 0;
 
   function controlCall(action, extra){
     var body = { action: action, password: currentPassword };
@@ -1922,12 +1973,16 @@
   function runDeviceCommands(jobs, successMsg){
     var btns = allControlBtns();
     btns.forEach(function(b){ b.disabled = true; });
+    ctlBusy++;
 
     return Promise.all(jobs.map(function(job){
       return controlCall('command', { device_id: job.device.id, command: job.command })
         .then(function(){ return { name: job.device.name, ok: true }; })
         .catch(function(err){ return { name: job.device.name, ok: false, message: err.message }; });
     })).then(function(results){
+      // 여기서 먼저 내린다 — 아래 refreshDevices()가 renderDevices의 '명령 중' 가드에 막히면
+      // 방금 바꾼 상태가 화면에 안 실린다.
+      ctlBusy--;
       // refreshDevices() 내부 renderDevices()가 성공 시 ctlNotice('')로 알림을 지운다 —
       // 그래서 이 메시지는 refreshDevices가 끝난 뒤에 세팅해야 살아남는다.
       var failed = results.filter(function(r){ return !r.ok; });
@@ -2076,6 +2131,14 @@
       return;
     }
     ctlNotice('');
+
+    /* 명령이 도는 중이거나 이 목록 안에 커서가 있으면 다시 그리지 않는다.
+       다시 그리면 (a) 눌러서 disabled 된 버튼이 활성 클론으로 바뀌어 같은 명령이 두 번 나가고,
+       (b) 온도 칸에 치던 값이 change 이벤트도 없이 사라진다.
+       건너뛴 동안 상태 글자는 최대 한 주기(15초) 낡지만, 명령이 끝나면 곧바로
+       refreshDevices()가 불려 그때 정확한 값으로 맞춰진다. */
+    if(ctlBusy > 0 || list.contains(document.activeElement)) return;
+
     list.innerHTML = devicesCache.map(deviceCardHtml).join('');
   }
 
@@ -2094,8 +2157,10 @@
     // set_temp만 숫자다 — 모드·풍량은 문자열 enum이라 변환하면 안 된다.
     if(value !== undefined && el.dataset.cmd === 'set_temp') value = Number(value);
     el.disabled = true;
+    ctlBusy++;
     controlCall('command', { device_id: el.dataset.dev, command: el.dataset.cmd, value: value })
-      .then(refreshDevices)
+      .then(function(){ ctlBusy--; return refreshDevices(); },
+            function(err){ ctlBusy--; ctlNotice(err.message, true); })
       .catch(function(err){ ctlNotice(err.message, true); })
       .then(function(){ el.disabled = false; });
   });
@@ -2112,8 +2177,10 @@
     // 스냅된 값을 칸에 되돌려 보여준다 — 27.2를 치면 27이 간다는 걸 보내기 전에 알려야 한다.
     el.value = value;
     el.disabled = true;
+    ctlBusy++;
     controlCall('command', { device_id: el.dataset.tempDev, command: 'set_temp', value: value })
-      .then(refreshDevices)
+      .then(function(){ ctlBusy--; return refreshDevices(); },
+            function(err){ ctlBusy--; ctlNotice(err.message, true); })
       .catch(function(err){ ctlNotice(err.message, true); })
       .then(function(){ el.disabled = false; });
   }
@@ -2665,8 +2732,10 @@
         reservationsCache = list;
         showApp();
         return refresh(); // 문자 이력 채우기 (tryUnlock과 같은 이유로 뒤에 붙인다)
-      }).catch(function(){
-        sessionStorage.removeItem(UNLOCK_KEY);
+      }).catch(function(err){
+        // **비밀번호가 틀렸을 때만 저장 세션을 버린다.** 예전엔 어떤 오류든 지웠는데,
+        // 그러면 현장 와이파이가 잠깐 끊긴 채 새로고침한 것만으로 로그아웃됐다.
+        if(isAuthError(err)) sessionStorage.removeItem(UNLOCK_KEY);
       });
     }
   })();

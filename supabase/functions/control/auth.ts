@@ -24,6 +24,7 @@
  */
 
 import { HandlerError } from "./handlers/shared.ts";
+import { constantTimeEqual } from "../_shared/secret.ts";
 
 export type Role = "admin" | "guest" | "cleaner";
 
@@ -74,21 +75,13 @@ const GUEST_COMMANDS = new Set(["power_on", "power_off", "set_temp", "set_mode",
 const CLEANER_ACTIONS = new Set(["cleaning_pending", "cleaning_complete"]);
 
 /**
- * 길이가 같은 두 문자열을 상수 시간에 비교한다.
+ * 상수 시간 비교는 `_shared/secret.ts`에 있다 — claim·apply도 같은 비밀번호를 검증하므로
+ * 구현이 세 군데로 갈라지면 한 곳만 고쳐지는 일이 생긴다.
  *
- * admin 비밀번호에는 안 쓴다 — 그 값은 `admin_*` SQL 함수에서도 평문 `<>`로 비교되므로
- * 여기 한 곳만 상수 시간으로 만들어봐야 실제로 막히는 게 없다. 반면 `CLEANING_TOKEN`은
- * 이 파일이 유일한 검증 지점이라 여기서 지키면 그게 전부다.
+ * **이제 admin 비밀번호에도 쓴다.** 예전엔 안 썼고 근거도 명확했다 — 같은 값이 `admin_*`
+ * SQL 함수에서 평문 `<>`로도 비교되니 여기 한 곳만 조여봐야 소용없다는 것이었다.
+ * 그 전제는 `admin_check()` 해시 검증(마이그레이션 20260813110000)이 들어오면서 사라졌다.
  */
-function constantTimeEqual(a: string, b: string): boolean {
-  const enc = new TextEncoder();
-  const x = enc.encode(a);
-  const y = enc.encode(b);
-  if (x.length !== y.length) return false;
-  let diff = 0;
-  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
-  return diff === 0;
-}
 
 /**
  * 자격증명 → 역할. admin과 맞으면 `admin`, 청소 토큰과 맞으면 `cleaner`,
@@ -111,7 +104,7 @@ export function resolveRole(supplied: string, token = ""): Role | null {
     console.error("ADMIN_PASSWORD 미설정 — 모든 요청을 거부합니다");
     throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
-  if (supplied === admin) return "admin";
+  if (constantTimeEqual(supplied, admin)) return "admin";
   if (supplied !== "") return null;
 
   if (token !== "") {

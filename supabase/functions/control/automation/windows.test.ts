@@ -10,6 +10,7 @@
 
 import { assertEquals } from "jsr:@std/assert@1";
 import {
+  checkinDueState,
   dueState,
   endTime,
   isOccupied,
@@ -150,4 +151,47 @@ Deno.test("자정 종료 예약 — 퇴실 시각이 시작보다 이르면 안 
   assertEquals(isOccupied([late], kst("2026-08-23T23:00:00")), true);
   assertEquals(isOccupied([overnight], kst("2026-08-24T01:00:00")), true);
   assertEquals(isOccupied([late], kst("2026-08-24T01:00:00")), false);
+});
+
+// ── 입실 준비의 만료 경계 (checkinDueState) ─────────────────────────────────
+//
+// 일반 dueState는 '실행 시각 + 10분'을 넘기면 만료다. 입실 준비는 그 규칙을 그대로 쓰면
+// 안 된다 — 실행 시각(입실 15분 전)과 **의미 있는 마감**(입실 시각)이 다르기 때문이다.
+// 스클 당일 즉시 예약이 Gmail 15분 트리거로 늦게 들어오면, 준비 시각은 이미 지났지만
+// 손님은 아직 안 왔다. 그때 준비를 건너뛰면 손님이 안 준비된 방에 들어오고, 채널에는
+// 장애처럼 읽히는 실패만 남는다.
+
+const CHECKIN: ReservationWindow = { date: "2026-08-12", start_time: "14:00:00", end_time: "18:00:00" };
+
+Deno.test("입실 준비 — 준비 시각(14:00-15분) 전이면 아직이다", () => {
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T13:44")), "wait");
+});
+
+Deno.test("입실 준비 — 준비 시각이 되면 실행한다", () => {
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T13:45")), "fire");
+});
+
+Deno.test("입실 준비 — 준비 시각을 10분 넘겨도 입실 전이면 여전히 실행한다", () => {
+  // 여기가 이 함수의 존재 이유다. 일반 dueState라면 13:56에 이미 expired가 된다.
+  assertEquals(dueState(prepTime(CHECKIN), kst("2026-08-12T13:56")), "expired");
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T13:56")), "fire");
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T13:59")), "fire");
+});
+
+Deno.test("입실 준비 — 입실 시각 직후 10분까지는 따라잡는다", () => {
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T14:00")), "fire");
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T14:10")), "fire");
+});
+
+Deno.test("입실 준비 — 입실 후 10분을 넘기면 만료다", () => {
+  // 손님이 이미 한참 이용 중이면 뒤늦은 준비가 손님이 맞춰둔 값과 싸운다.
+  assertEquals(checkinDueState(CHECKIN, kst("2026-08-12T14:11")), "expired");
+});
+
+Deno.test("입실 준비 — 자정 넘김 예약에서도 경계가 유지된다", () => {
+  const overnight: ReservationWindow = { date: "2026-08-12", start_time: "00:05:00", end_time: "02:00:00" };
+  assertEquals(checkinDueState(overnight, kst("2026-08-11T23:49")), "wait");
+  assertEquals(checkinDueState(overnight, kst("2026-08-11T23:50")), "fire");
+  assertEquals(checkinDueState(overnight, kst("2026-08-12T00:15")), "fire");
+  assertEquals(checkinDueState(overnight, kst("2026-08-12T00:16")), "expired");
 });

@@ -31,6 +31,9 @@ var scSync = (function () {
     if (!raw) return { valid: false, reason: '로그아웃 상태' };
 
     var token = JSON.parse(raw).accessToken;
+    // 로그아웃 시 앱이 localStorage에 {} 를 써놓는다(README 실측). token이 undefined인 채 .split을 불러
+    // TypeError로 터지면 아래 ensureSession의 안내(로그인 페이지로 이동)에 닿지 못한다.
+    if (!token) return { valid: false, reason: 'accessToken 없음' };
     var exp = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000;
     if (Date.now() >= exp) return { valid: false, reason: '토큰 만료', exp: exp };
 

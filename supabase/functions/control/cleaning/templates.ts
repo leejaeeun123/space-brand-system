@@ -54,8 +54,12 @@ function windowLine(w: CleaningWindow, now: Date): string {
     // 마지막 퇴실 이후. 자정을 넘겼으면 '02:00 이후'가 오늘 새벽으로 읽히므로 못을 박는다.
     return `${isNextDay(w.from, now) ? "내일 " : ""}${hhmm(w.from)} 이후`;
   }
-  // 진행 중인 창은 `remaining`이 시작을 '지금'으로 이미 당겨놨다 — 여기서 더 할 일이 없다.
-  return `${hhmm(w.from)}–${hhmm(w.to)} (${duration(w.minutes ?? 0)})`;
+  // 진행 중인 창은 `remaining`이 시작을 '지금'으로 이미 당겨놓았다. 다만 마지막 구간을 내일 첫
+  // 예약의 준비 시각으로 닫으면 `to`가 다음 날이라, 둘 다 자정 넘음을 표시해 '20:00–09:45'가
+  // 거꾸로 읽히는 것을 막는다(예약 사이 창은 오늘 안이라 isNextDay가 모두 false — 기존 표시 불변).
+  const fromLabel = `${isNextDay(w.from, now) ? "내일 " : ""}${hhmm(w.from)}`;
+  const toLabel = `${isNextDay(w.to, now) ? "내일 " : ""}${hhmm(w.to)}`;
+  return `${fromLabel}–${toLabel} (${duration(w.minutes ?? 0)})`;
 }
 
 /**

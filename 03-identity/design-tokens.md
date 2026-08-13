@@ -1,5 +1,6 @@
 # Phase 3 — 디자인 토큰 (v3, 3색 체계)
 
+> 2026-08-13 개정. **§2 타이포 토큰을 `typography.md` 정본(Paperlogy 400/600 단일)에 동기화** — 이전 Pretendard·League Spartan 서술은 폐기. 폰트 정본은 `typography.md`다.
 > 2026-07-12 개정. 팔레트를 **화이트·잉크·오렌지 3색**으로 압축 — 세컨더리(그린·코발트)·재질(브라스·월넛) 토큰 삭제, 크림 → **화이트**.
 > 2026-06-21 개정. 컬러 역할을 **메인(화이트·잉크)+엑센트(오렌지)**로 정리. 본문 폰트 **Inter→Pretendard 통일**, Fraunces Italic 액센트 **제거**(폰트 통일).
 > 단일 진실 공급원(SSOT). 컬러는 **디지털(RGB/HEX) + 물리(CMYK/Pantone·소재)** 이원 스키마.
@@ -17,17 +18,18 @@
 
 ## 2. 타이포 토큰
 
-> 본문·헤딩·라벨은 **Pretendard로 국·영문 통일**(한 가족). 디스플레이만 League Spartan(국문 Pretendard Black/G마켓산스). **로고 확정 시 디스플레이 폰트가 로고 레터링에 맞춰 변경될 수 있음(현재는 방향값).**
+> 폰트 = **Paperlogy 단일**(국·영문 한 가족). 전 시스템 **400(본문)·600(로고·디스플레이·헤드라인·라벨) 2-웨이트.**
+> Pretendard·League Spartan 서술은 폐기(2026-07-05/06). 정본·자간·접근성 상세는 `typography.md`.
 
-| 토큰 | 폰트 (영문 / 국문) | 크기/행간 |
-|---|---|---|
-| `font/display/2xl` | League Spartan Black / G마켓산스·Pretendard Black | 56/1.0 |
-| `font/display/xl` | League Spartan Black / Pretendard Black | 40/1.05 |
-| `font/display/lg` | League Spartan Bold / Pretendard Bold | 28/1.1 |
-| `font/heading/md` | Pretendard SemiBold | 22/1.3 |
-| `font/body/lg` | Pretendard Regular | 18/1.6 |
-| `font/body/md` | Pretendard Regular | 16/1.6 |
-| `font/label/md` | Pretendard Medium · UPPERCASE | 14/1.4 |
+| 토큰 | 폰트 · 웨이트 | 크기/행간 | 용도 |
+|---|---|---|---|
+| `font/display/2xl` | Paperlogy 600 · 영문 −2% | 56/1.0 | 포스터·키비주얼 |
+| `font/display/xl` | Paperlogy 600 | 40/1.05 | 간판·히어로 |
+| `font/display/lg` | Paperlogy 600 | 28/1.1 | 섹션 타이틀 |
+| `font/heading/md` | Paperlogy 600 | 22/1.3 | 소제목 |
+| `font/body/lg` | Paperlogy 400 | 18/1.6 | 리드 |
+| `font/body/md` | Paperlogy 400 | 16/1.6 | 본문 |
+| `font/label/md` | Paperlogy 600 · UPPERCASE | 14/1.4 | 라벨·타입 태그 |
 
 ## 3. 스페이싱 토큰 (8px 베이스)
 

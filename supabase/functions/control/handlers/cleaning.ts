@@ -85,7 +85,14 @@ export async function pending(sb: SupabaseClient, now = new Date()): Promise<Com
  * 중간에 실패하면 **거기까지 표시된 건수를 알림에 싣고** 오류를 던진다. 롤백하지 않는 이유는
  * 청소가 실제로 끝난 것은 사실이고, 되돌리면 담당자가 한 일이 통째로 사라지기 때문이다.
  */
-export async function complete(sb: SupabaseClient, now = new Date()): Promise<CompletionSummary> {
+export async function complete(
+  sb: SupabaseClient,
+  // 누가 표시했나. 인쇄된 QR은 라운지를 다녀간 누구나 찍을 수 있어, 청소하지 않은 방을
+  // 완료로 위조할 수 있다. 막을 방법은 없지만(토큰 하나가 전부다) **누가 눌렀는지는 남긴다** —
+  // 안 남기면 잘못된 표시를 사후에 가려낼 단서가 아예 없다.
+  source: "admin" | "qr" = "qr",
+  now = new Date(),
+): Promise<CompletionSummary> {
   const targets = endedBy(await fetchOutstanding(sb, now), now);
   if (targets.length === 0) {
     await notifyCompleted(0, null, null, [], now);
@@ -97,7 +104,11 @@ export async function complete(sb: SupabaseClient, now = new Date()): Promise<Co
     for (const ids of chunk(targets.map((r) => r.id), CHUNK)) {
       const { data, error } = await sb
         .from("reservations")
-        .update({ cleaning_done: true })
+        .update({
+          cleaning_done: true,
+          cleaning_done_at: now.toISOString(),
+          cleaning_done_source: source,
+        })
         .in("id", ids)
         .eq("cleaning_done", false)
         .select(FIELDS);

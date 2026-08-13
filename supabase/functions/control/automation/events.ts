@@ -295,6 +295,41 @@ export async function fetchLatestByTarget(
   return out;
 }
 
+/**
+ * 대상별로 `since` 이후 이 kind의 이벤트 **수**. 연결 끊김 플래핑 상한 판정용.
+ *
+ * `fetchLatestByTarget`이 '방향'(새 끊김인가)을 주는 것과 짝이다 — 이건 '얼마나 잦은가'를 준다.
+ * 끊김↔복구가 짧은 창 안에서 반복될 때 사이클마다 알림 2건이 무한정 나가는 것을 막으려면,
+ * 그 대상이 최근 창에서 이미 몇 번 끊겼는지를 세야 한다. 진짜 장기 장애는 전환이 드물어
+ * (첫 끊김 + 60분마다 반복) 이 수가 작게 유지되므로 상한에 닿지 않는다.
+ *
+ * 조회 실패는 빈 Map으로 — `fetchLatestByTarget`과 같은 이유로 **알리는 쪽**으로 기운다
+ * (수가 0이면 상한 억제가 안 걸려 새 끊김이 그대로 알려진다).
+ */
+export async function countRecentByTarget(
+  sb: SupabaseClient,
+  kind: EventKind,
+  column: "device_id" | "camera_id",
+  since: Date,
+): Promise<Map<string, number>> {
+  const { data, error } = await sb
+    .from("device_events")
+    .select(column)
+    .eq("kind", kind)
+    .gte("at", since.toISOString())
+    .not(column, "is", null);
+  if (error) {
+    console.warn(`끊김 빈도 조회 실패 — 이번엔 상한을 걸지 않는다(${column})`, error.message);
+    return new Map();
+  }
+  const out = new Map<string, number>();
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    const id = r[column] as string;
+    out.set(id, (out.get(id) ?? 0) + 1);
+  }
+  return out;
+}
+
 /** 같은 `kind`·`action`의 가장 최근 행 하나. `recordSystemError`의 재알림 간격 판단 근거. */
 export async function fetchLatestByAction(
   sb: SupabaseClient,

@@ -30,22 +30,25 @@ import {
 } from "./handlers/cameras.ts";
 import { markManualSent, preview, sendOne, setAuto } from "./handlers/sms.ts";
 import { complete, pending } from "./handlers/cleaning.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
+import { corsHeaders } from "../_shared/cors.ts";
+import {
+  clientIp,
+  isThrottled,
+  recordFailure,
+  THROTTLED_MESSAGE,
+} from "../_shared/throttle.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  // 응답 헤더는 요청마다 달라진다(오리진 화이트리스트). 그래서 핸들러 안에서 묶는다 —
+  // 모듈 수준 상수로 두면 동시 요청이 서로의 오리진을 물려받는다.
+  const cors = corsHeaders(req);
+  const json = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST만 허용합니다" }, 405);
 
   let body: Record<string, unknown>;
@@ -55,19 +58,35 @@ Deno.serve(async (req) => {
     return json({ error: "JSON 본문이 필요합니다" }, 400);
   }
 
+  const sb = dbClient();
+
   // 비밀번호가 설정 안 된 상태로 열어두면 무인증 제어가 된다. 열지 않는다(auth.ts).
   // `token`은 현장 QR 전용 자격증명이다 — 비밀번호와 겸용하지 않는다(auth.ts 참고).
+  //
+  // **자격증명을 뭐라도 보낸 요청만 시도 제한을 탄다.** 아무것도 안 보낸 요청은 손님이거나
+  // pg_cron의 `automate`이고, 그걸 세면 1분마다 오는 자동화가 스스로 문을 잠근다
+  // (#44·#70에서 자동화 침묵이 실제로 두 번 일어났다 — 그 실패 모드를 다시 만들지 않는다).
+  const supplied = String(body.password ?? "");
+  const suppliedToken = String(body.token ?? "");
+  const guessing = supplied !== "" || suppliedToken !== "";
+  const ip = clientIp(req);
+
   let role: Role;
   try {
-    const resolved = resolveRole(String(body.password ?? ""), String(body.token ?? ""));
-    if (!resolved) return json({ error: "invalid password" }, 401);
+    if (guessing && await isThrottled(sb, ip)) {
+      return json({ error: THROTTLED_MESSAGE }, 429);
+    }
+    const resolved = resolveRole(supplied, suppliedToken);
+    if (!resolved) {
+      await recordFailure(sb, ip, "control");
+      return json({ error: "invalid password" }, 401);
+    }
     role = resolved;
   } catch (e) {
     if (e instanceof HandlerError) return json({ error: e.message }, e.status);
     throw e;
   }
 
-  const sb = dbClient();
   const action = String(body.action ?? "");
   try {
     // 손님이 할 수 있는 일은 여기서 잘린다. 클라이언트에서 버튼을 감추는 것으로는 부족하다.
@@ -127,7 +146,9 @@ Deno.serve(async (req) => {
       case "cleaning_pending":
         return json(await pending(sb));
       case "cleaning_complete":
-        return json(await complete(sb));
+        // 역할을 그대로 출처로 넘긴다 — 현장 QR로 찍은 것과 어드민이 누른 것은 나중에
+        // 잘못된 완료 표시를 가려낼 때 전혀 다른 정보다(handlers/cleaning.ts).
+        return json(await complete(sb, role === "admin" ? "admin" : "qr"));
 
       // ── CCTV. 영상은 여기를 지나가지 않는다 — 목록·자격증명만 다룬다. ──
       case "cameras":

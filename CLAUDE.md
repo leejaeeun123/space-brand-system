@@ -34,7 +34,7 @@ origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는�
 | 컬러·토큰 | `03-identity/design-tokens.md` | 화이트·잉크·오렌지 3색. **raw hex 금지** — 토큰으로 지시한다 |
 | 공간 사실 | `01-strategy/discovery.md` | 전용 **52.49㎡**가 정본. 스페이스클라우드 리스팅의 66.116㎡(20평)는 마케팅 표기다 |
 | 용도 프레이밍 | 실판매 페이지 | 회의실 / 촬영 스튜디오 / 파티룸(모임). `WORK·CLASS·GATHER` 추상 타입명·픽토는 확정 자산이라 유지 |
-| CCTV 보관기간 | `mediamtx.yml`의 `recordDeleteAfter` | **실제로 파기하는 유일한 주체.** 나머지 3곳은 그걸 사람에게 설명하는 문장이다 |
+| CCTV 보관기간 | `mediamtx.yml`의 `record`/`recordDeleteAfter` | **지금 서버는 녹화 안 함(`record: no`, 2026-08-10)** — 파기할 게 없어 recordDeleteAfter는 휴면이다. 영상은 카메라 SD카드에만 남고 **SD 보관은 감사 범위 밖**(오너 결정 2026-08-13, 경계=우리 서버). 서버 녹화를 다시 켜면 recordDeleteAfter가 파기 주체가 되고 그때 4곳을 맞춘다 |
 | 기기 capabilities | ThinQ 기기 프로파일 | 클라이언트가 준 값·문서 예시 아님. 실기기와 세 군데가 달랐던 실측이 있다 |
 
 `07-brand-book/`(brand·bx·product)은 위 정본에서 **파생된** 문서다. 원본을 고치면 여기도 같이 고친다.
@@ -47,10 +47,13 @@ origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는�
 - **시크릿 커밋 금지.** ThinQ PAT · Supabase service_role 키 · 스트림 계정/비번 ·
   Mattermost 웹훅 URL은 Supabase 시크릿 / Apps Script 스크립트 속성 / `.env`에만 둔다.
 - **`public/` 안을 직접 고치지 않는다.** `06-applications/`를 가리키는 심링크다.
-- **CCTV 녹음 금지.** 「개인정보 보호법」 §25⑤ 위반이고 MediaMTX 설정으로는 못 막는다 —
-  카메라에서 마이크를 끄고 VLC로 눈으로 확인하는 것만이 유일한 방어다.
-- **보관기간을 한 곳만 고치지 않는다.** 4곳(`guest-guide.html` · 현장 안내판 ·
-  `recordDeleteAfter` · 시크릿 `CAMERA_RETENTION_DAYS`)이 같은 숫자여야 한다.
+- **서버에 오디오를 들이지 않는다.** 카메라를 `mediamtx.yml`에 직접 소스로 걸지 않는다 — 오디오를
+  떼는 ffmpeg `-an` 재발행(`camera-republish.sh`, 전 path `source: publisher`)이 유일 경로다. 직결하면
+  오디오가 서버로 흐르고, 녹화를 켠 상태면 「개인정보 보호법」 §25⑤(녹음)이 된다. MediaMTX엔 오디오를
+  버리는 설정이 없어 재발행이 유일한 방어다. 카메라 마이크 끄기·오디오 트랙 감지 경고도 방어선으로 둔다.
+- **(서버 녹화를 켤 때) 보관기간을 한 곳만 고치지 않는다.** 4곳(`guest-guide.html` · 현장 안내판 ·
+  `recordDeleteAfter` · 시크릿 `CAMERA_RETENTION_DAYS`)이 같은 숫자여야 한다. 지금은 `record: no`라 이
+  동기화가 휴면이지만, 녹화를 다시 켜는 순간 조건이 되살아난다.
 - **주민번호를 평문으로 두지 않는다.** 「개인정보 보호법」§24-2③의 강행 규정이다 — 동의를 받았다고
   갈음하지 못한다(수집 근거도 동의가 아니라 소득세법이다). 암호화는 DB가 아니라
   `functions/claim/crypto.ts`가 하고, 키는 Edge Function 시크릿에만 둔다 — **DB가 통째로 새도

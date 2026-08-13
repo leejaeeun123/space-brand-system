@@ -16,7 +16,7 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { Camera, CameraState } from "../cameras.ts";
 import { CAMERA_STALE_AFTER_SECONDS, isStale as cameraIsStale, neverSeen as cameraNeverSeen } from "../cameras.ts";
 import { STALE_AFTER_SECONDS } from "../types.ts";
-import { type EventInput, type EventKind, fetchLatestByTarget, type LatestEvent, recordMany } from "./events.ts";
+import { countRecentByTarget, type EventInput, type EventKind, fetchLatestByTarget, type LatestEvent, recordMany } from "./events.ts";
 
 /** 관측 대상 하나 — devices.ts가 아니라 여기서 구조적 타입으로 받는다(순환 import 회피). */
 export interface WatchedDevice {
@@ -38,6 +38,19 @@ const REPEAT_MINUTES = 60;
 const LOOKBACK_HOURS = 24;
 
 /**
+ * 플래핑 상한 — 한 대상이 이 창 안에 이미 이만큼 끊겼으면 새 끊김을 더 알리지 않는다.
+ *
+ * 끊김↔복구 반복(플래핑)은 사이클마다 알림 2건(끊김+복구)을 내 무한정 쌓인다. ThinQ는 폴링
+ * 1회 실패로도 down이 되고(list.ts), 조명은 재연결 지연 이력이 있는 환경이라(공유기 신규 TCP
+ * 블랙홀, 2026-08-09 판별) 이 반복이 실제로 일어난다. 진짜 장기 장애는 전환이 드물어(첫 끊김 +
+ * REPEAT마다 1건) 이 수에 닿지 않으므로, 상한은 플래핑만 자른다 — **첫 끊김은 언제나 즉시**
+ * 알린다. 60분 창은 REPEAT_MINUTES와 같은 값이라, 장기 장애의 60분 재알림은 창 안에서 항상
+ * 1건 이하로 유지돼 상한을 건드리지 않는다.
+ */
+const FLAP_WINDOW_MINUTES = 60;
+const FLAP_CAP = 4;
+
+/**
  * 지금 상태(down)와 장부의 마지막 판정(latest)을 대조해 이번 틱에 무엇을 적을지 정한다.
  *
  * 순수 함수로 뺀 이유: 이 분기가 플래핑을 올바르게 다루는지가 이 기능 전체의 정확성이고,
@@ -46,13 +59,20 @@ const LOOKBACK_HOURS = 24;
 export function decideTransition(
   down: boolean,
   latest: LatestEvent | undefined,
+  recentOfflineCount: number,
   offlineKind: EventKind,
   recoveredKind: EventKind,
   now: Date,
 ): "offline" | "recovered" | "none" {
   if (down) {
     // 처음 끊긴 것이거나(장부에 없음), 직전이 복구였다 = 이번이 새 끊김이다 → 즉시.
-    if (!latest || latest.kind === recoveredKind) return "offline";
+    if (!latest || latest.kind === recoveredKind) {
+      // 단, 지난 FLAP_WINDOW 동안 이 대상이 이미 상한만큼 끊겼으면 플래핑이므로 이번 사이클은
+      // 조용히 넘긴다(none). 그러면 장부의 마지막 판정이 '복구'로 남아 REPEAT 경로도 안 돌아
+      // 조용해진다. 트레이드오프: 플래핑이 상한에 걸린 뒤 진짜 장기 장애로 굳으면, 옛 끊김이
+      // 창에서 빠질 때까지(최대 FLAP_WINDOW) 재알림이 늦는다 — 첫 끊김 즉시성을 지키는 대가다.
+      return recentOfflineCount >= FLAP_CAP ? "none" : "offline";
+    }
     // 끊김이 이어지는 중 — backoff 창이 지났을 때만 다시 알린다.
     const ageMinutes = (now.getTime() - Date.parse(latest.at)) / 60_000;
     return ageMinutes >= REPEAT_MINUTES ? "offline" : "none";
@@ -93,9 +113,12 @@ export async function checkConnectivity(
   now: Date,
 ): Promise<ConnectivityResult> {
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 3600_000);
-  const [deviceLatest, cameraLatest] = await Promise.all([
+  const flapSince = new Date(now.getTime() - FLAP_WINDOW_MINUTES * 60_000);
+  const [deviceLatest, cameraLatest, deviceFlaps, cameraFlaps] = await Promise.all([
     fetchLatestByTarget(sb, ["device_offline", "device_recovered"], "device_id", since),
     fetchLatestByTarget(sb, ["camera_offline", "camera_recovered"], "camera_id", since),
+    countRecentByTarget(sb, "device_offline", "device_id", flapSince),
+    countRecentByTarget(sb, "camera_offline", "camera_id", flapSince),
   ]);
 
   const events: EventInput[] = [];
@@ -103,7 +126,7 @@ export async function checkConnectivity(
   for (const d of devices) {
     if (d.state.never_seen) continue;
     const down = !d.state.online || d.state.is_stale;
-    const decision = decideTransition(down, deviceLatest.get(d.id), "device_offline", "device_recovered", now);
+    const decision = decideTransition(down, deviceLatest.get(d.id), deviceFlaps.get(d.id) ?? 0, "device_offline", "device_recovered", now);
     if (decision === "offline") {
       events.push({
         device_id: d.id,
@@ -128,7 +151,7 @@ export async function checkConnectivity(
   for (const [cam, state] of cameraPairs) {
     if (cameraNeverSeen(state)) continue;
     const down = !state.online || cameraIsStale(state);
-    const decision = decideTransition(down, cameraLatest.get(cam.id), "camera_offline", "camera_recovered", now);
+    const decision = decideTransition(down, cameraLatest.get(cam.id), cameraFlaps.get(cam.id) ?? 0, "camera_offline", "camera_recovered", now);
     if (decision === "offline") {
       events.push({
         device_id: null,

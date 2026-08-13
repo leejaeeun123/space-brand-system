@@ -15,7 +15,7 @@ import { buildSnapshot, compare, fingerprint, isEmpty } from "./diff.ts";
 import { digestSent, dispatch, latestSnapshot, markQuiet, type Outgoing } from "./dispatch.ts";
 import { digestState, updateAllowed } from "./schedule.ts";
 import { digestMessage, updateMessage } from "./templates.ts";
-import { type CleaningReservation, planCleaning, remaining, todayReservations } from "./windows.ts";
+import { type CleaningReservation, nextDayFirstPrep, planCleaning, remaining, todayReservations } from "./windows.ts";
 
 export interface CleaningSweepResult {
   digest: number;
@@ -64,7 +64,9 @@ export async function sweepCleaning(
   const snapshot = buildSnapshot(todays, now);
   // 창은 스케줄 전체로 계산하고, 표시 직전에 '지금'으로 자른다. 순서를 바꾸면 오전에
   // 지나간 긴 창이 '10분짜리'로 보여 연달림 경고로 둔갑한다(`windows.ts` 주석).
-  const plan = remaining(planCleaning(todays, now), now);
+  // 마지막 구간을 닫을 경계는 **오늘 몫으로 줄이기 전** 전체 목록에서 뽑는다 — 내일 예약은
+  // `todayReservations`가 걸러내므로 그 전의 `reservations`를 봐야 보인다.
+  const plan = remaining(planCleaning(todays, now, nextDayFirstPrep(reservations, now)), now);
 
   const state = digestState(now);
   if (state !== "wait") {

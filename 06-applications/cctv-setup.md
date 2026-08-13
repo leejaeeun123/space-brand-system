@@ -49,19 +49,26 @@ Tapo ──RTSP(LAN)──> [MediaMTX] ──HLS/재생──> cloudflared ─�
 - [ ] **보관기간을 정한다.** 법정 일수는 없다 — 목적 달성 최소기간이고, 산정이 곤란하면
       30일 이내 권고다. 짧은 쪽이 법적으로 더 안전하다. 기본값은 7일이다(C-5 용량 계산 참조).
 
-      정한 값은 **네 군데가 같아야 한다.** 어긋나면 손님에게 약속한 기간과 실제 보관 기간이
-      달라지고, 그건 어느 쪽으로 어긋나든 문제다(짧으면 없는 영상을 약속한 것이고, 길면
-      지운다고 해놓고 갖고 있는 것이다):
+      > ⚠️ **지금 서버(합정 맥)는 영상을 저장하지 않는다**(`record: no`, 2026-08-10 현장 지시).
+      > 그래서 아래 네 곳 동기화는 **서버 녹화를 다시 켤 때만** 유효한 조건이다 — 지금은
+      > 서버에 파기할 녹화가 없고, 영상은 카메라 SD카드에만 남는다. **카메라 SD카드의 실보관
+      > 일수는 감사 범위 밖이다**(오너 결정 2026-08-13 — 감사 경계는 '우리 서버'다. "서버 녹화를
+      > 끈 뒤" 절 참조).
+
+      서버 녹화를 켠 상태라면 정한 값은 **네 군데가 같아야 한다.** 어긋나면 손님에게 약속한
+      기간과 실제가 달라지고, 그건 어느 쪽으로 어긋나든 문제다(짧으면 없는 영상을 약속한
+      것이고, 길면 지운다고 해놓고 갖고 있는 것이다):
 
       | # | 어디 | 무엇 |
       |---|---|---|
       | 1 | `06-applications/guest-guide.html` | `#cctv` 섹션의 `보관 기간` |
       | 2 | 현장 안내판 | 인쇄물 |
-      | 3 | `control-agent/mediamtx/mediamtx.yml` | `recordDeleteAfter` (실제로 지우는 주체) |
+      | 3 | `control-agent/mediamtx/mediamtx.yml` | `recordDeleteAfter` — **`record: no`인 지금은 아무것도 집행하지 않는다.** 서버 녹화를 켜야 파기 주체가 된다 |
       | 4 | Supabase 시크릿 | `CAMERA_RETENTION_DAYS` (어드민 표시용) |
 
-      실제로 파기를 집행하는 건 **3번 하나뿐**이다. 나머지 셋은 그걸 사람에게 설명하는
-      문장이라, 3번을 바꾸고 나머지를 안 고치면 조용히 거짓말이 된다.
+      **서버 녹화가 켜져 있을 때만** 3번이 파기를 집행한다. 나머지 셋은 그걸 사람에게 설명하는
+      문장이라, 3번을 바꾸고 나머지를 안 고치면 조용히 거짓말이 된다. 지금은 3번이 휴면이라
+      이 대조가 쉬고 있을 뿐, 녹화를 켜면 곧바로 되살아난다.
 
 > 20인 파티·촬영 공간이라 "실시간으로 지켜본다"는 인상은 예약 전환에 마이너스다.
 > 문구도 실제 열람도 범죄예방·시설안전에 한정한다.
@@ -158,7 +165,7 @@ brew install mediamtx
 ```bash
 cd 06-applications/control-agent
 cp mediamtx/mediamtx.yml "$(brew --prefix)/etc/mediamtx/mediamtx.yml"   # ← 디렉터리 안이다. brew 가 만든다
-# 편집: <스트림계정> <스트림비번> <녹화경로> <카메라계정> <카메라비번> <카메라IP>
+# 편집: <스트림계정> <스트림비번> 만 채운다. (record: no 라 <녹화경로>는 지금 안 쓰인다 — 서버 녹화를 켤 거면 함께 채운다. 카메라 계정·IP는 이 파일이 아니라 재발행 스크립트 폴더의 .env 에 넣는다)
 ```
 
 `<스트림계정>`/`<스트림비번>`은 여기서 새로 정하는 값이다(카메라 계정과 다르다).
@@ -178,15 +185,18 @@ cp mediamtx/mediamtx.yml "$(brew --prefix)/etc/mediamtx/mediamtx.yml"   # ← �
 brew services start mediamtx
 ```
 
-- [ ] 로그에 카메라 path가 `ready`로 뜬다
-- [ ] 맥에서 아래가 `200`으로 답한다 ← **여기까지가 로컬 확인이다**
+- [ ] MediaMTX 가 뜬다. **단 이 단계에서 path 는 아직 `ready`가 아니다** — paths 가 전부
+      `source: publisher`라, 오디오를 떼는 ffmpeg 재발행이 붙어야 비로소 스트림이 생긴다.
+      재발행 설치는 아래 "카메라 오디오를 떼는 재발행"의 `install-camera-relay.sh` 한 줄이다.
+- [ ] 재발행까지 띄운 뒤, 맥에서 아래가 `200`으로 답한다 ← **여기까지가 로컬 확인이다**
+      (path 이름은 `mediamtx.yml`·`camera-relay-all.sh`와 같은 `office`·`lounge_left`·`lounge_right`):
 
       ```bash
       curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-        http://127.0.0.1:8888/entrance/index.m3u8
+        http://127.0.0.1:8888/office/index.m3u8
       curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-        http://127.0.0.1:8888/lounge/index.m3u8
-      curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8888/entrance/index.m3u8   # 401 이어야 정상
+        http://127.0.0.1:8888/lounge_left/index.m3u8
+      curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8888/office/index.m3u8   # 401 이어야 정상
       ```
 
 > **자격증명은 `Authorization` 헤더로만 전달된다.** `?user=&pass=` 같은 쿼리스트링은 MediaMTX
@@ -205,13 +215,13 @@ brew services start mediamtx
 임시로 로컬 RTSP 수신만 연다. **`127.0.0.1`에 묶어서 LAN에도 안 열린다.**
 
 ```yaml
-# mediamtx.yml — 검증 동안만. 끝나면 되돌린다.
+# mediamtx.yml — rtsp: yes / rtspAddress 127.0.0.1:8554 는 이제 **상시 설정**이다(실구성). 이미 그렇게 돼 있으면 그대로 둔다.
 rtsp: yes
 rtspAddress: 127.0.0.1:8554
 ```
 
 ```yaml
-# paths 에 임시 경로 추가 (entrance 는 카메라가 없으니 아직 안 뜬다)
+# paths 에 임시 경로 추가 (office 등 실제 카메라 path 는 재발행이 없으면 아직 안 뜬다)
   testpattern:
     source: publisher
 ```
@@ -229,7 +239,7 @@ ffmpeg -re -f lavfi -i "testsrc=size=1280x720:rate=15" \
 어드민 → CCTV → `+ 카메라 추가` → 이름 `테스트`, 스트림 이름 `testpattern`.
 
 - [ ] **컬러바가 admin 화면에 뜬다** ← 여기까지 오면 admin→터널→MediaMTX→hls.js 인증이 전부 맞물린 것이다
-- [ ] 카드에 `녹화 중 · 연결됨` 이 뜬다 (녹화도 같이 검증된다)
+- [ ] 카드에 `연결됨` 이 뜬다 (서버 녹화는 껐으므로 `녹화 중` 표시는 없다 — 정상)
 
 **오디오 경고도 같이 검증한다.** ffmpeg를 끊고 오디오를 섞어 다시 밀어넣는다:
 
@@ -246,9 +256,9 @@ ffmpeg -re -f lavfi -i "testsrc=size=1280x720:rate=15" -f lavfi -i "sine=frequen
 
 - [ ] ffmpeg 종료
 - [ ] 어드민에서 `테스트` 카메라 **등록 해제**
-- [ ] `mediamtx.yml` 에서 `rtsp: no` 로 되돌리고 `testpattern` 경로 삭제
+- [ ] `mediamtx.yml` 에서 `testpattern` 경로만 삭제한다 (**`rtsp`는 상시 설정이라 끄지 않는다**)
 - [ ] `brew services restart mediamtx`
-- [ ] 녹화 폴더의 `testpattern/` 삭제 (보관기간까지 디스크를 차지한다)
+- [ ] (서버 녹화를 켜서 테스트했다면) 녹화 폴더의 `testpattern/` 삭제. `record: no` 이면 폴더 자체가 없다
 
 ## C-5. 용량 계산
 
@@ -322,24 +332,50 @@ ingress:
 ```bash
 cloudflared tunnel route dns typelounge-cam cam.nmwc.ai.kr
 cloudflared tunnel route dns typelounge-cam camrec.nmwc.ai.kr
-sudo cloudflared service install                 # 재부팅해도 살아나게
+```
+
+> **시스템 데몬(`sudo cloudflared service install`)이 아니라 사용자 LaunchAgent로 띄운다.**
+> 2026-08-10 현장 복구가 이 방식이었고, 아래 복구 노트의 재기동 명령
+> (`launchctl bootout`/`bootstrap gui/$(id -u)/kr.nmwc.typelounge.cloudflared-cam`)이 이 Label을
+> 대상으로 한다. 시스템 데몬으로 깔면 그 명령이 대상을 못 찾는다. `sudo`도 필요 없다.
+
+```bash
+mkdir -p ~/Library/LaunchAgents ~/Library/Logs/typelounge
+cat > ~/Library/LaunchAgents/kr.nmwc.typelounge.cloudflared-cam.plist <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>kr.nmwc.typelounge.cloudflared-cam</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$(which cloudflared)</string>
+    <string>tunnel</string>
+    <string>run</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$HOME/Library/Logs/typelounge/cloudflared-cam.log</string>
+  <key>StandardErrorPath</key><string>$HOME/Library/Logs/typelounge/cloudflared-cam.err.log</string>
+</dict></plist>
+PLIST
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/kr.nmwc.typelounge.cloudflared-cam.plist
 ```
 
 **외부 망(LTE 테더링 등)에서** 확인한다 — 집·현장 Wi-Fi에서는 로컬로 붙어 터널을 안 탄다.
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-  https://cam.nmwc.ai.kr/entrance/index.m3u8            # 200
+  https://cam.nmwc.ai.kr/office/index.m3u8              # 200
 curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-  https://cam.nmwc.ai.kr/lounge/index.m3u8              # 200
-curl -s -o /dev/null -w '%{http_code}\n' https://cam.nmwc.ai.kr/entrance/index.m3u8   # 401
+  https://cam.nmwc.ai.kr/lounge_left/index.m3u8         # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://cam.nmwc.ai.kr/office/index.m3u8   # 401
 curl -s -o /dev/null -w '%{http_code}\n' -u '<스트림계정>:<스트림비번>' \
-  'https://camrec.nmwc.ai.kr/list?path=entrance'        # 200
+  'https://camrec.nmwc.ai.kr/list?path=office'          # 200 — 단 record/playback 을 켠 경우에만(지금은 껐다)
 ```
 
 - [ ] 인증을 붙이면 `200`
 - [ ] **자격증명 없이는 `401`** ← 이게 안 막히면 공개된 것이다. 여기서 멈춘다.
-- [ ] `camrec` 쪽도 같은 결과가 나온다
+- [ ] `camrec`(되감기)은 **서버 녹화·playback 을 켠 경우에만** 통과한다. 지금은 꺼서 이 줄은 건너뛴다
 
 ---
 
@@ -386,12 +422,12 @@ tail -f agent.log
 
 `admin.html` → **CCTV** → `+ 카메라 추가` → 이름 + **스트림 이름**.
 
-스트림 이름은 `mediamtx.yml`의 `paths` 키와 **글자까지 같아야 한다** — `entrance`(출입구),
-`lounge`(라운지) 두 개를 각각 등록한다.
+스트림 이름은 `mediamtx.yml`의 `paths` 키와 **글자까지 같아야 한다** — `office`(출입구),
+`lounge_left`(라운지 좌), `lounge_right`(라운지 우) 세 개를 각각 등록한다.
 Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다르면 카드는 뜨는데 영상만 안 나온다.
 
-- [ ] 카드가 **2개** 뜨고 **둘 다** 영상이 재생된다
-- [ ] 상태에 `녹화 중 · 연결됨 · N초 전 · 남은 용량` 이 보인다
+- [ ] 카드가 **3개** 뜨고 **셋 다** 영상이 재생된다
+- [ ] 상태에 `연결됨 · N초 전` 이 보인다 (서버 녹화를 껐으므로 `녹화 중`·`남은 용량`은 없다 — 정상)
 
 ---
 
@@ -527,18 +563,15 @@ MediaMTX를 재시작하면 재발행이 전부 끊긴다(Broken pipe). 그건 �
 > 그래서 **재부팅은 사람이 있을 때만 한다.** 정전으로 꺼졌다면 누가 가서 로그인하기 전까지
 > 영상이 없다는 뜻이고, 그건 이 구성으로는 못 없앤다.
 
-> ⚠️ **맥이 잠들면 전부 멈춘다 — 지금 그 설정이 안 돼 있다.**
+> ### ⚠️ 맥 sleep 영구 해제 — **현장 체크리스트 (아직 적용 안 됨)**
 >
-> 2026-08-10 확인: `pmset -g custom`의 `sleep`이 **1분**이다. 지금은 `caffeinate -s`가
-> 떠 있어 안 자지만, **그게 죽으면 1분 만에 잠든다.** 잠들면 조명(에이전트)·영상(MediaMTX)·
-> 재발행이 한꺼번에 멈춘다.
+> 2026-08-10 확인: `pmset -g custom`의 `sleep`이 **1분**이다. 지금은 `caffeinate -s`가 떠 있어
+> 안 자지만, **그게 죽으면 1분 만에 잠든다.** 잠들면 조명(에이전트)·영상(MediaMTX)·재발행이
+> 한꺼번에 멈춘다. `onsite-handoff.md` 4-1이 요구하는 영구 설정을 현장 맥에서 넣는다:
 >
-> `onsite-handoff.md` 4-1이 요구하는 영구 설정을 넣어야 한다:
->
-> ```bash
-> sudo pmset -a sleep 0 disablesleep 1
-> pmset -g custom | grep -E 'sleep|disablesleep'   # sleep 0 / disablesleep 1 확인
-> ```
+> - [ ] 적용: `sudo pmset -a sleep 0 disablesleep 1`
+> - [ ] 확인: `pmset -g custom | grep -E 'sleep|disablesleep'` → `sleep 0` · `disablesleep 1`
+> - [ ] 적용했으면 **이 블록을 "적용 완료(날짜)"로 갱신**한다 — 다음 사람이 또 의심하지 않게
 
 #### 왜 이렇게까지 하는가 — launchd에 그냥 못 올린다 (2026-08-10)
 
@@ -673,8 +706,9 @@ Cloudflare **Free 플랜**은 한국 ISP 피어링 비용 때문에 국내 트�
   > 약속한다. 그 문장을 집행하던 게 방금 없어진 `recordDeleteAfter`였다. SD카드는 대개
   > 용량이 차면 오래된 것부터 덮어쓰는 순환 녹화라 **7일이 보장되는 값이 아니다** —
   > 카드 용량과 화질에 따라 더 짧을 수도 길 수도 있다.
-  > **아직 실제 일수를 확인하지 않았다.** 분쟁이 생겨 7일 이내 영상을 요구받았는데 이미
-  > 덮어써졌다면 약속을 못 지킨 것이 된다. Tapo 앱에서 실측하고 문구를 맞추는 게 남았다.
+  > **카메라 SD카드의 실보관 일수는 감사 범위 밖이다**(오너 결정 2026-08-13 — 감사 경계는
+  > '우리 서버'이고, 서버는 아무것도 저장하지 않으므로 파기할 것도 없다). 다만 손님에게 한
+  > 7일 약속과 SD 실보관이 어긋날 수 있다는 사실은 남겨둔다 — 필요하면 Tapo 앱에서 실측해 문구를 맞춘다.
 - **어드민에서 되감기 UI를 걷어냈다**(2026-08-10). 서버에 녹화가 없으니 보여줄 게 없다.
   카드의 `녹화 중/안 됨`과 `남은 용량`도 뺐다 — 고정값이라 장애 신호로 못 쓰고, 오히려
   진짜 경고(오디오 감지·연결 끊김)를 가린다.

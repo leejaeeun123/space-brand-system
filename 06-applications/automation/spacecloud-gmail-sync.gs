@@ -45,6 +45,15 @@ var MAX_ATTEMPTS = 3;
  */
 var MAX_ENTRIES = 300;
 
+/**
+ * 일 1회 감사(dailyAudit)의 신선도 임계값. STALE_DAYS 이상 매칭 메일이 0건이면 백업 경로가
+ * 조용히 죽은 것으로 보고 알린다. 3일인 이유: 2026-08-09 자동화가 3일 침묵한 실측이 기준이고,
+ * LOOKBACK(7일) 이하여야 쿼리 창 안에서 실제로 측정된다 — 더 크게 잡으면 메일이 창 밖으로 밀려 신선도를 못 잰다.
+ * HEALTH_ALERT_PROP에 마지막 경보 시각을 남겨 스팸을 막는다.
+ */
+var STALE_DAYS = 3;
+var HEALTH_ALERT_PROP = 'LAST_HEALTH_ALERT_AT';
+
 function processSpaceCloudReservations() {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return; // 다른 실행(수동/트리거)이 이미 돌고 있으면 중복 처리 방지를 위해 종료
@@ -181,10 +190,14 @@ function parseReservationEmail(message) {
   var guests = extractField(html, '예약인원').match(/\d+/);
   var amount = extractField(html, '결제금액').replace(/[^0-9]/g, '');
   var bookingNo = html.match(/reservation%2F(\d+)/) || html.match(/reservation\/(\d+)/);
+  // 예약번호 실패를 예약자명 실패와 동급 에러로 올린다. 조용히 null로 넣으면 partial unique 인덱스가
+  // 못 막아(where booking_no is not null) API 경로가 같은 예약을 둘째 행으로 또 등록한다 —
+  // 시끄럽게 재시도·알림을 태우는 게 이 파이프라인의 다른 실패 처리와 일관된다.
+  if (!bookingNo) throw new Error('예약번호(booking_no)를 찾지 못했습니다. 스클이 링크 형식을 바꿨을 수 있습니다.');
 
   return {
     p_source: '스클',
-    p_booking_no: bookingNo ? bookingNo[1] : null,
+    p_booking_no: bookingNo[1],
     p_applied: applied,
     p_date: period.date,
     p_start: period.start,
@@ -279,8 +292,44 @@ function cancelReservation(cancellation, password) {
     );
   }
 
-  var match = candidates.filter(function (r) { return !r.cancelled; })[0];
-  if (!match) return; // 이미 취소됨 — 재처리이므로 RPC·알림 없이 종료
+  // 재처리·재예약 겹침 방어: 같은 (날짜+시작+종료)에 행이 둘 이상 공존할 수 있다 —
+  // A가 취소한 슬롯을 B(또는 같은 사람)가 재예약하면 A=cancelled, B=active가 함께 남는다.
+  // 이때 A의 취소 메일이 재처리되면(처리 기록 손실 등) 이름 대조 없이 !cancelled 첫 행만 고르면
+  // 무고한 B를 취소시킨다. 그래서 예약자명으로 대상을 특정한다:
+  //  (1) 이미 취소된 후보 중 같은 이름이 있으면 이 취소는 이미 반영됨 → 활성 행을 건드리지 않는다.
+  //  (2) 그다음 활성 후보에서 같은 이름을 찾는다.
+  //  (3) 이름으로 못 좁혔는데 취소된 후보가 있으면(마스킹 등) 역시 재처리로 보고 건드리지 않는다.
+  // 트레이드오프: 같은 사람이 취소→재예약→다시 취소하면 두 번째 취소가 (1)에 걸린다. 취소 메일엔
+  // 예약번호가 없어 재처리와 구분할 수 없어서다 — 놓친 취소(안전)가 무고한 취소(위험)보다 낫다는 쪽을
+  // 택했다. 다만 **넘어갈 때 조용히 넘어가지 않는다**: 그 모호한 경우는 정확히 판별되므로(같은 이름의
+  // 취소 행과 활성 행이 공존) 그때만 Mattermost로 사람을 부른다. 단일 공간이라 한 슬롯의 활성 예약은
+  // 최대 1건이므로, 취소 이력이 없을 때의 active[0] 폴백은 모호하지 않다.
+  var active = candidates.filter(function (r) { return !r.cancelled; });
+
+  var match;
+  if (cancellation.name) {
+    if (candidates.some(function (r) { return r.cancelled && r.name === cancellation.name; })) {
+      // 같은 이름의 **활성 행까지** 함께 있으면 두 해석이 갈린다: 이미 반영된 취소의 재처리이거나,
+      // 같은 사람이 재예약한 뒤 그걸 다시 취소한 것이거나. 취소 메일엔 예약번호가 없어 코드로는
+      // 못 가른다. 우리는 안전한 쪽(안 건드림)을 택하지만, **그 선택을 조용히 하지는 않는다** —
+      // 후자였다면 취소된 줄 아는 손님의 예약이 살아 있고, 그 시각에 냉난방·조명이 그대로 돈다.
+      // 사람이 어드민에서 1분이면 확인할 수 있는 일이라 알리는 비용이 놓치는 비용보다 싸다.
+      if (active.some(function (r) { return r.name === cancellation.name; })) {
+        notifyMattermost(
+          '⚠️ 취소 메일을 반영하지 않고 넘어갔습니다 — 같은 이름의 취소된 예약과 살아 있는 예약이 함께 있어 ' +
+          '어느 쪽인지 코드가 가릴 수 없습니다.\n' +
+          '· ' + cancellation.date + ' ' + cancellation.start + '-' + cancellation.end +
+          ' (' + cancellation.name + ')\n' +
+          '재예약을 다시 취소한 것이라면 어드민에서 직접 취소해 주세요. 그냥 재처리였다면 조치할 것이 없습니다.'
+        );
+      }
+      return;
+    }
+    match = active.filter(function (r) { return r.name === cancellation.name; })[0];
+    if (!match && candidates.some(function (r) { return r.cancelled; })) return;
+  }
+  if (!match) match = active[0];
+  if (!match) return; // 활성 예약 없음 = 이미 취소됨(재처리) → RPC·알림 없이 종료
 
   callRpc('admin_set_cancelled', { p_password: password, p_id: match.id, p_value: true });
   invalidateReservations();
@@ -469,18 +518,88 @@ function auditReservations(days) {
  * 창 안의 메일을 다시 처리한다. 실패해서 포기(STATE_GIVEN_UP)한 건을 원인 해결 후 되살리는 용도.
  *
  * 처리 기록만 지우고 다음 트리거를 기다린다 — 등록은 예약번호로, 취소는 멱등성으로 걸러지므로
- * 이미 반영된 건이 중복되지 않는다. **단 예약번호를 못 뽑은 메일은 중복 등록될 수 있다**
- * (p_booking_no가 null이면 걸러낼 열쇠가 없다) — 먼저 auditReservations()로 확인한다.
+ * 이미 반영된 건이 중복되지 않는다. 예약번호 추출 실패는 이제 null로 조용히 들어가지 않고
+ * 에러로 죽으므로(parseReservationEmail), null 중복 등록은 이 수정 이전 행에만 해당한다 —
+ * 의심되면 먼저 auditReservations()로 확인한다.
  */
 function reprocessMessages() {
   PropertiesService.getScriptProperties().deleteProperty(PROCESSED_PROP);
   console.log('처리 기록을 비웠습니다. 다음 트리거(최대 15분) 또는 processSpaceCloudReservations() 수동 실행으로 재처리됩니다.');
 }
 
-/** 1회 실행: 15분마다 자동으로 processSpaceCloudReservations를 돌리는 트리거 설치 (중복 설치 방지) */
+/** 1회 실행: 트리거 설치 (중복 설치 방지). 15분마다 processSpaceCloudReservations, 하루 1회 dailyAudit. */
 function createTrigger() {
+  var handlers = { processSpaceCloudReservations: true, dailyAudit: true };
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'processSpaceCloudReservations') ScriptApp.deleteTrigger(t);
+    if (handlers[t.getHandlerFunction()]) ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('processSpaceCloudReservations').timeBased().everyMinutes(15).create();
+  ScriptApp.newTrigger('dailyAudit').timeBased().everyDays(1).atHour(9).create();
+}
+
+/**
+ * 일 1회 트리거로 도는 감사. 15분 처리 루프가 못 잡는 두 가지를 본다.
+ *
+ * (1) 신선도(checkFreshness) — Gmail 백업 경로가 쿼리 수준에서 조용히 죽는 경우.
+ *     스클이 발신주소·제목을 바꾸거나 트리거가 소멸하면 매칭 메일이 0이 되는데 그 자체로는
+ *     아무 알림이 없다(2026-08-09 automate 3일 침묵이 그 부류다). 건별 처리 실패는 재시도·포기가
+ *     알리지만, "메일이 아예 안 온다"는 여기서만 잡힌다.
+ * (2) 대조(auditReservations) — 메일과 DB의 불일치를 훑어 있으면 한 번에 요약해 알린다
+ *     (여태 콘솔에만 찍히던 것을 사람에게). 정상 상태에선 불일치 0건이라 조용하다.
+ *
+ * 신선도를 먼저·독립적으로 돌린다. auditReservations는 ADMIN_PASSWORD가 없으면 throw하고 RPC도
+ * 실패할 수 있는데, 그게 신선도 알림을 삼키면 안 된다 — 신선도는 Gmail만 있으면 판정된다.
+ */
+function dailyAudit() {
+  checkFreshness();
+
+  try {
+    var problems = auditReservations();
+    if (problems.length) {
+      notifyMattermost('**예약 감사 · 불일치 ' + problems.length + '건** · ' + SPACE_NAME + '\n\n' +
+        problems.slice(0, 10).map(function (p) { return '- ' + escapePipes(p); }).join('\n') +
+        (problems.length > 10 ? '\n- …외 ' + (problems.length - 10) + '건' : '') +
+        '\n\n[어드민에서 보기](' + ADMIN_URL + ')');
+    }
+  } catch (err) {
+    console.error('auditReservations 실패: ' + err.message);
+  }
+}
+
+/**
+ * Gmail 백업 경로 신선도. STALE_DAYS 이상 매칭 메일이 0건이면 경보를 보낸다.
+ * 한산한 며칠과 완전히 구분되지는 않지만(스클 메일이 아예 안 오는 상황), 알림은 STALE_DAYS
+ * 주기로만 나가 스팸이 되지 않는다 — 놓친 예약 손실이 헛알림보다 비싸다.
+ */
+function checkFreshness() {
+  var freshest = 0;
+  GmailApp.search(GMAIL_QUERY, 0, 50).forEach(function (thread) {
+    thread.getMessages().forEach(function (message) {
+      if (message.getFrom().indexOf(SENDER) === -1) return;
+      var subject = message.getSubject() || '';
+      if (subject.indexOf('취소 완료') === -1 && subject.indexOf('예약 완료') === -1) return;
+      var t = message.getDate().getTime();
+      if (t > freshest) freshest = t;
+    });
+  });
+
+  var ageDays = freshest ? (Date.now() - freshest) / 86400000 : Infinity;
+  if (ageDays <= STALE_DAYS) return; // 최근에 매칭 메일이 왔다 → 정상
+
+  var props = PropertiesService.getScriptProperties();
+  var last = Number(props.getProperty(HEALTH_ALERT_PROP) || 0);
+  if (Date.now() - last < STALE_DAYS * 86400000) return; // 최근에 이미 알렸다 → 스팸 방지
+  props.setProperty(HEALTH_ALERT_PROP, String(Date.now()));
+  notifyMattermost(buildStaleMessage(ageDays));
+}
+
+function buildStaleMessage(ageDays) {
+  var howLong = ageDays === Infinity
+    ? 'Gmail 검색 창(' + LOOKBACK.replace('newer_than:', '') + ') 내내'
+    : Math.floor(ageDays) + '일 동안';
+  return '**예약 자동수집 신선도 경보** · ' + SPACE_NAME + '\n\n' +
+    '스페이스클라우드 예약/취소 메일이 ' + howLong + ' 한 건도 오지 않았습니다.\n' +
+    '한산한 기간일 수 있지만, 발신 주소·제목 변경이나 트리거 정지로 백업 경로가 조용히 죽은 것일 수도 있습니다.\n' +
+    '확인할 것: Gmail 검색 `' + GMAIL_QUERY + '` · Apps Script 트리거 상태 · 실행 기록.' +
+    '\n[어드민에서 보기](' + ADMIN_URL + ')';
 }

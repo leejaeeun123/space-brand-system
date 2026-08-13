@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TYPE LOUNGE — 이용 안내</title>
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <style>
@@ -10,6 +10,10 @@
     --ink:#16130F;
     --white:#ffffff;
     --orange:#E2531E;
+    /* 소형 텍스트(h2·경고)용 어두운 오렌지. 화이트 위 4.95:1로 AA(4.5:1) 통과 —
+       브랜드 오렌지(#E2531E)는 3.83:1이라 미달. 이 페이지는 다크 모드가 없어(테마 스크립트·
+       :root[data-theme] 블록 없음) 조건 없이 둔다. 아이콘 등 그래픽엔 --orange 를 그대로 쓴다. */
+    --orange-text:#C74312;
     --hair: rgba(22,19,15,.12);
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -33,7 +37,7 @@
   section{padding:40px 24px;border-top:1px solid var(--hair);}
   h2{
     font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--orange);margin-bottom:24px;
+    color:var(--orange-text);margin-bottom:24px;
   }
   h3{font-weight:600;font-size:17px;margin-bottom:6px;}
   p{font-weight:400;font-size:15px;color:#2c2720;}
@@ -90,7 +94,7 @@
   /* 경고는 비용 청구 가능성까지 말하므로 묻힐 자리에 두면 안 된다. */
   .warn-note{
     margin-top:14px;padding-top:14px;border-top:1px solid var(--hair);
-    font-size:13.5px;font-weight:600;color:var(--orange);line-height:1.6;
+    font-size:13.5px;font-weight:600;color:var(--orange-text);line-height:1.6;
   }
 
   /* Directions */

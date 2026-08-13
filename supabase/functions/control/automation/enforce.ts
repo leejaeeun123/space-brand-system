@@ -22,6 +22,33 @@ const TEMP_FLOOR = 24;
 /** 하한 미만으로 이만큼 '가동'한 뒤에 되돌린다 — 잠깐 세게 트는 것 자체는 막지 않는다. */
 const TEMP_GRACE_MINUTES = 5;
 
+/**
+ * 냉방 계열 모드에서만 하한을 강제하는가 — 순수 판정(DB 없이 검증된다).
+ *
+ * 하한 24도의 동기는 **과냉방 방지**다. HEAT 20도로 둔 손님에게 24도를 밀면 난방을 더
+ * 세게 만들어 목적과 정반대가 된다(에너지도 더 쓴다). 손님은 `set_mode`로 모드를 바꿀 수 있다.
+ *
+ * 실기기 프로파일의 모드 표기는 COOL·HEAT·FAN·AIR_DRY·AIR_CLEAN이다(guest-control.html의
+ * MODE_LABEL, thinq/state.ts가 currentJobMode를 그대로 attrs.mode에 넣는다). 목표온도를 향해
+ * 능동적으로 냉방하는 COOL과, 냉·난방을 자동 선택하는 AUTO에만 건다.
+ *
+ * **모드를 모르면(값 없음) 강제하지 않는다** — 예전엔 모드와 무관하게 전원만 보고 걸었지만,
+ * HEAT를 잘못 미는 위험이 과냉방을 한 틱 놓치는 것보다 크다. 냉방 중이면 상태에 모드가 실려 온다.
+ */
+const FLOOR_MODES = new Set(["COOL", "AUTO"]);
+
+export function floorApplies(
+  power: string | null | undefined,
+  mode: unknown,
+  target: number,
+): boolean {
+  return power === "ON" &&
+    Number.isFinite(target) &&
+    target < TEMP_FLOOR &&
+    typeof mode === "string" &&
+    FLOOR_MODES.has(mode);
+}
+
 /** 스윕 창(10분)의 마지막 틱. 여기서 잔존 기기를 1회 알린다. */
 const SWEEP_LAST_TICK_MINUTES = SWEEP_WINDOW_MINUTES - 1;
 
@@ -108,8 +135,9 @@ export async function enforceTempFloor(
   let corrected = 0;
 
   for (const d of hvac) {
-    const target = Number((d.state?.attrs as Record<string, unknown> | undefined)?.target_temp);
-    const below = d.state?.power === "ON" && Number.isFinite(target) && target < TEMP_FLOOR;
+    const attrs = d.state?.attrs as Record<string, unknown> | undefined;
+    const target = Number(attrs?.target_temp);
+    const below = floorApplies(d.state?.power, attrs?.mode, target);
 
     if (!below) {
       if (watching.get(d.id)?.belowSince) settled.push(d.id);

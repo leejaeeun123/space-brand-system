@@ -23,6 +23,8 @@ export interface SweepResult {
   failed: number;
   no_phone: number;
   expired: number;
+  /** 결과 불명 — 벤더가 받았을 수 있어 자동 재시도를 멈춘 것. 사람이 콘솔에서 확인해야 한다. */
+  unknown: number;
 }
 
 /**
@@ -38,7 +40,7 @@ export async function sweepSms(
   reservations: SweepReservation[],
   now: Date,
 ): Promise<SweepResult> {
-  const result: SweepResult = { sent: 0, failed: 0, no_phone: 0, expired: 0 };
+  const result: SweepResult = { sent: 0, failed: 0, no_phone: 0, expired: 0, unknown: 0 };
 
   const targets = reservations.filter((r) => r.sms_auto);
   if (targets.length === 0) return result;
@@ -62,6 +64,7 @@ export async function sweepSms(
         const sent = await dispatch(sb, r, kind, "auto");
         if (sent.status === "sent") result.sent++;
         else if (sent.status === "failed") result.failed++;
+        else if (sent.status === "unknown") result.unknown++;
         // `already`는 세지 않는다 — 할 일이 없었다는 뜻이라 0이 맞다.
         // 다만 **수동으로 틱을 찔러 디버깅할 때 이게 헷갈린다**: pg_cron이 1분마다 먼저
         // 선점하므로, 손으로 부른 틱은 방금 나간 문자에 대해서도 0을 돌려준다.

@@ -20,19 +20,14 @@ import { validate } from "./validate.ts";
 import { dbClient, insert, markNotified, markPaid, reject, reveal } from "./store.ts";
 import { notify } from "./notify.ts";
 import { HandlerError } from "./errors.ts";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
+import { corsHeaders } from "../_shared/cors.ts";
+import { constantTimeEqual } from "../_shared/secret.ts";
+import {
+  clientIp,
+  isThrottled,
+  recordFailure,
+  THROTTLED_MESSAGE,
+} from "../_shared/throttle.ts";
 
 /**
  * 어드민인가. **미설정이면 전면 거부**다(auth.ts와 같은 태도) — 비밀번호가 없는 상태가
@@ -44,11 +39,19 @@ function isAdmin(supplied: string): boolean {
     console.error("ADMIN_PASSWORD 미설정 — 어드민 요청을 거부합니다");
     throw new HandlerError(503, "서버 설정이 완료되지 않았습니다");
   }
-  return supplied !== "" && supplied === admin;
+  return supplied !== "" && constantTimeEqual(supplied, admin);
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  // 헤더는 요청의 오리진에 따라 달라진다 — 모듈 상수로 두면 동시 요청이 서로의 것을 물려받는다.
+  const cors = corsHeaders(req);
+  const json = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "POST만 허용합니다" }, 405);
 
   let body: Record<string, unknown>;
@@ -87,7 +90,17 @@ Deno.serve(async (req) => {
     }
 
     // ── 여기부터 어드민 전용 ──
-    if (!isAdmin(String(body.password ?? ""))) {
+    //
+    // 이 문 뒤에 있는 것이 `reveal` — 주민번호·계좌를 평문으로 꺼내는 유일한 경로다.
+    // 그래서 비밀번호를 던져볼 수 있는 횟수 자체를 자른다(공개 접수 경로는 이 위에서 이미 끝났으므로
+    // 신청자는 영향받지 않는다).
+    const supplied = String(body.password ?? "");
+    const ip = clientIp(req);
+    if (await isThrottled(sb, ip)) {
+      return json({ error: THROTTLED_MESSAGE }, 429);
+    }
+    if (!isAdmin(supplied)) {
+      await recordFailure(sb, ip, "claim");
       return json({ error: "invalid password" }, 401);
     }
 
@@ -96,9 +109,16 @@ Deno.serve(async (req) => {
     const memo = String(body.memo ?? "").trim().slice(0, 500);
 
     switch (action) {
-      case "reveal":
+      case "reveal": {
         // 복호화 결과는 응답으로만 나간다 — 로그에 찍지 않는다(store.ts 주석 참조).
-        return json(await reveal(sb, id));
+        const revealed = await reveal(sb, id);
+        // **연 사실은 남긴다.** 열람 자체가 기록되지 않으면, 사고가 났을 때 무엇이 샜는지
+        // 확정할 수단이 없다. 값이 아니라 '언제 누가 어느 건을' 만 남긴다(마이그레이션 주석).
+        // 기록에 실패해도 응답은 준다 — 이건 부가 장치이지 열람의 조건이 아니다.
+        const { error } = await sb.from("payback_reveal_log").insert({ claim_id: id, ip });
+        if (error) console.error(`접속기록 저장 실패 (id=${id}): ${error.message}`);
+        return json(revealed);
+      }
 
       case "mark_paid":
         await markPaid(sb, id, new Date(), memo);
