@@ -3,6 +3,22 @@
 -- ⚠️ **이 파일을 push 하기 전에 비밀번호를 심어야 한다.** 안 심고 push 하면 어드민이
 --    통째로 잠긴다. 절차는 `20260813110000_admin_secret.sql` 머리말에 있다.
 --
+-- 그 순서를 **문서가 아니라 아래 게이트가 강제한다.** `supabase db push`에는 '여기까지만'
+-- 옵션이 없어(`--to` 같은 건 없다) 사람이 순서를 지키는 것에 기대야 했는데, 그건 방어가
+-- 아니다. 비밀번호가 안 심겨 있으면 여기서 예외를 던져 **마이그레이션 전체가 롤백**된다 —
+-- 잠긴 채 남는 것보다 아예 안 바뀌는 쪽이 낫다. 무인 공간에서 어드민 잠금은 현장 대응 불가다.
+
+do $guard$
+begin
+  if not exists (select 1 from public.admin_secret where id = 1) then
+    raise exception using
+      message = '비밀번호를 먼저 심어야 합니다 — 이 전환은 적용하지 않았습니다',
+      detail  = 'admin_secret 이 비어 있습니다. 지금 적용하면 admin_* 함수가 전부 실패해 어드민이 잠깁니다.',
+      hint    = 'SQL 편집기에서 select public.admin_set_password(''<새 비밀번호>''); 를 실행한 뒤 다시 push 하세요 (control-setup.md M절).';
+  end if;
+end
+$guard$;
+--
 -- **두 함수만 고치면 열 함수가 덮인다.** 나머지 아홉(`admin_fill_contact`·`admin_set_time`·
 -- `admin_set_phone`·`admin_set_deposit`·`admin_list_sms`·`admin_list_applications`·
 -- `admin_list_paybacks`·`admin_list_application_sms`)은 전부

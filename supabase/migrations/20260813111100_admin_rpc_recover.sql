@@ -19,6 +19,18 @@
 -- ⚠️ **이 부류가 또 생기지 않게 하려면**: DB 편집기에서 함수를 직접 만들지 말 것.
 --    admin_list_reservations 가 정확히 그렇게 리뷰도 버전관리도 없이 살아 있었다.
 
+-- 이 파일도 admin_check 에 기대므로 같은 게이트를 둔다. 둘 중 하나만 밀리는 사고를 막는다.
+do $guard$
+begin
+  if not exists (select 1 from public.admin_secret where id = 1) then
+    raise exception using
+      message = '비밀번호를 먼저 심어야 합니다 — 이 회수는 적용하지 않았습니다',
+      detail  = 'admin_secret 이 비어 있습니다. 지금 적용하면 예약 추가·삭제·입퇴실·청소 표시가 전부 실패합니다.',
+      hint    = 'select public.admin_set_password(''<새 비밀번호>''); 실행 후 다시 push 하세요 (control-setup.md M절).';
+  end if;
+end
+$guard$;
+
 -- ── admin_add_reservation ──
 create or replace function public."admin_add_reservation"(p_password text, p_source text, p_booking_no text, p_applied date, p_date date, p_start time without time zone, p_end time without time zone, p_guests integer, p_purpose text, p_option text, p_request text, p_name text, p_phone text, p_email text, p_amount integer, p_payment text, p_memo text) returns public."reservations"
     language plpgsql security definer
