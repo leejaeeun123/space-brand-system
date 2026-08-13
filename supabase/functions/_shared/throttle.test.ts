@@ -102,11 +102,51 @@ Deno.test("실패 기록은 IP와 함수 이름을 남긴다", async () => {
 
 // ── 요청자 IP ─────────────────────────────────────────────────────────────
 
-Deno.test("x-forwarded-for의 첫 항목이 원 클라이언트다", () => {
+Deno.test("cf-connecting-ip 가 있으면 그걸 쓴다 — XFF 는 무시한다", () => {
+  // XFF 는 호출자가 통째로 정할 수 있다(라이브 실측). cf-connecting-ip 는 Cloudflare 가 붙이고,
+  // 클라이언트가 보내면 요청 자체가 403 으로 거부돼 위조값이 여기 도달할 수 없다.
+  const req = new Request("https://example.test", {
+    headers: {
+      "cf-connecting-ip": "203.0.113.7",
+      "x-forwarded-for": "1.1.1.1, 2.2.2.2",
+    },
+  });
+  assertEquals(clientIp(req), "203.0.113.7");
+});
+
+Deno.test("cf-connecting-ip 가 같으면 XFF 를 아무리 바꿔도 같은 바구니다", () => {
+  const withSpoof = (fake: string) =>
+    clientIp(new Request("https://example.test", {
+      headers: { "cf-connecting-ip": "203.0.113.7", "x-forwarded-for": fake },
+    }));
+  assertEquals(withSpoof("10.0.0.1"), withSpoof("10.0.0.99"));
+  assertEquals(withSpoof("10.0.0.1"), "203.0.113.7");
+});
+
+Deno.test("cf-connecting-ip 가 없으면(Cloudflare 밖) XFF 마지막 항목으로 떨어진다", () => {
+  // 앞쪽은 호출자가 써넣을 수 있고 뒤쪽일수록 우리와 가까운 홉이 붙인 값이다.
+  // 첫 항목을 쓰던 시절엔 위조 헤더로 제한이 통째로 뚫렸다(2026-08-13 라이브 실측).
   const req = new Request("https://example.test", {
     headers: { "x-forwarded-for": "203.0.113.7, 70.41.3.18, 150.172.238.178" },
   });
-  assertEquals(clientIp(req), "203.0.113.7");
+  assertEquals(clientIp(req), "150.172.238.178");
+});
+
+Deno.test("위조된 앞자리를 넣어도 키가 바뀌지 않는다", () => {
+  // 공격자가 매 요청 앞자리를 바꿔도 마지막(신뢰 홉)이 같으면 같은 바구니에 담긴다.
+  const spoof = (fake: string) =>
+    clientIp(new Request("https://example.test", {
+      headers: { "x-forwarded-for": `${fake}, 150.172.238.178` },
+    }));
+  assertEquals(spoof("1.1.1.1"), spoof("2.2.2.2"));
+  assertEquals(spoof("1.1.1.1"), "150.172.238.178");
+});
+
+Deno.test("빈 항목·공백이 섞여도 실제 값을 고른다", () => {
+  const req = new Request("https://example.test", {
+    headers: { "x-forwarded-for": " 203.0.113.7 ,  , 150.172.238.178 , " },
+  });
+  assertEquals(clientIp(req), "150.172.238.178");
 });
 
 Deno.test("헤더가 없으면 빈 문자열 — 그래도 판정은 돈다", () => {

@@ -32,14 +32,29 @@ const MAX_FAILS = 10;
 export type AuthSurface = "control" | "claim" | "apply";
 
 /**
- * 요청자 IP. Edge Function 앞단이 붙이는 `x-forwarded-for`의 **첫 항목**이 원 클라이언트다.
+ * 요청자 IP — 시도 제한의 키. **위조 불가능한 값이어야 한다.**
  *
- * 헤더가 없으면 빈 문자열을 돌려주고, 호출부는 그 값으로도 정상 동작한다 — 모든 헤더 없는
- * 요청이 한 바구니에 담겨 함께 제한될 뿐이라 오히려 보수적이다.
+ * `x-forwarded-for`는 못 쓴다. 2026-08-13 라이브 실측: 이 플랫폼은 클라이언트가 보낸 XFF를
+ * **그대로 통과시킨다.** 그래서 값을 매 요청 바꾸면 바구니가 매번 새로 생겨 시도 제한이
+ * 통째로 뚫렸다(위조 헤더로 13회를 던져도 안 막혔다. 헤더 없이 같은 횟수면 막힌다).
+ * 첫 항목이든 마지막 항목이든 마찬가지다 — 목록 전체가 호출자 손에 있다.
+ *
+ * `cf-connecting-ip`는 앞단 Cloudflare가 붙인다. **클라이언트가 이 헤더를 보내면 Cloudflare가
+ * 요청 자체를 403으로 거부한다**(실측: `error code: 1000`). 함수까지 오지도 못하므로
+ * 위조된 값이 여기 도달할 수 없다.
+ *
+ * XFF 폴백은 Cloudflare를 안 거치는 환경(로컬 실행 등)을 위한 것이다. 그 경우 신뢰 경계가
+ * 달라지므로 마지막 항목(우리와 가장 가까운 홉)을 쓴다.
  */
 export function clientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for") ?? "";
-  return forwarded.split(",")[0].trim();
+  const cf = (req.headers.get("cf-connecting-ip") ?? "").trim();
+  if (cf !== "") return cf;
+
+  const parts = (req.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
+  return parts.length === 0 ? "" : parts[parts.length - 1];
 }
 
 /**
