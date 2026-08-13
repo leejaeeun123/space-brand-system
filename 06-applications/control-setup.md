@@ -631,16 +631,36 @@ CCTV 자격증명 · 기기 전원을 **전부** 여는 단일 열쇠다. 그런
 **1) 도구만 올린다** — 이 단계는 아무 동작도 바꾸지 않는다.
 
 ```bash
-supabase db push          # 20260813100000(시도 제한) · 110000(admin_secret + admin_check)
+> ⚠️ **`supabase db push`에는 "여기까지만" 옵션이 없다.** 미적용분을 **전부** 민다
+> (`--include-all`·`--dry-run`·`--db-url`뿐, `--to` 같은 건 없다). 그냥 밀면 전환
+> 마이그레이션(`20260813111000`)까지 같이 올라가고, 그 시점 `admin_secret`은 비어 있어
+> **열 개 `admin_*` 함수가 전부 실패한다.** 두 파일로 쪼갠 의미가 사라진다.
+>
+> 그래서 전환 파일을 **잠깐 디렉토리 밖으로 빼고** 민다(2026-08-13 실제로 이렇게 했다):
+>
+> ```bash
+> mkdir -p /tmp/tl-hold
+> mv supabase/migrations/20260813111000_admin_use_secret.sql /tmp/tl-hold/
+> supabase db push --dry-run     # 목록에 111000 이 없는지 눈으로 확인
+> supabase db push
+> mv /tmp/tl-hold/20260813111000_admin_use_secret.sql supabase/migrations/
+> ```
+>
+> `supabase migration list`로 `111000`만 원격 칸이 비어 있으면 성공이다.
+
+```bash
+supabase db push          # 20260813100000(시도 제한) · 110000(admin_secret + admin_check) 등
 ```
 
 **2) 새 비밀번호를 심는다** — SQL 편집기에서 한 번만. **값은 레포에 적지 않는다.**
 
 ```sql
-insert into public.admin_secret (id, pw_hash)
-values (1, extensions.crypt('<새 비밀번호>', extensions.gen_salt('bf', 12)))
-on conflict (id) do update set pw_hash = excluded.pw_hash, rotated_at = now();
+select public.admin_set_password('<새 비밀번호>');
 ```
+
+16자 미만은 거부한다. 해싱(bcrypt cost 12)과 pgcrypto 스키마 위치를 함수가 알아서 처리하므로
+`extensions.crypt(...)`를 손으로 적을 필요가 없다 — 그 스키마는 프로젝트마다 달라서
+손으로 적으면 틀린 쪽에서 실패한다.
 
 **반드시 새 값으로 바꾼다.** 기존 값은 마이그레이션 `20260803000000`에 평문으로 커밋돼 git
 이력에 영구히 남아 있다 — 회전하지 않으면 이 작업의 절반이 무의미하다.
@@ -663,8 +683,26 @@ supabase functions deploy control apply claim   # 세 함수가 시도 제한을
 **5) 확인.** 어드민에서 새 비밀번호로 들어가지고, 예약 목록·기기·CCTV가 보이는지 본다.
 틀린 비밀번호를 열 번 넣으면 열한 번째에 429가 떠야 한다(10분 창).
 
+### 지금 어디까지 됐나 (2026-08-13)
+
+1단계(도구 마이그레이션)·Edge Function 배포·CSP·워치독까지 **적용 완료**다.
+**2~4단계(비밀번호 회전 + 전환)는 안 했다** — 형운이 다음에 하기로 했다(2026-08-13).
+
+그래서 지금 상태는:
+- 어드민은 **기존 비밀번호**로 그대로 동작한다. `admin_check`는 만들어져 있지만 아무도 안 쓴다.
+- 시도 제한·CSP·SRI·워치독 같은 새 방어는 **이미 살아 있다**.
+- 옛 평문 PIN은 아직 유효하다 — 전환(`20260813111000`)을 밀어야 무효가 된다.
+  `supabase migration list`에서 그 줄만 원격 칸이 비어 있는 것으로 확인할 수 있다.
+
 ### 알아둘 것
 
+- **시도 제한의 키는 `cf-connecting-ip`다. `x-forwarded-for`가 아니다.**
+  이 플랫폼은 클라이언트가 보낸 XFF를 **그대로 통과시킨다** — 값을 매 요청 바꾸면 바구니가
+  매번 새로 생겨 제한이 통째로 뚫린다(2026-08-13 라이브 실측: 위조 헤더로 13회를 던져도
+  안 막혔다). 첫 항목이든 마지막 항목이든 목록 전체가 호출자 손에 있어 소용없다.
+  `cf-connecting-ip`는 앞단 Cloudflare가 붙이고, 클라이언트가 그 헤더를 보내면 **요청 자체가
+  403(`error code: 1000`)으로 거부**돼 위조값이 함수까지 오지 못한다.
+  ⚠️ 앞으로 이 앞단이 Cloudflare가 아니게 되면 이 전제가 깨진다 — 그때 키를 다시 정해야 한다.
 - **시도 제한은 실패한 인증만 센다.** 비밀번호를 아예 안 보낸 요청(손님 페이지,
   pg_cron의 `automate`)은 카운터를 타지 않는다 — 세면 1분마다 오는 자동화가 스스로 문을
   잠근다. #44·#70에서 자동화 침묵이 두 번 일어난 뒤라 이 구분이 중요하다.
