@@ -30,3 +30,48 @@ export async function recordHeartbeat(sb: SupabaseClient, now: Date): Promise<vo
     .eq("id", 1);
   if (error) console.warn("하트비트 기록 실패 — 감시 잡이 오탐할 수 있다", error.message);
 }
+
+/**
+ * 워치독이 쓸 웹훅 주소를 Edge Function 시크릿에서 DB로 옮겨 놓는다.
+ *
+ * **왜 옮겨야 하나.** 감시 잡은 순수 SQL(pg_cron + pg_net)이라 Edge Function 시크릿을 못 읽는다.
+ * 그런데 그게 이 설계의 핵심이다 — 감시 주체가 Edge Function 안에 있으면 그 함수가 통째로
+ * 죽는 실패를 원리상 못 본다(#44·#70). 그래서 URL만 DB로 내려보낸다.
+ *
+ * **왜 사람이 손으로 넣지 않나.** 그러면 누군가 평문 URL을 복사해 SQL 편집기에 붙여야 하고,
+ * 그 값은 편집기 기록에 남는다. 게다가 나중에 Mattermost 웹훅을 교체하면 두 곳이 조용히
+ * 어긋나 — 시크릿은 새 주소, 워치독은 옛 주소 — 정작 알림이 필요한 날 아무 데도 안 간다.
+ * 매 틱 대조하면 시크릿 한 곳만 고쳐도 따라온다.
+ *
+ * 시크릿이 비어 있으면 **아무것도 쓰지 않는다.** 빈 값을 넣으면 워치독이 '설정됨'으로 보고
+ * 빈 주소로 POST를 시도한다 — 설정 안 된 상태는 조용해야지 오작동이면 안 된다.
+ *
+ * 실패해도 던지지 않는다. 이건 부가 설정이지 자동화의 조건이 아니다.
+ */
+export async function syncWatchdogWebhook(
+  sb: SupabaseClient,
+): Promise<"set" | "unchanged" | "missing" | "failed"> {
+  const url = Deno.env.get("MATTERMOST_WEBHOOK_URL") ?? "";
+  if (url === "") return "missing";
+
+  const { data, error } = await sb
+    .from("automation_config")
+    .select("value")
+    .eq("key", "heartbeat_webhook_url")
+    .maybeSingle();
+  if (error) {
+    console.warn("워치독 웹훅 조회 실패", error.message);
+    return "failed";
+  }
+  // 같으면 쓰지 않는다 — 매 틱 같은 값을 다시 쓸 이유가 없다.
+  if (data?.value === url) return "unchanged";
+
+  const { error: upsertError } = await sb
+    .from("automation_config")
+    .upsert({ key: "heartbeat_webhook_url", value: url });
+  if (upsertError) {
+    console.warn("워치독 웹훅 저장 실패", upsertError.message);
+    return "failed";
+  }
+  return "set";
+}

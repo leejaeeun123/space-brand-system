@@ -14,7 +14,7 @@ import { list } from "./list.ts";
 import { alertIdleDevices, enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
 import { checkConnectivity } from "../automation/connectivity.ts";
 import { flush } from "../automation/notify.ts";
-import { recordHeartbeat } from "../automation/heartbeat.ts";
+import { recordHeartbeat, syncWatchdogWebhook } from "../automation/heartbeat.ts";
 import { detectOnsite } from "../automation/observe.ts";
 import { firePrep, fireShutdown } from "../automation/schedule.ts";
 import { record, recordSystemError } from "../automation/events.ts";
@@ -284,7 +284,12 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
   // 낡아, 게이트 밖의 감시 잡이 정지를 알아차린다(20260813130000). 그게 이 설계의 목적이다.
   await recordHeartbeat(sb, now);
 
+  // 워치독은 SQL이라 Edge Function 시크릿을 못 읽는다 — 주소만 내려보낸다(heartbeat.ts).
+  // 결과를 응답에 실어 '설정됐는지'를 URL 노출 없이 확인할 수 있게 한다.
+  const watchdog = await syncWatchdogWebhook(sb);
+
   return {
+    watchdog,
     prep_fired: prepFired,
     shutdown_fired: shutdownFired,
     swept,
