@@ -676,12 +676,26 @@ supabase secrets set ADMIN_PASSWORD='<같은 값>'
 **4) 전환과 배포.**
 
 ```bash
-supabase db push                          # 20260813111000 — 이제 해시로 검증한다
+supabase db push        # 20260813111000(전환) + 20260813111100(라이브 전용 5개 회수)
 supabase functions deploy control apply claim   # 세 함수가 시도 제한을 공유한다
 ```
 
+> ⚠️ **두 파일이 같이 올라가야 한다.** `111100`은 버전 관리 밖에 있던 함수 다섯
+> (`admin_add_reservation`·`admin_delete_reservation`·`admin_set_checkin`·
+> `admin_set_checkout`·`admin_set_cleaning`)을 회수해 같이 해시 검증으로 옮긴다.
+> 이걸 빼고 회전하면 **두 방향으로 깨진다** — 어드민이 새 비밀번호를 보내면 그 다섯이
+> 거부해 예약 추가·삭제·입퇴실·청소 표시가 안 되고, 옛 PIN 은 그 다섯을 계속 연다.
+> (2026-08-13 라이브 스키마 덤프로 발견. `admin_*` 함수가 17개인데 다섯이 레포에 없었다.)
+
 **5) 확인.** 어드민에서 새 비밀번호로 들어가지고, 예약 목록·기기·CCTV가 보이는지 본다.
+**예약 추가·삭제, 입실·퇴실 표시, 청소 표시도 눌러본다** — 회수한 다섯 함수가 그 경로다.
 틀린 비밀번호를 열 번 넣으면 열한 번째에 429가 떠야 한다(10분 창).
+
+> **DB 편집기에서 함수를 직접 만들지 않는다.** 만들면 리뷰도 버전 관리도 못 받고, 나중에
+> 인증 방식을 바꿀 때 통째로 빠진다. 2026-08-13 에 실제로 다섯 개가 그렇게 남아 있었고
+> `admin_list_reservations` 도 같은 경로로 라이브에만 있었다. 확인법:
+> `select proname from pg_proc where proname like 'admin\_%' and pronamespace='public'::regnamespace;`
+> 또는 `supabase db dump --schema public`.
 
 ### 지금 어디까지 됐나 (2026-08-13)
 
