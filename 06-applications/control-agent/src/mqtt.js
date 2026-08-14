@@ -11,6 +11,27 @@ import { UPSTREAM_PREFIXES } from "./state.js";
 // QoS 2도 되지만, 굳이 다르게 갈 이유가 없어 1로 맞춘다(중복 수신은 멱등 upsert가 흡수).
 const QOS = 1;
 
+/**
+ * mosquitto가 rpi-bridge 생사를 알려주는 토픽(retained). `"1"`=붙음, `"0"`=끊김.
+ *
+ * **`client.connected`와 다른 것을 본다.** 그건 맥이 자기 로컬 브로커에 붙었는지일 뿐이라
+ * 맥이 켜져 있는 한 항상 참이다. 정작 기기까지 가는 구간은 이 브릿지고, `cmnd/# out`이
+ * QoS 0이라 브릿지가 죽어 있으면 발행은 성공하는데 메시지는 버려진다.
+ */
+const BRIDGE_STATE_TOPIC = "$SYS/broker/connection/rpi-bridge/state";
+
+/** true=붙음, false=끊김, **null=모름**(브릿지 없는 브로커거나 아직 안 받음). */
+let bridgeUp = null;
+
+/**
+ * 모를 때(null) 호출부는 낙관적으로 발행한다. false로 가정하면 브릿지 알림이 없는 브로커에서
+ * 모든 명령이 HTTP로 새는데, 그건 '모른다'를 '고장났다'로 읽는 것이다.
+ * 낙관적으로 보내도 확인 대기(Tier 3)가 그물이 된다.
+ */
+export function isBridgeUp() {
+  return bridgeUp;
+}
+
 export function connectMqtt(cfg, { onMessage, onConnect }) {
   const client = mqtt.connect(cfg.mqttUrl, {
     username: cfg.mqttUser,
@@ -22,7 +43,7 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
   });
 
   client.on("connect", () => {
-    const filters = UPSTREAM_PREFIXES.map((p) => `${p}/+/#`);
+    const filters = [...UPSTREAM_PREFIXES.map((p) => `${p}/+/#`), BRIDGE_STATE_TOPIC];
     client.subscribe(filters, { qos: QOS }, (err) => {
       if (err) {
         console.error("[mqtt] 구독 실패:", err.message);
@@ -34,6 +55,11 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
   });
 
   client.on("message", (topic, payload) => {
+    if (topic === BRIDGE_STATE_TOPIC) {
+      bridgeUp = payload.toString().trim() === "1";
+      console.log(`[mqtt] rpi-bridge ${bridgeUp ? "연결됨" : "끊김 — 명령은 HTTP로 우회합니다"}`);
+      return;
+    }
     try {
       onMessage(topic, payload.toString());
     } catch (e) {
@@ -44,7 +70,12 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
 
   client.on("error", (e) => console.error("[mqtt] 오류:", e.message));
   client.on("reconnect", () => console.log("[mqtt] 재접속 시도..."));
-  client.on("close", () => console.log("[mqtt] 연결 끊김"));
+  client.on("close", () => {
+    console.log("[mqtt] 연결 끊김");
+    // 끊긴 동안 브릿지가 어떻게 됐는지 알 길이 없다. 마지막 값을 붙들고 있으면
+    // 재접속 직후 낡은 정보로 판단하게 되므로 '모름'으로 되돌린다(retained라 곧 다시 온다).
+    bridgeUp = null;
+  });
 
   return client;
 }
@@ -61,11 +92,16 @@ export function publish(client, topic, payload) {
  * Tasmota에서 빈 payload는 '설정'이 아니라 '질의'다 — 전원 상태를 바꾸지 않고 현재값만
  * 되돌려준다. 이게 없으면 기기가 스스로 보고할 때까지 화면이 '아직 상태를 받은 적 없음'으로
  * 남는다. (Space가 retained 재생 실패 후 채택한 것과 같은 방법 — 그쪽 D4)
+ *
+ * 같이 `Status 5`도 물어본다 — 응답(STATUS5)에 기기의 LAN IP가 들어 있다. 브릿지가 끊겨
+ * MQTT가 막혔을 때 HTTP로 우회하려면 IP가 필요한데, DHCP라 미리 아는 값이 아니다.
+ * 스캔으로 찾지 않는 이유는 실측이다 — 254개 병렬 요청에 ESP8266이 실제로 응답을 놓쳤다.
  */
 export async function queryInitialState(client, addresses) {
   for (const address of addresses) {
     try {
       await publish(client, `cmnd/${address}/POWER`, "");
+      await publish(client, `cmnd/${address}/Status`, "5");
     } catch (e) {
       console.error(`[mqtt] 초기 상태 질의 실패 (${address}):`, e.message);
     }

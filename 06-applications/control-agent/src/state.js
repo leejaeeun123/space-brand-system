@@ -24,10 +24,28 @@ export function parseTopic(topic) {
 }
 
 /**
+ * Tasmota JSON 본문에서 전원값만 뽑는다. 없으면 null('모름').
+ *
+ * `{"POWER":"ON"}`(RESULT·HTTP /cm 응답), `{"POWER1":"ON"}`(다채널),
+ * `{"StatusSTS":{"POWER":"ON"}}`(Status 0) 세 모양이 전부 여기로 들어온다.
+ * **한 군데로 모은 이유**: '모르면 null, 절대 OFF 아님' 규칙을 여러 벌 만들면
+ * 언젠가 한 벌이 어긋나고, 그 순간 켜진 조명이 꺼진 걸로 보고된다.
+ */
+export function extractPower(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  const sts = obj.StatusSTS && typeof obj.StatusSTS === "object" ? obj.StatusSTS : obj;
+  const pw = sts.POWER ?? sts.POWER1;
+  return pw === "ON" || pw === "OFF" ? pw : null;
+}
+
+/**
  * 서브토픽 + payload → {online, power} 델타. 우리가 쓰는 신호가 아니면 null.
  *
  * **이 메시지가 모르는 값은 null로 둔다** — 호출부가 현재값을 보존하게 하기 위해서다.
  * 예: LWT는 online만 안다. power를 null로 덮어쓰면 마지막 전원값이 사라진다.
+ *
+ * STATUS5는 전원과 무관한 응답이지만(네트워크 정보) 예외적으로 인식한다 — `ip` 축을 실어
+ * 보내기 위해서다. mergeState는 online·power만 보므로 ip는 상태 저장에 섞이지 않는다.
  */
 export function parsePayload(suffix, payload) {
   const p = String(payload ?? "").trim();
@@ -49,9 +67,23 @@ export function parsePayload(suffix, payload) {
     } catch {
       return null;
     }
-    const pw = obj && typeof obj === "object" ? obj.POWER : null;
-    return pw === "ON" || pw === "OFF" ? { online: true, power: pw } : null;
+    const pw = extractPower(obj);
+    return pw !== null ? { online: true, power: pw } : null;
     // SENSOR 등 전원이 아닌 텔레메트리는 여기서 걸러져 무시된다.
+  }
+  if (key === "STATUS5") {
+    // `cmnd/<addr>/Status 5` 의 응답. 기기 LAN IP를 여기서만 알 수 있다 —
+    // DHCP라 IP가 미리 정해져 있지 않고, 스캔은 ESP8266이 동시 요청에 약해 못 쓴다.
+    let obj;
+    try {
+      obj = JSON.parse(p);
+    } catch {
+      return null;
+    }
+    const ip = obj?.StatusNET?.IPAddress;
+    if (typeof ip !== "string" || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return null;
+    // power를 모르는 응답이라 null이다. 이걸 'OFF'로 바꾸면 안 된다.
+    return { online: true, power: null, ip };
   }
   return null;
 }

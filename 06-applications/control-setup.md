@@ -104,12 +104,22 @@ curl -s -X POST "https://sewqusncgznypjigmfde.supabase.co/functions/v1/control" 
 ## B. 조명
 
 ```
-Tasmota ──평문 1883──> mosquitto ──> [에이전트] ──HTTPS/WSS──> Supabase ──> admin.html
-         (LAN)          (합정 맥)                  (아웃바운드만)
+Tasmota ──평문 1883──> RPi mosquitto ──rpi-bridge(tailscale)──> 맥 mosquitto ──> [에이전트]
+         (LAN)                                                    (합정 맥)         │
+                                                                                    │ HTTPS/WSS
+                                                                                    ▼
+                                                                        Supabase ──> admin.html
 ```
+
+기기가 붙는 브로커는 **RPi**고, 맥 브로커는 그걸 브릿지로 받아온다. 맥 브로커는 별도로
+AWS IoT Core 로도 브릿지한다(클라우드 릴레이 — 조명 제어 경로와는 무관하다).
 
 **인바운드 포트를 열지 않는다.** 두 방향 다 맥이 나가서 맺는 연결이라 포트포워딩·DDNS·터널이
 전부 불필요하다.
+
+> **`cmnd/# out` 이 QoS 0 이라 rpi-bridge 가 끊긴 동안의 명령은 버려진다.** 그래서 에이전트가
+> 브릿지 생사(`$SYS/broker/connection/rpi-bridge/state`)를 직접 보고, 끊겨 있으면 기기 HTTP 로
+> 우회한다. 기기가 맥과 같은 LAN(`192.168.200.0/24`)에 있어 가능한 우회다.
 
 > **왜 맥이 필요한가**: Tasmota 기기가 LAN 평문 MQTT로만 붙게 돼 있다(ESP8266은 TLS가 버겁다).
 > 그래서 같은 LAN 안에 브로커가 있어야 한다. 냉난방은 클라우드 API라 맥과 무관하다 —
@@ -157,9 +167,30 @@ mosquitto_passwd -c "$(brew --prefix)/etc/mosquitto/passwd" typelounge
 ```bash
 cd 06-applications/control-agent
 PREFIX="$(brew --prefix)"
-sed "s|/opt/homebrew|$PREFIX|g" mosquitto/mosquitto.conf > "$PREFIX/etc/mosquitto/mosquitto.conf"
-mkdir -p "$PREFIX/var/lib/mosquitto" "$PREFIX/var/log/mosquitto"
+RPI_PW='<RPi브로커비번>'
+sed -e "s|/opt/homebrew|$PREFIX|g" -e "s|__RPI_BRIDGE_PASSWORD__|$RPI_PW|" \
+  mosquitto/mosquitto.conf > "$PREFIX/etc/mosquitto/mosquitto.conf"
+mkdir -p "$PREFIX/var/lib/mosquitto" "$PREFIX/var/log/mosquitto" "$PREFIX/etc/mosquitto/certs"
 brew services start mosquitto
+```
+
+**RPi 비밀번호와 AWS 인증서는 레포에 없다.** 설정 파일에는 자리표시자만 있고, 실제 값은 이
+맥에만 존재한다 — mosquitto 에는 `remote_password_file` 이 없어서 값을 파일 밖으로 뺄 방법이
+없기 때문이다. `RPI_PW` 를 안 바꾸면 **브릿지만 조용히 인증 실패한다**(브로커는 정상 기동하고
+조명만 안 먹는다). 값은 RPi 의 `/etc/mosquitto/passwd` 를 만든 사람이 갖고 있다 — 모르면
+`mosquitto_passwd` 로 RPi 에서 `nmwc` 계정을 다시 설정하고 양쪽을 같이 바꾼다.
+
+AWS 브릿지를 쓸 거면 인증서 3종을 `$PREFIX/etc/mosquitto/certs/` 에 놓는다
+(`AmazonRootCA1.pem` · `certificate.pem.crt` · `private.pem.key` — 개인키는 커밋 금지).
+**인증서가 없어도 브로커는 뜨고 조명은 그대로 돈다** (실측: mosquitto 2.1.2 는 설정 로드 때
+죽지 않고 그 브릿지만 실패시킨 뒤 재시도한다). 다만 로그에 `Unable to load CA certificates`
+가 계속 쌓이므로, 클라우드 릴레이를 안 쓸 현장이면 `connection aws-iot-bridge` 블록을 지운다.
+
+브릿지가 실제로 붙었는지 확인한다. `1` 이 나와야 정상이다:
+
+```bash
+mosquitto_sub -h localhost -u typelounge -P '<브로커비번>' \
+  -t '$SYS/broker/connection/rpi-bridge/state' -C 1 -W 3
 ```
 
 확인 — **인증 없이는 거부되고, 계정으로는 붙어야** 정상이다:
@@ -770,6 +801,9 @@ supabase functions deploy control apply claim   # 세 함수가 시도 제한을
 | 알림이 아예 안 온다 | `MATTERMOST_WEBHOOK_URL` 시크릿이 들어갔는지. 없으면 제어는 되고 알림만 건너뛴다 |
 | 같은 알림이 두 번 온다 | 발송은 됐는데 발송 표시가 실패한 경우다. 유실보다 중복이 낫다고 보고 이 방향으로 뒀다 |
 | 온도를 낮춰도 되돌려지지 않는다 | 이용 중(입실 15분 전~퇴실)에만 동작한다. 에어컨이 켜져 있어야 하고(꺼지면 시계 해제), 5분을 채워야 한다 |
+| AWS IoT Core 브릿지가 `CONNACK`까지는 성공하는데 곧바로 끊긴다(`Broken pipe`/`connection closed by client`, 재연결을 반복) | mosquitto 기본값 `try_private true`가 원인이다 — 순수 mosquitto 확장이라 비-mosquitto 브로커(AWS IoT Core 포함)는 이 CONNECT 플래그를 모르고 끊는다. `try_private false`로 바꾼다. 로컬 mosquitto끼리 붙는 rpi-bridge에서는 문제없어서 처음엔 원인이 아닌 줄 알았다 (2026-08-12) |
+| AWS IoT Core 브릿지가 retained·QoS1 메시지를 보낼 때만 끊긴다(QoS0나 retain 없는 QoS1은 정상) | IoT 정책에 `iot:Publish`만 있고 `iot:RetainPublish`가 없는 것이다. AWS IoT Core는 이 둘을 **별개 액션**으로 요구한다 — retain 플래그를 쓰는 토픽에 같이 부여해야 한다. MQTT 3.1.1은 거부 사유를 실어 보낼 방법이 없어 그냥 TCP 연결이 끊긴다(원인이 안 보인다) (2026-08-12) |
+| 같은 서브넷의 다른 기기는 다 ARP로 잡히는데 특정 IP만 `(incomplete)`로 안 잡힌다(기기는 켜져 있다고 확인됨) | 원인 미확정 — AP/클라이언트 격리, 메시 노드 분리 등이 후보지만 이 레포에서는 확인하지 못했다. tailscale처럼 L2에 안 기대는 경로로 우회하는 게 가장 빠른 해결책이었다 (2026-08-11) |
 
 ## 알아둘 것
 

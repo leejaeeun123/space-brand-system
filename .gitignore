@@ -13,6 +13,10 @@ auto.crt
 *.log
 *.bak-*
 
+# 에이전트가 마지막으로 본 기기 LAN IP. DHCP가 준 값이라 그 맥·그 순간에만 참이고,
+# 다른 현장에서 받으면 남의 네트워크 주소를 들고 시작하게 된다(src/device-ips.js).
+.device-ips.json
+
 # 청소 완료 QR 이미지. 토큰을 그림으로 인코딩한 것이라 커밋하면 시크릿을 커밋하는 것과 같다
 # (만드는 법은 control-setup.md L-2).
 cleaning-qr.*

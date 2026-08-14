@@ -10,6 +10,14 @@ const REQUIRED = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "MQTT_URL"];
  */
 export const COMMAND_TTL_MS = 60_000;
 
+/**
+ * MQTT로 발행한 뒤 기기의 `stat` 보고를 이만큼 기다린다. 안 오면 HTTP로 다시 보낸다.
+ *
+ * `COMMAND_TTL_MS`(60초) 안쪽에 넉넉히 들어가야 한다 — 기다리다 명령이 만료되면
+ * 우회할 기회 자체가 사라진다. Tasmota는 정상이면 1초 안에 답한다.
+ */
+export const CONFIRM_TIMEOUT_MS = 4_000;
+
 export function loadConfig() {
   const missing = REQUIRED.filter((k) => !process.env[k]);
   if (missing.length) {
