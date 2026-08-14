@@ -51,9 +51,11 @@
 
 ## 다음 할일
 
-- [ ] **비밀번호 회전 + 해시 전환 실행** — `control-setup.md` M절 2~4단계.
-      안 하면 git 이력에 남은 옛 값이 계속 유효하고, `admin_check`는 만들어놓고 안 쓰는 상태로 남는다.
-      전환·회수 두 마이그레이션은 반드시 같이 밀어야 한다.
+- [x] ~~**비밀번호 회전 + 해시 전환 실행**~~ — **2026-08-14 완료.** M절 2~5단계를 밟았다:
+      새 비밀번호 심기(`admin_set_password`) → Edge 시크릿 `ADMIN_PASSWORD` 교체 → `db push --include-all`
+      (`20260813111000`·`111100`·`20260814150000` 3개 순서대로) → `functions deploy control apply claim`.
+      검증: 위임 함수가 새 비밀번호로 34행 반환 · 옛 PIN 은 SQL·Edge 양쪽에서 401/`invalid password` ·
+      `admin_check` 에 rpc 장부 이식 확인 · `admin_*` 17개 전부 버전관리 하. **시도 제한이 이제 네 번째 표면에서 실효한다.**
 - [x] ~~**게이트의 PostgREST RPC 경로를 시도 제한 안으로**~~ — **2026-08-14 해소.**
       `20260814150000_admin_check_throttle.sql`이 SQL 쪽(`admin_check`)에 같은 장부
       (`auth_attempts`, `fn='rpc'`)를 보게 했다. 두 방법 중 후자 채택 — 게이트만 Edge로

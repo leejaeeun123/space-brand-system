@@ -751,16 +751,18 @@ supabase functions deploy control apply claim   # 세 함수가 시도 제한을
 > `select proname from pg_proc where proname like 'admin\_%' and pronamespace='public'::regnamespace;`
 > 또는 `supabase db dump --schema public`.
 
-### 지금 어디까지 됐나 (2026-08-13)
+### 지금 어디까지 됐나 (2026-08-14 — 회전 완료)
 
-1단계(도구 마이그레이션)·Edge Function 배포·CSP·워치독까지 **적용 완료**다.
-**2~4단계(비밀번호 회전 + 전환)는 안 했다** — 형운이 다음에 하기로 했다(2026-08-13).
+**1~5단계 전부 적용 완료.** 2026-08-14 에 비밀번호를 회전하고 전환·회수 마이그레이션을 밀었다.
 
 그래서 지금 상태는:
-- 어드민은 **기존 비밀번호**로 그대로 동작한다. `admin_check`는 만들어져 있지만 아무도 안 쓴다.
-- 시도 제한·CSP·SRI·워치독 같은 새 방어는 **이미 살아 있다**.
-- 옛 평문 PIN은 아직 유효하다 — 전환(`20260813111000`)을 밀어야 무효가 된다.
-  `supabase migration list`에서 그 줄만 원격 칸이 비어 있는 것으로 확인할 수 있다.
+- 어드민은 **새 비밀번호**로만 들어간다. `admin_check`(bcrypt 해시 검증)가 실제 뿌리다 — 열 개 `admin_*` 함수가 전부 이것에 위임한다.
+- **옛 평문 PIN 은 무효화됐다** — SQL 경로(`admin_check`)도 Edge 경로(control)도 옛 값을 401/`invalid password`로 거부한다(2026-08-14 실측). git 이력의 `20260803000000` 평문 PIN 은 이제 쓸모가 없다.
+- 라이브 전용이던 `admin_*` 함수 다섯(`admin_add_reservation` 등)이 회수되어 **17개 전부 버전 관리 하**에 들어왔다.
+- 게이트 로그인의 PostgREST RPC 경로도 이제 시도 제한 안이다 — `20260814150000`이 `admin_check` 안에 `fn='rpc'` 장부를 얹었고, 그것이 이번 회전으로 비로소 실효하게 됐다.
+- 시도 제한·CSP·SRI·워치독 같은 방어는 이전부터 살아 있다.
+
+> ⚠️ **새 비밀번호는 이 문서·레포 어디에도 적지 않는다.** Supabase 시크릿 `ADMIN_PASSWORD` 와 DB `admin_secret`(bcrypt 해시)에만 있다. 둘을 바꿀 땐 반드시 같은 값으로 함께 바꾼다(2~3단계).
 
 ### 알아둘 것
 
