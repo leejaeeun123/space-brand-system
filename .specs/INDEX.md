@@ -7,6 +7,16 @@
 | 스펙 | 상태 | 스프린트 | 담당자 | 의존성 | 최종 갱신 |
 |------|------|---------|--------|--------|----------|
 | [cleaning_sms](spec_cleaning_sms/spec.md) | 🟢 | - | hyungwoon | - | 2026-08-09 |
+| [reservation_sync](spec_reservation_sync/spec.md) | ✅ | - | hyungwoon | - | 2026-08-14 |
+| [guest_sms](spec_guest_sms/spec.md) | ✅ | - | hyungwoon | spec_reservation_sync | 2026-08-14 |
+| [space_control](spec_space_control/spec.md) | ✅ | - | hyungwoon | spec_admin_auth | 2026-08-14 |
+| [reservation_automation](spec_reservation_automation/spec.md) | ✅ | - | hyungwoon | spec_space_control | 2026-08-14 |
+| [cctv](spec_cctv/spec.md) | ✅ | - | hyungwoon | spec_admin_auth | 2026-08-14 |
+| [support_apply](spec_support_apply/spec.md) | ✅ | - | hyungwoon | spec_admin_auth | 2026-08-14 |
+| [payback_claim](spec_payback_claim/spec.md) | ✅ | - | hyungwoon | spec_admin_auth | 2026-08-14 |
+| [admin_auth](spec_admin_auth/spec.md) | ✅ | - | hyungwoon | - | 2026-08-14 |
+
+> ✅ 8건(reservation_sync ~ admin_auth)은 2026-08-14 라이브 시스템을 역기획한 스펙이다 — 기능은 구현·운영 중이고, 각 PROGRESS.md의 "남은 일"에 미검증·후속 항목이 남아 있다. 상위 요구사항 정본: [`docs/prd/typelounge-ops/typelounge-ops-PRD.md`](../docs/prd/typelounge-ops/typelounge-ops-PRD.md)
 
 ## 상태 범례
 

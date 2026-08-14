@@ -37,6 +37,7 @@
 - [ ] `supabase db push` + `supabase functions deploy control`
 - [ ] 하루 돌려 07:00 다이제스트 수신 확인 (K-3 체크리스트)
 - [ ] 확인되면 시크릿을 담당자 번호로 교체
+- [ ] (범위 확인, 2026-08-14 역기획 감사) 현장 QR 청소 완료 처리(`cleaning-done.html` + `cleaning_pending`/`cleaning_complete` + 출처 기록 `20260813140000`, PR #45·#48·#73)는 이 스펙 범위 밖이고 **별도 스펙이 없다** — 절차 정본은 `control-setup.md` L절, 요구사항 정본은 PRD EPIC 6(US-6.3). 스펙으로 승격할지 판단 필요
 
 ## 결정 기록
 
