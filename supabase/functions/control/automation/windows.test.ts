@@ -13,9 +13,11 @@ import {
   checkinDueState,
   dueState,
   endTime,
+  handsOverToNext,
   isOccupied,
   isSweeping,
   kstDay,
+  prepDueState,
   prepTime,
   sweepElapsedMinutes,
   targetTime,
@@ -97,6 +99,87 @@ Deno.test("isSweeping — 다음 예약이 바로 붙어 있으면 스윕하지 
 Deno.test("예약이 없으면 어느 창도 열리지 않는다", () => {
   assertEquals(isOccupied([], kst("2026-08-10T18:05:00")), false);
   assertEquals(isSweeping([], kst("2026-08-10T18:05:00")), false);
+});
+
+Deno.test("handsOverToNext — 붙어 있는 다음 예약의 준비를 퇴실 종료가 되돌리지 않는다", () => {
+  // 스윕은 처음부터 이걸 봤는데 예정된 퇴실 종료만 안 봤다. 그래서 2026-08-14에 앞 예약이
+  // 퇴실하는 순간 다음 손님을 위해 켜둔 것이 통째로 꺼졌다.
+
+  // 붙어 있는 경우 — 18:00 퇴실, 다음이 18:00 시작(준비 17:45).
+  const back = { date: "2026-08-10", start_time: "18:00:00", end_time: "20:00:00" };
+  assertEquals(handsOverToNext([RES, back], RES, kst("2026-08-10T18:00:00")), true);
+  // 캐치업 창 안에서 늦게 돌아도 판정은 같아야 한다 — 늦은 인계도 인계다.
+  assertEquals(handsOverToNext([RES, back], RES, kst("2026-08-10T18:09:00")), true);
+
+  // 경계 — 다음 예약이 15분 뒤 시작이면 준비 시각이 정확히 퇴실 시각이다. 준비가 이미
+  // 같은 분에 돌았으므로 여기서도 끄면 안 된다.
+  const exactly15 = { ...back, start_time: "18:15:00" };
+  assertEquals(handsOverToNext([RES, exactly15], RES, kst("2026-08-10T18:00:00")), true);
+
+  // 16분 뒤 시작이면 준비(18:01)가 아직 안 돌았다 — 퇴실 종료가 정상적으로 돌아야 한다.
+  const after16 = { ...back, start_time: "18:16:00" };
+  assertEquals(handsOverToNext([RES, after16], RES, kst("2026-08-10T18:00:00")), false);
+
+  // 다음 예약이 없으면 당연히 끈다.
+  assertEquals(handsOverToNext([RES], RES, kst("2026-08-10T18:00:00")), false);
+});
+
+Deno.test("handsOverToNext — 자기 자신은 인계 상대가 아니다", () => {
+  // 퇴실 시각엔 `now < endTime(r)`가 이미 거짓이라 결과는 같지만, 시각이 같은 예약이
+  // 둘 있을 때(중복 동기화) 자기 자신을 인계 상대로 세면 아무 예약도 종료되지 않는다.
+  const twin: ReservationWindow = { ...RES };
+  assertEquals(handsOverToNext([RES], RES, kst("2026-08-10T16:00:00")), false);
+  assertEquals(handsOverToNext([RES, twin], RES, kst("2026-08-10T16:00:00")), true);
+});
+
+Deno.test("prepDueState — 앞 손님이 아직 있으면 준비를 그 퇴실 시각까지 미룬다", () => {
+  // RES는 14:00~18:00. 다음이 18:00~20:00이면 준비 시각은 17:45 — 앞 손님의 마지막 15분이다.
+  // 그대로 쏘면 앞 손님의 에어컨이 26도·냉방으로 바뀌고 SiHAS 조명이 꺼진다.
+  const next: ReservationWindow = { date: "2026-08-10", start_time: "18:00:00", end_time: "20:00:00" };
+  const both = [RES, next];
+
+  assertEquals(prepDueState(both, next, kst("2026-08-10T17:45:00")), "wait");
+  assertEquals(prepDueState(both, next, kst("2026-08-10T17:59:00")), "wait");
+  // 앞 예약이 끝나는 그 분에 준비가 돈다 = 인계. 같은 분에 도는 퇴실 종료는
+  // `handsOverToNext`가 건너뛴다 — 두 판정 중 하나만 있으면 이 시나리오가 안 막힌다.
+  assertEquals(prepDueState(both, next, kst("2026-08-10T18:00:00")), "fire");
+
+  // 앞 예약이 없으면 평소대로 15분 전에 돈다.
+  assertEquals(prepDueState([next], next, kst("2026-08-10T17:45:00")), "fire");
+});
+
+Deno.test("prepDueState — 겹쳐 잡힌 예약은 조용히 수습하지 않고 만료시킨다", () => {
+  // 앞 예약이 다음 예약의 입실 시각 + 캐치업 창(10분)을 넘겨서까지 이어지는 경우.
+  // 뒤늦게 준비를 쏘면 이미 이용 중인 손님이 맞춰둔 값과 싸우므로, 만료로 두고 채널에 띄운다.
+  const long: ReservationWindow = { date: "2026-08-10", start_time: "14:00:00", end_time: "18:30:00" };
+  const next: ReservationWindow = { date: "2026-08-10", start_time: "18:00:00", end_time: "20:00:00" };
+  const both = [long, next];
+
+  assertEquals(prepDueState(both, next, kst("2026-08-10T18:05:00")), "wait");
+  assertEquals(prepDueState(both, next, kst("2026-08-10T18:30:00")), "expired");
+});
+
+Deno.test("prepDueState — 시작이 같은 중복 예약은 서로를 앞 손님으로 보지 않는다", () => {
+  // 같은 예약이 두 행으로 동기화됐을 때 시작 시각을 `<=`로 비교하면 서로를 기다리며
+  // 양쪽 다 영원히 준비를 미룬다 — 그날 준비가 통째로 안 돈다.
+  const twin: ReservationWindow = { ...RES };
+  assertEquals(prepDueState([RES, twin], RES, kst("2026-08-10T13:45:00")), "fire");
+});
+
+Deno.test("handsOverToNext — 자정을 넘겨 이어지는 예약도 인계로 본다", () => {
+  // 22:00~02:00 예약의 종료는 다음 날 02:00이다(endTime). 그 뒤에 02:00 시작 예약이 붙으면
+  // 준비는 01:45 — 날짜 문자열만 보면 '어제와 오늘'이라 놓치기 쉽다.
+  const night: ReservationWindow = {
+    date: "2026-08-10",
+    start_time: "22:00:00",
+    end_time: "02:00:00",
+  };
+  const morning: ReservationWindow = {
+    date: "2026-08-11",
+    start_time: "02:00:00",
+    end_time: "04:00:00",
+  };
+  assertEquals(handsOverToNext([night, morning], night, kst("2026-08-11T02:00:00")), true);
 });
 
 Deno.test("sweepElapsedMinutes — 스윕 중이 아니면 null, 맞으면 경과 분", () => {

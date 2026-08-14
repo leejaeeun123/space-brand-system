@@ -139,3 +139,69 @@ export function isSweeping(reservations: ReservationWindow[], now: Date): boolea
     return past >= 0 && past < SWEEP_WINDOW_MINUTES;
   });
 }
+
+/**
+ * 이 예약의 퇴실이 **다음 손님에게 넘겨주는 것**인가 — 다른 예약의 입실 준비가 이미 시작됐나.
+ *
+ * 스윕은 처음부터 이걸 봤다(`isSweeping` → `isOccupied`). **예정된 퇴실 종료만 안 봤다.**
+ * 다음 예약이 15분 안에 붙어 있으면 그 준비(입실 15분 전)가 앞 예약의 퇴실보다 **먼저** 돌고,
+ * 뒤이어 퇴실 종료가 전원을 통째로 내려 방금 맞춘 26도·냉방과 조명을 되돌린다 — 다음 손님이
+ * 꺼진 방으로 들어온다. 2026-08-14에 실제로 이렇게 됐다(앞 예약 퇴실 → 붙어 있던 다음 예약).
+ *
+ * 스윕이 아니라 여기서도 막아야 하는 이유는 순서다. 스윕은 퇴실 **후** 매 틱 도는 지속 강제라
+ * 준비된 상태를 만나면 스스로 물러나지만, 퇴실 종료는 예약당 한 번 도는 예정된 전환이라
+ * 이미 끝난 준비 위에 그대로 얹힌다.
+ *
+ * `r` 자신은 셈에서 뺀다. 퇴실 시각엔 `now < endTime(r)`가 이미 거짓이라 결과는 같지만,
+ * 판정의 뜻이 '**다른** 예약이 이 공간을 쓰는 중'이라는 걸 코드가 스스로 말해야 한다.
+ */
+export function handsOverToNext(
+  reservations: ReservationWindow[],
+  r: ReservationWindow,
+  now: Date,
+): boolean {
+  return reservations.some((o) => o !== r && prepTime(o) <= now && now < endTime(o));
+}
+
+/**
+ * `r`보다 **먼저 시작한** 예약이 아직 안 끝났나 — 즉 앞 손님이 아직 방에 있나.
+ *
+ * 시작이 같은 예약은 세지 않는다(`<`). 같은 예약이 중복 동기화로 두 행이 되면 서로를
+ * 앞 손님으로 보고 **양쪽 다 영원히 준비를 미루기** 때문이다.
+ */
+function blockedByCurrentGuest(
+  reservations: ReservationWindow[],
+  r: ReservationWindow,
+  now: Date,
+): boolean {
+  const start = targetTime(r.date, r.start_time);
+  return reservations.some((o) =>
+    o !== r && targetTime(o.date, o.start_time) < start && now < endTime(o)
+  );
+}
+
+/**
+ * 입실 준비의 **최종** due 판정 — `checkinDueState`에 '앞 손님이 아직 있나'를 얹는다.
+ *
+ * 준비는 입실 15분 전에 도는데, 예약이 연달아 있으면 그 15분이 **앞 손님의 마지막 15분**이다.
+ * 그대로 쏘면 앞 손님이 맞춰둔 에어컨이 26도·냉방으로 바뀌고 SiHAS 조명이 꺼진다
+ * (준비의 조명 조합이 나이트모드와 같다). 손님 입장에선 퇴실 15분 전에 방이 제멋대로 변한다.
+ *
+ * 그래서 앞 예약이 끝날 때까지 미룬다. **리드타임이 0이 되는 건 손해가 아니다** — 예열의
+ * 목적은 빈 방을 데우거나 식히는 것인데, 이 경우 방은 이미 가동 중이다.
+ *
+ * 미룬 준비는 앞 예약의 퇴실 시각에 도는데, 그건 **퇴실 종료와 같은 분**이다. 한 틱 안에서
+ * 둘의 순서는 예약 배열 순서에 달려 있어 정해져 있지 않다 — `handsOverToNext`가 그 퇴실
+ * 종료를 건너뛰지 않으면 순서에 따라 준비가 도로 꺼진다. **두 판정은 같이 있어야 한다.**
+ *
+ * 앞 예약이 `r`의 입실 시각 + 캐치업 창까지도 안 끝나면(겹쳐 잡힌 예약) 준비는 만료된다 —
+ * 그때는 채널에 ❌로 뜬다. 겹친 예약을 코드가 조용히 수습하지 않는 편이 맞다.
+ */
+export function prepDueState(
+  reservations: ReservationWindow[],
+  r: ReservationWindow,
+  now: Date,
+): DueState {
+  if (blockedByCurrentGuest(reservations, r, now)) return "wait";
+  return checkinDueState(r, now);
+}

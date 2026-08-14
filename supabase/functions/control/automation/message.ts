@@ -135,7 +135,14 @@ function outcome(e: EventRow): string {
   // 공간 전체 사건은 detail이 전부다 — 보내지도 못한 명령의 '켜기/끄기'를 적으면
   // 마치 시도는 했다는 것처럼 읽힌다. camera_id도 없어야 진짜 '공간 전체'다 — 카메라 사건은
   // device_id가 항상 null이지만(카메라는 devices 테이블에 없다) 특정 카메라를 가리킨다.
-  if (e.device_id === null && e.camera_id === null) return `❌ ${e.detail ?? "실행하지 못했습니다"}`;
+  //
+  // ❌는 **status를 보고** 붙인다. 여기 오는 것이 전부 실패였을 땐 무조건 붙여도 같았지만,
+  // 이제 '일부러 안 했다'(다음 예약 인계로 퇴실 종료를 건너뜀)가 같은 모양으로 들어온다.
+  // 정상 판단에 ❌를 달면 사람이 ❌를 무시하는 법을 배운다 — 그 순간 진짜 실패도 같이 묻힌다.
+  if (e.device_id === null && e.camera_id === null) {
+    if (e.status === "failed") return `❌ ${e.detail ?? "실행하지 못했습니다"}`;
+    return e.detail ?? "건너뜀";
+  }
 
   const label = ACTION_LABEL[e.action] ?? e.action;
   let what = label;

@@ -24,12 +24,13 @@ import { type CleaningSweepResult, sweepCleaning } from "../cleaning/sweep.ts";
 import { type Camera, type CameraState, listCameras } from "../cameras.ts";
 import {
   CATCHUP_WINDOW_MINUTES,
-  checkinDueState,
   type DueState,
   dueState,
   endTime,
+  handsOverToNext,
   isOccupied,
   isSweeping,
+  prepDueState,
   sweepElapsedMinutes,
 } from "../automation/windows.ts";
 
@@ -69,6 +70,10 @@ const TRANSITION_KIND = {
  * 이 실패 기록만 `device_id`가 null이다. 전환이 시작조차 못 한 것은 특정 기기의 일이 아니고,
  * 기기를 하나 골라 적으면 거짓이다. 개별 명령의 실패는 지금처럼 `dispatch.issue`가 기기별로
  * 남긴다 — 그건 실제로 그 기기의 일이다.
+ *
+ * `skip`은 **일부러 안 하는 경우**다(퇴실 종료만 넘긴다 — `handsOverToNext`). 실패가 아니라
+ * 판단이므로 `status: "ok"`로 남겨 ❌를 달지 않는다. 그래도 장부에는 남긴다 — 퇴실했는데
+ * 방이 켜져 있는 이유가 채널에 없으면, 그건 자동화가 죽은 것과 구분되지 않는다.
  */
 async function runTransition(
   sb: SupabaseClient,
@@ -82,22 +87,37 @@ async function runTransition(
   label: string,
   column: "checkin_automation_at" | "checkout_automation_at",
   fire: () => Promise<void>,
+  /** 실행하지 **않을** 사유. null이면 평소대로 실행한다. */
+  skip?: () => string | null,
 ): Promise<boolean> {
   if (state === "wait") return false;
   if (!await claimTransition(sb, r.id, column, now)) return false;
 
-  const failed = (detail: string) =>
+  const note = (status: "ok" | "failed", detail: string) =>
     record(sb, {
       device_id: null,
       kind: TRANSITION_KIND[column],
       action: TRANSITION_KIND[column],
-      status: "failed",
+      status,
       detail,
     });
 
+  // **선점 뒤에, 만료보다 먼저** 본다.
+  //
+  // 선점 앞에 두면 컬럼이 빈 채로 남아 다음 틱이 같은 예약을 다시 잡고, 캐치업 창(10분)을
+  // 넘기는 순간 "퇴실 종료를 못 했다"는 ❌가 뜬다 — 정상 인계가 매번 사고처럼 보인다.
+  // 만료 뒤에 두면 늦게 돈 인계가 실패로 기록된다. 넘겨주는 중이라면 늦었든 아니든
+  // 안 하는 것이 맞고, 그걸 '못 했다'로 적으면 거짓이다.
+  const reason = skip?.();
+  if (reason) {
+    console.info(`${label} 건너뜀 — ${reason}`, r.id);
+    await note("ok", reason);
+    return false;
+  }
+
   if (state === "expired") {
     console.warn(`${label} 창 만료 — 건너뜀`, r.id);
-    await failed(`${label} 시각을 ${CATCHUP_WINDOW_MINUTES}분 넘겨 실행하지 못했습니다`);
+    await note("failed", `${label} 시각을 ${CATCHUP_WINDOW_MINUTES}분 넘겨 실행하지 못했습니다`);
     return false;
   }
 
@@ -106,7 +126,7 @@ async function runTransition(
     return true;
   } catch (e) {
     console.error(`${label} 실패`, r.id, e);
-    await failed(e instanceof Error ? e.message : String(e));
+    await note("failed", e instanceof Error ? e.message : String(e));
     return false;
   }
 }
@@ -170,7 +190,10 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
   for (const r of reservations) {
     if (!r.checkin_automation_at) {
       const ok = await runTransition(
-        sb, r, checkinDueState(r, now), now, "입실 준비", "checkin_automation_at",
+        // `checkinDueState`가 아니라 `prepDueState`다 — 앞 손님이 아직 방에 있으면
+        // 그 퇴실 시각까지 미룬다. 그대로 쏘면 앞 손님의 마지막 15분에 에어컨과 조명이
+        // 제멋대로 바뀐다(형운 결정, 2026-08-14).
+        sb, r, prepDueState(reservations, r, now), now, "입실 준비", "checkin_automation_at",
         async () => await firePrep(sb, await getDevices()),
       );
       if (ok) prepFired++;
@@ -179,6 +202,12 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
       const ok = await runTransition(
         sb, r, dueState(endTime(r), now), now, "퇴실 종료", "checkout_automation_at",
         async () => await fireShutdown(sb, await getDevices()),
+        // 다음 예약이 15분 안에 붙어 있으면 그 준비가 **이미 돌았다.** 여기서 전원을 내리면
+        // 방금 맞춘 26도·냉방과 조명이 그대로 되돌아가 다음 손님이 꺼진 방으로 들어온다.
+        () =>
+          handsOverToNext(reservations, r, now)
+            ? "다음 예약의 입실 준비가 이미 시작돼 전원을 내리지 않았습니다"
+            : null,
       );
       if (ok) shutdownFired++;
     }

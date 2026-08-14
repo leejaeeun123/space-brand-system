@@ -156,6 +156,24 @@ Deno.test("전환 자체가 못 돈 것은 '공간 전체' 한 줄로, 사유만
   assertEquals(msg.includes("끄기 —"), false);
 });
 
+Deno.test("일부러 안 한 전환에는 ❌를 달지 않는다", () => {
+  // 다음 예약이 붙어 있어 퇴실 종료를 건너뛴 것은 실패가 아니라 판단이다. 여기에 ❌를 달면
+  // 붙은 예약이 있는 날마다 채널에 실패가 뜨고, 사람이 ❌를 무시하는 법을 배운다.
+  const msg = buildMessage("shutdown", [
+    ev({
+      device_id: null,
+      kind: "shutdown",
+      action: "shutdown",
+      status: "ok",
+      detail: "다음 예약의 입실 준비가 이미 시작돼 전원을 내리지 않았습니다",
+    }),
+  ], NAMES);
+
+  assertStringIncludes(msg, "| 공간 전체 | 다음 예약의 입실 준비가 이미 시작돼 전원을 내리지 않았습니다");
+  assertEquals(msg.includes("❌"), false);
+  assertEquals(msg.includes("⚠️"), false);
+});
+
 Deno.test("유휴 경보는 status가 ok라도 제목이 스스로 경고를 단다", () => {
   // 아무 명령도 실패하지 않았으므로 '실패 포함' 규칙에 걸리지 않는다. 그런데 이건
   // 냉난방이 밤새 도는 신호라 반드시 눈에 띄어야 한다.
