@@ -6,7 +6,7 @@
  */
 
 import { COMMAND_TTL_MS, CONFIRM_TIMEOUT_MS } from "./config.js";
-import { isBridgeUp, publish } from "./mqtt.js";
+import { publish } from "./mqtt.js";
 import {
   awaitConfirmation,
   decideDelivery,
@@ -43,14 +43,11 @@ export async function executeCommand(row, ctx) {
   }
 
   const cmd = parseCommandTopic(topic, payload);
-  // 이 주소로 지금까지 본 것 중 가장 최신으로 기록해 둔다. 이 명령이 나중에(Tier 3
+  // 이 주소로 지금까지 본 것 중 가장 최신으로 기록해 둔다. 이 명령이 나중에(확인
   // 타임아웃 뒤) HTTP로 우회하려 할 때, 그 사이 더 최신 명령이 왔으면 우회를 막는 데 쓴다.
   if (cmd) markLatestCommand(cmd.address, Date.parse(row.requested_at));
 
-  const first = decideDelivery({
-    localConnected: mqttClient.connected,
-    bridgeUp: isBridgeUp(),
-  });
+  const first = decideDelivery({ localConnected: mqttClient.connected });
 
   if (first.action === "http") {
     console.warn(`[cmd] ${first.reason} → HTTP로 우회합니다: ${topic} = ${payload}`);
@@ -76,10 +73,12 @@ export async function executeCommand(row, ctx) {
     return;
   }
 
-  // **발행 성공은 도착이 아니다.** 기기가 스스로 보고할 때까지 기다렸다가 판정한다.
+  // **발행 성공은 도착이 아니다.** 한 번의 발행이 브로커에서 rpi-bridge와 AWS 양쪽으로
+  // 퍼지지만, 어느 쪽으로 갔는지는 여기서 알 수 없고 알 필요도 없다 — 기기가 스스로
+  // 보고할 때까지 기다렸다가 판정한다. 그 보고는 경로를 안 가린다.
   const confirmed = confirmation ? await confirmation : true;
 
-  const second = decideDelivery({ localConnected: true, bridgeUp: true, confirmed });
+  const second = decideDelivery({ localConnected: true, confirmed });
   if (second.action === "http") {
     console.warn(`[cmd] ${second.reason} → HTTP로 다시 보냅니다: ${topic} = ${payload}`);
     await deliverByHttp(row, ctx, cmd, second);
@@ -96,7 +95,7 @@ export async function executeCommand(row, ctx) {
  * 사라지고, 사람은 조명이 왜 안 켜지는지 화면에서 알 방법이 없다.
  */
 async function deliverByHttp(row, { registry, applyState }, cmd, decision) {
-  // 확인 대기(Tier 3)에 몇 초를 썼다. 그 사이에 명령이 늙었으면 여기서 버린다 —
+  // 확인 대기(Tier 2)에 몇 초를 썼다. 그 사이에 명령이 늙었으면 여기서 버린다 —
   // 새벽 3시에 조명을 켜지 않는다는 규칙은 우회 경로에도 똑같이 적용된다.
   if (isExpired(row.requested_at)) {
     await registry.markCommand(row.id, "expired");

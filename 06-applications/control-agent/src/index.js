@@ -2,11 +2,11 @@
  * 합정 현장 상주 에이전트 — 로컬 mosquitto와 Supabase를 잇는다.
  *
  *   Tasmota ──LAN──> RPi mosquitto ──rpi-bridge(tailscale)──> 맥 mosquitto ──> [이 프로세스]
- *                                                                                  │
- *                                                              Supabase <──HTTPS/WSS┘
+ *                          ↑                                       │                │
+ *                          └──── AWS IoT Core ←── aws-iot-cmnd-bridge┘   Supabase <──┘
+ *                                (Pi 자체 브릿지)                          HTTPS/WSS
  *
- * 기기가 붙는 브로커는 RPi고, 맥 브로커는 그걸 브릿지로 받아온다. 맥 브로커는 별도로
- * AWS IoT Core로도 브릿지한다(클라우드 릴레이 — 이 경로와는 무관하다).
+ * 기기가 붙는 브로커는 RPi고, 맥 브로커는 그걸 브릿지로 받아온다.
  *
  * 두 방향이 있다:
  *   하행(명령)  Supabase Realtime INSERT → mosquitto cmnd 발행 → 브릿지 → 기기
@@ -14,8 +14,13 @@
  *
  * 인바운드 포트를 열지 않는다. 둘 다 이 프로세스가 나가서 맺는 연결이다.
  *
- * 하행에는 우회로가 하나 더 있다: 브릿지가 죽으면(`cmnd/# out`이 QoS 0이라 그때 발행된
- * 명령은 버려진다) 같은 LAN에 있는 기기에 HTTP로 직접 말한다(tasmota-http.js).
+ * **하행은 한 번 발행하면 경로가 둘로 갈라진다.** 맥 브로커가 같은 `cmnd/#`를 rpi-bridge와
+ * aws-iot-cmnd-bridge로 **항상 병렬** 릴레이하고, Pi는 자체 AWS 브릿지로 후자를 직접 받는다.
+ * tailscale이 끊겨도 명령이 기기까지 가는 길이 남는다는 뜻이다. 이 프로세스는 어느 쪽으로
+ * 갔는지 모르고, 알 필요도 없다 — 기기가 `stat`으로 답하면 도착한 것이다.
+ *
+ * 그래도 답이 없으면 우회로가 하나 더 있다: 같은 LAN에 있는 기기에 HTTP로 직접
+ * 말한다(tasmota-http.js).
  */
 
 import { createClient } from "@supabase/supabase-js";

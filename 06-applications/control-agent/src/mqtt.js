@@ -15,8 +15,8 @@ const QOS = 1;
  * mosquitto가 rpi-bridge 생사를 알려주는 토픽(retained). `"1"`=붙음, `"0"`=끊김.
  *
  * **`client.connected`와 다른 것을 본다.** 그건 맥이 자기 로컬 브로커에 붙었는지일 뿐이라
- * 맥이 켜져 있는 한 항상 참이다. 정작 기기까지 가는 구간은 이 브릿지고, `cmnd/# out`이
- * QoS 0이라 브릿지가 죽어 있으면 발행은 성공하는데 메시지는 버려진다.
+ * 맥이 켜져 있는 한 항상 참이다. 정작 기기까지 가는 구간은 브릿지고, `cmnd/# out`이
+ * QoS 0이라 이 브릿지가 죽어 있으면 발행은 성공하는데 그 경로의 메시지는 버려진다.
  */
 const BRIDGE_STATE_TOPIC = "$SYS/broker/connection/rpi-bridge/state";
 
@@ -24,9 +24,15 @@ const BRIDGE_STATE_TOPIC = "$SYS/broker/connection/rpi-bridge/state";
 let bridgeUp = null;
 
 /**
- * 모를 때(null) 호출부는 낙관적으로 발행한다. false로 가정하면 브릿지 알림이 없는 브로커에서
- * 모든 명령이 HTTP로 새는데, 그건 '모른다'를 '고장났다'로 읽는 것이다.
- * 낙관적으로 보내도 확인 대기(Tier 3)가 그물이 된다.
+ * ⚠️ **이 값은 배달 경로 판정에 쓰지 않는다 — 관측용이다.**
+ *
+ * 예전에는 `decideDelivery`가 이걸 보고 "브릿지가 죽었으면 기다리지 말고 바로 HTTP"로
+ * 갈랐다. 지금은 mosquitto가 같은 `cmnd/#`를 AWS IoT Core로도 항상 병렬로 내보내므로
+ * (mosquitto.conf의 aws-iot-cmnd-bridge) 이 브릿지가 죽었다는 게 유실 확정이 아니고,
+ * 그 상태에서 HTTP로 직행하면 AWS로 나간 사본이 확인될 기회를 뺏는다.
+ *
+ * **다시 `decideDelivery`에 연결하지 말 것.** 그러면 병렬 경로를 만든 이유가 사라진다.
+ * 남겨둔 이유는 아래 상태 전이 로그다 — "조명이 왜 느리지"를 추적할 때 첫 단서가 된다.
  */
 export function isBridgeUp() {
   return bridgeUp;
@@ -57,7 +63,9 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
   client.on("message", (topic, payload) => {
     if (topic === BRIDGE_STATE_TOPIC) {
       bridgeUp = payload.toString().trim() === "1";
-      console.log(`[mqtt] rpi-bridge ${bridgeUp ? "연결됨" : "끊김 — 명령은 HTTP로 우회합니다"}`);
+      console.log(
+        `[mqtt] rpi-bridge ${bridgeUp ? "연결됨" : "끊김 — 명령은 AWS 경로로 갑니다(확인 없으면 HTTP 우회)"}`,
+      );
       return;
     }
     try {

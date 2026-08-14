@@ -1,5 +1,5 @@
 /**
- * delivery.js 회귀 방지 — 단일 책임: 3단계 판정과 '확인'의 정의를 못에 박는다.
+ * delivery.js 회귀 방지 — 단일 책임: 2단계 판정과 '확인'의 정의를 못에 박는다.
  *
  * 브로커도 네트워크도 필요 없다. 판정이 입력만으로 결정되게 만든 이유가 이것이다 —
  * 실기기 없이 못 돌리는 규칙은 결국 안 돌리게 되고, 안 돌리는 테스트는 없는 것과 같다.
@@ -17,38 +17,36 @@ import {
 } from "../src/delivery.js";
 
 test("Tier 1: 로컬 브로커가 없으면 기다리지 않고 바로 HTTP", () => {
-  const d = decideDelivery({ localConnected: false, bridgeUp: true });
+  const d = decideDelivery({ localConnected: false });
   assert.equal(d.tier, 1);
   assert.equal(d.action, "http");
-  // 브릿지가 살아 있어도 로컬이 없으면 발행할 곳 자체가 없다.
-  assert.equal(decideDelivery({ localConnected: false, bridgeUp: false }).tier, 1);
-  assert.equal(decideDelivery({ localConnected: false, bridgeUp: null }).action, "http");
+  // 확인 결과가 뭐든 로컬이 없으면 발행할 곳 자체가 없다 — Tier 1이 먼저 걸린다.
+  assert.equal(decideDelivery({ localConnected: false, confirmed: true }).tier, 1);
+  assert.equal(decideDelivery({ localConnected: false, confirmed: false }).action, "http");
 });
 
-test("Tier 2: 브릿지가 끊겼으면 QoS 0이라 유실 확정 — 바로 HTTP", () => {
-  const d = decideDelivery({ localConnected: true, bridgeUp: false });
+test("Tier 2: 로컬 브로커가 있으면 우선 한 번 발행한다", () => {
+  const d = decideDelivery({ localConnected: true });
   assert.equal(d.tier, 2);
-  assert.equal(d.action, "http");
-});
-
-test("Tier 3: 둘 다 정상이면 우선 발행한다", () => {
-  const d = decideDelivery({ localConnected: true, bridgeUp: true });
-  assert.equal(d.tier, 3);
   assert.equal(d.action, "publish");
 });
 
-test("Tier 3: 기기 보고로 확인되면 끝, 안 오면 HTTP로 다시 보낸다", () => {
-  assert.equal(decideDelivery({ localConnected: true, bridgeUp: true, confirmed: true }).action, "done");
-  const missed = decideDelivery({ localConnected: true, bridgeUp: true, confirmed: false });
-  assert.equal(missed.tier, 3);
+test("Tier 2: 기기 보고로 확인되면 끝, 안 오면 HTTP로 다시 보낸다", () => {
+  assert.equal(decideDelivery({ localConnected: true, confirmed: true }).action, "done");
+  const missed = decideDelivery({ localConnected: true, confirmed: false });
+  assert.equal(missed.tier, 2);
   assert.equal(missed.action, "http");
 });
 
-test("브릿지 상태 '모름'(null)은 Tier 2가 아니다 — 낙관적으로 발행한다", () => {
-  // false로 취급하면 브릿지 알림이 없는 브로커에서 모든 명령이 HTTP로 샌다.
-  const d = decideDelivery({ localConnected: true, bridgeUp: null });
-  assert.equal(d.tier, 3);
-  assert.equal(d.action, "publish");
+test("브릿지 상태는 판정에 안 섞인다 — 남은 인자를 줘도 결과가 안 바뀐다", () => {
+  // 예전에는 `bridgeUp === false`면 발행을 건너뛰고 바로 HTTP였다. 지금은 mosquitto가
+  // 같은 cmnd를 AWS로도 병렬 릴레이하므로 '브릿지 끊김'이 유실 확정이 아니다 — 그때
+  // HTTP로 직행하면 AWS로 간 사본이 확인될 기회를 뺏는다. 이 테스트가 그 회귀를 막는다.
+  for (const stray of [false, true, null]) {
+    const d = decideDelivery({ localConnected: true, bridgeUp: stray });
+    assert.equal(d.tier, 2, `bridgeUp=${stray}에서도 Tier 2여야 한다`);
+    assert.equal(d.action, "publish", `bridgeUp=${stray}에서도 발행해야 한다`);
+  }
 });
 
 test("parseCommandTopic: cmnd 토픽을 HTTP 문법으로 바꾼다", () => {

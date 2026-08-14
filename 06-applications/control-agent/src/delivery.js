@@ -8,39 +8,49 @@
  * 있으면 메시지가 큐에 쌓이지도 않고 사라진다. 결과: 조명은 그대로인데 화면은 '보냄'.
  * `pending`으로 남지 않으니 재시도(drainPending)도 영원히 안 걸렸다.
  *
- * 그래서 셋으로 나눠 본다 — 어디까지 살아 있는지에 따라 할 일이 다르기 때문이다.
+ * 그래서 둘로 나눠 본다 — 발행할 곳이 있느냐, 발행한 게 닿았느냐.
  */
 
 /**
  * 배달 경로 판정. **부수효과가 없다** — 입력만으로 결정된다.
  *
- * - Tier 1 `!localConnected`: 로컬 브로커부터 없다. 기다릴 이유가 없으니 바로 HTTP.
- * - Tier 2 `bridgeUp === false`: 브릿지가 죽었다. QoS 0이라 **이미 유실이 확정**이다.
- *   기다려도 결과가 안 바뀌므로 바로 HTTP.
- * - Tier 3 둘 다 정상: 일단 발행하고(`publish`), 기기의 `stat` 보고를 기다린다.
+ * - Tier 1 `!localConnected`: 로컬 브로커부터 없다. 발행할 곳 자체가 없으니 바로 HTTP.
+ * - Tier 2 그 외 전부: 일단 한 번 발행하고(`publish`) 기기의 `stat` 보고를 기다린다.
  *   확인되면 끝(`done`), 시간 안에 안 오면 그때 HTTP.
  *
- * `bridgeUp === null`(모름)은 Tier 2가 아니다. 브릿지 알림이 없는 브로커에서 모든 명령이
- * HTTP로 새게 되는데, 그건 '모른다'를 '고장났다'로 읽는 것이다. 낙관적으로 보내도 Tier 3의
- * 확인 대기가 그물이 되어 준다.
+ * ── 왜 브릿지 상태를 안 보는가 (예전엔 봤다) ─────────────────────────────────────
+ * 한때 `bridgeUp === false`면 발행을 건너뛰고 바로 HTTP로 가는 가지가 따로 있었다.
+ * rpi-bridge의 `cmnd/# out`이 QoS 0이라 브릿지가 죽어 있으면 유실이 **확정**이었고,
+ * 확정된 유실을 4초 기다리는 건 낭비였기 때문이다.
  *
- * @param {{localConnected: boolean, bridgeUp: boolean|null, confirmed?: boolean|null}} inputs
+ * 그 전제가 깨졌다. 지금은 mosquitto가 같은 `cmnd/#`를 AWS IoT Core로도 **항상 병렬로**
+ * 내보내고(mosquitto.conf의 aws-iot-cmnd-bridge), Pi는 자체 브릿지로 그걸 직접 받는다.
+ * rpi-bridge가 죽어도 명령은 tailscale과 무관한 경로로 기기까지 간다. 그러니 '브릿지가
+ * 죽었다'는 더 이상 '유실 확정'이 아니다 — 그 상태에서 HTTP로 직행하면 AWS로 나간 사본이
+ * 도착할 기회를 뺏고, 병렬 경로를 만든 이유를 스스로 없앤다.
+ *
+ * 발행이 여러 경로로 퍼지는 것은 브로커의 일이고, 이 함수가 알 필요가 없다. 여기서는
+ * "한 번 내보내고 기기가 답하는지 본다"만 남는다. 어느 경로로 닿았는지는 묻지 않는다 —
+ * 우리가 아는 유일한 증거는 기기가 스스로 보고한 `stat`이고, 그건 경로를 안 가린다.
+ *
+ * Tier 1을 남겨둔 이유: 로컬 브로커가 없다는 건 종류가 다른 고장이다. 브릿지가 몇 개든
+ * 로컬에 발행이 안 되면 어느 브릿지도 실어 나를 게 없어서, 기다림에 그물이 될 여지가 아예
+ * 없다. 그때만 기다리지 않고 바로 우회한다.
+ *
+ * @param {{localConnected: boolean, confirmed?: boolean|null}} inputs
  *   `confirmed`: 발행 전에는 `null`(아직 모름), 확인 대기 후에는 `true`/`false`.
- * @returns {{tier: 1|2|3, action: "http"|"publish"|"done", reason: string}}
+ * @returns {{tier: 1|2, action: "http"|"publish"|"done", reason: string}}
  */
-export function decideDelivery({ localConnected, bridgeUp, confirmed = null }) {
+export function decideDelivery({ localConnected, confirmed = null }) {
   if (!localConnected) {
     return { tier: 1, action: "http", reason: "로컬 브로커 연결 없음" };
   }
-  if (bridgeUp === false) {
-    return { tier: 2, action: "http", reason: "rpi-bridge 끊김 — QoS 0이라 유실 확정" };
-  }
   if (confirmed === null) {
-    return { tier: 3, action: "publish", reason: "경로 정상 — 발행 후 확인 대기" };
+    return { tier: 2, action: "publish", reason: "발행 후 확인 대기" };
   }
   return confirmed
-    ? { tier: 3, action: "done", reason: "기기 보고로 확인됨" }
-    : { tier: 3, action: "http", reason: "확인 응답 없음 — 도달 여부 불명" };
+    ? { tier: 2, action: "done", reason: "기기 보고로 확인됨" }
+    : { tier: 2, action: "http", reason: "확인 응답 없음 — 도달 여부 불명" };
 }
 
 /**
@@ -75,7 +85,7 @@ const waiters = new Map();
 /**
  * address → 그 주소로 들어온 가장 최신 명령의 requested_at(ms).
  *
- * **왜 필요한가**: OFF 다음 ON을 빠르게 누르면 둘 다 확인 대기(Tier 3)에 걸린다. OFF의
+ * **왜 필요한가**: OFF 다음 ON을 빠르게 누르면 둘 다 확인 대기(Tier 2)에 걸린다. OFF의
  * `stat` 응답만 유실되면(브릿지 QoS 0이라 흔하다) ON은 확인되고 OFF만 4초 뒤 타임아웃돼
  * HTTP로 우회 전송된다 — 방금 켠 조명을 사용자의 최신 의도와 반대로 다시 꺼버린다.
  * 이 표는 "그 주소로 이것보다 늦게 들어온 명령이 있으면 나는 이제 실행하면 안 된다"를

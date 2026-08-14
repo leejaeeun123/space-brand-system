@@ -111,15 +111,26 @@ Tasmota ──평문 1883──> RPi mosquitto ──rpi-bridge(tailscale)──
                                                                         Supabase ──> admin.html
 ```
 
-기기가 붙는 브로커는 **RPi**고, 맥 브로커는 그걸 브릿지로 받아온다. 맥 브로커는 별도로
-AWS IoT Core 로도 브릿지한다(클라우드 릴레이 — 조명 제어 경로와는 무관하다).
+기기가 붙는 브로커는 **RPi**고, 맥 브로커는 그걸 브릿지로 받아온다.
 
 **인바운드 포트를 열지 않는다.** 두 방향 다 맥이 나가서 맺는 연결이라 포트포워딩·DDNS·터널이
 전부 불필요하다.
 
-> **`cmnd/# out` 이 QoS 0 이라 rpi-bridge 가 끊긴 동안의 명령은 버려진다.** 그래서 에이전트가
-> 브릿지 생사(`$SYS/broker/connection/rpi-bridge/state`)를 직접 보고, 끊겨 있으면 기기 HTTP 로
-> 우회한다. 기기가 맥과 같은 LAN(`192.168.200.0/24`)에 있어 가능한 우회다.
+> **명령은 맥 브로커에서 두 갈래로 나간다.** `rpi-bridge`(tailscale)의 `cmnd/# out` 이
+> QoS 0 이라, 그 링크가 끊긴 순간의 명령은 큐에 쌓이지도 않고 사라진다. 그래서 맥 브로커는
+> 같은 `cmnd/#` 를 `aws-iot-cmnd-bridge` 로 **항상 병렬로** 내보내고, RPi 는 자체 AWS 브릿지로
+> 그걸 직접 구독한다 — tailscale 과 무관한 두 번째 길이다. **조건부가 아니라 항상**인 이유는
+> mosquitto 에 "다른 브릿지가 죽었을 때만" 을 표현할 방법이 없어서고, 그래도 되는 이유는
+> 우리가 보내는 명령이 전부 멱등(`POWER ON`/`POWER OFF`)이라 두 번 닿아도 결과가 같아서다.
+>
+> 그래도 기기가 4초 안에 `stat` 으로 답하지 않으면 에이전트가 기기 HTTP 로 한 번 더 보낸다.
+> 기기가 맥과 같은 LAN(`192.168.200.0/24`)에 있어 가능한 우회다.
+>
+> ⚠️ **한 접두사를 두 브릿지가 반대 방향으로 실으면 무한 루프가 된다.** mosquitto 는 "들어온
+> 브릿지로 되돌려 보내지 않기"만 하고 **다른 브릿지로 나가는 건 막지 않는다.** 그래서
+> `tele`/`stat` 은 `aws-iot-bridge` 만 `out`, `cmnd` 는 `aws-iot-cmnd-bridge` 만 `out` 으로
+> 갈라 뒀다. 토픽을 더할 때 이 불변식부터 확인한다 — AWS IoT 는 건당 과금이라 루프가 조용히
+> 비싸다.
 
 > **왜 맥이 필요한가**: Tasmota 기기가 LAN 평문 MQTT로만 붙게 돼 있다(ESP8266은 TLS가 버겁다).
 > 그래서 같은 LAN 안에 브로커가 있어야 한다. 냉난방은 클라우드 API라 맥과 무관하다 —
@@ -180,11 +191,53 @@ brew services start mosquitto
 조명만 안 먹는다). 값은 RPi 의 `/etc/mosquitto/passwd` 를 만든 사람이 갖고 있다 — 모르면
 `mosquitto_passwd` 로 RPi 에서 `nmwc` 계정을 다시 설정하고 양쪽을 같이 바꾼다.
 
-AWS 브릿지를 쓸 거면 인증서 3종을 `$PREFIX/etc/mosquitto/certs/` 에 놓는다
-(`AmazonRootCA1.pem` · `certificate.pem.crt` · `private.pem.key` — 개인키는 커밋 금지).
+AWS 브릿지는 **두 개**고, 인증서를 공유하지 않는다. `$PREFIX/etc/mosquitto/certs/` 에 놓는다
+(개인키는 커밋 금지):
+
+| 브릿지 | 인증서 | 하는 일 |
+|---|---|---|
+| `aws-iot-bridge` | `certificate.pem.crt` · `private.pem.key` | 상행 — `tele/*`·`stat/*` 를 AWS 로 올린다 |
+| `aws-iot-cmnd-bridge` | `cmnd-bridge-certificate.pem.crt` · `cmnd-bridge-private.pem.key` | 하행 — `cmnd/*` 를 AWS 로 올려 Pi 가 받게 한다 |
+
+`AmazonRootCA1.pem` 은 공개 루트 CA 라 둘이 같이 쓴다.
+
+**신원을 왜 나눴나**: 필요한 IoT 정책이 서로 반대다. 상행 쪽은 `tele/*`·`stat/*` 에 발행
+권한이, 하행 쪽은 `cmnd/*` 에 발행 권한이 필요하다. 한 인증서에 합치면 **상행 전용이어야 할
+신원이 명령까지 쏠 수 있게 된다** — 그 인증서가 새면 조명이 남의 손에 들어간다.
+
+`aws-iot-cmnd-bridge` 용 정책(새로 만들어야 한다 — 아직 없다, 아래 '아직 검증 안 된 것' 참조):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": "arn:aws:iot:ap-northeast-2:<계정ID>:client/typelounge-cmnd-bridge"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Publish", "iot:RetainPublish"],
+      "Resource": "arn:aws:iot:ap-northeast-2:<계정ID>:topic/cmnd/*"
+    }
+  ]
+}
+```
+
+⚠️ **`iot:Publish` 와 `iot:RetainPublish` 는 별개 액션이다.** 하나만 주면 retain 플래그가
+붙은 메시지에서만 연결이 끊기는데, MQTT 3.1.1 은 거부 사유를 못 실어 보내서 **원인이 안
+보인다**(아래 '막혔을 때' 2026-08-12 항목에서 실제로 밟았다). 지금 우리가 내보내는 `cmnd` 는
+retain 을 안 쓰지만, 나중에 켰을 때 같은 함정을 다시 밟지 않도록 같이 부여해 둔다.
+
+`clientid` 는 `typelounge-cmnd-bridge` 다. 기존 두 신원(`mac-bridge-aws` = 맥 상행,
+`typelounge-mosquitto-bridge` = Pi 자체 브릿지)과 **겹치면 안 된다** — AWS IoT Core 는 같은
+clientId 로 두 번째가 붙으면 첫 번째를 끊어서, 두 브릿지가 서로를 무한히 밀어낸다.
+
 **인증서가 없어도 브로커는 뜨고 조명은 그대로 돈다** (실측: mosquitto 2.1.2 는 설정 로드 때
 죽지 않고 그 브릿지만 실패시킨 뒤 재시도한다). 다만 로그에 `Unable to load CA certificates`
-가 계속 쌓이므로, 클라우드 릴레이를 안 쓸 현장이면 `connection aws-iot-bridge` 블록을 지운다.
+가 계속 쌓이므로, 클라우드 릴레이를 안 쓸 현장이면 `connection aws-iot-bridge` 와
+`connection aws-iot-cmnd-bridge` 블록을 **둘 다** 지운다.
 
 브릿지가 실제로 붙었는지 확인한다. `1` 이 나와야 정상이다:
 
@@ -825,6 +878,8 @@ supabase functions deploy control apply claim   # 세 함수가 시도 제한을
 | 온도를 낮춰도 되돌려지지 않는다 | 이용 중(입실 15분 전~퇴실)에만 동작한다. 에어컨이 켜져 있어야 하고(꺼지면 시계 해제), 5분을 채워야 한다 |
 | AWS IoT Core 브릿지가 `CONNACK`까지는 성공하는데 곧바로 끊긴다(`Broken pipe`/`connection closed by client`, 재연결을 반복) | mosquitto 기본값 `try_private true`가 원인이다 — 순수 mosquitto 확장이라 비-mosquitto 브로커(AWS IoT Core 포함)는 이 CONNECT 플래그를 모르고 끊는다. `try_private false`로 바꾼다. 로컬 mosquitto끼리 붙는 rpi-bridge에서는 문제없어서 처음엔 원인이 아닌 줄 알았다 (2026-08-12) |
 | AWS IoT Core 브릿지가 retained·QoS1 메시지를 보낼 때만 끊긴다(QoS0나 retain 없는 QoS1은 정상) | IoT 정책에 `iot:Publish`만 있고 `iot:RetainPublish`가 없는 것이다. AWS IoT Core는 이 둘을 **별개 액션**으로 요구한다 — retain 플래그를 쓰는 토픽에 같이 부여해야 한다. MQTT 3.1.1은 거부 사유를 실어 보낼 방법이 없어 그냥 TCP 연결이 끊긴다(원인이 안 보인다) (2026-08-12) |
+| AWS IoT 메시지 수가 **아무도 안 눌렀는데** 계속 올라간다 / 같은 `stat`·`cmnd` 가 로그에 끝없이 반복된다 | 두 브릿지가 같은 접두사를 **반대 방향으로** 싣고 있는 것이다(예: `aws-iot-bridge` 의 `stat/# out` + `aws-iot-cmnd-bridge` 의 `stat/# in`). mosquitto 는 들어온 브릿지로만 안 되돌리고 **다른 브릿지로 나가는 건 안 막아서** 맥 ↔ AWS 를 영원히 왕복한다. `mosquitto.conf` 에서 **같은 접두사가 한 블록 `out`·다른 블록 `in`** 으로 갈리지 않았는지 본다. `out` 개수를 세는 게 아니다 — `cmnd` 는 `rpi-bridge` 와 `aws-iot-cmnd-bridge` 양쪽에서 `out` 인 것이 정상이고(의도한 병렬 발행), 루프를 만드는 건 방향이 갈리는 경우다 — 건당 과금이라 조용히 비싸다 |
+| 조명이 되는데 **AWS 경로만** 안 탄다(`rpi-bridge` 를 끊으면 먹통) | `aws-iot-cmnd-bridge` 인증서·정책이 아직 없을 수 있다(B-3). 그 신원에 `iot:Publish` on `topic/cmnd/*` 가 없으면 브릿지가 붙었다 끊기기를 반복한다. `clientid` 가 `mac-bridge-aws`·`typelounge-mosquitto-bridge` 와 겹쳐도 같은 증상이 난다(AWS 는 같은 clientId 의 이전 연결을 끊는다) |
 | 같은 서브넷의 다른 기기는 다 ARP로 잡히는데 특정 IP만 `(incomplete)`로 안 잡힌다(기기는 켜져 있다고 확인됨) | 원인 미확정 — AP/클라이언트 격리, 메시 노드 분리 등이 후보지만 이 레포에서는 확인하지 못했다. tailscale처럼 L2에 안 기대는 경로로 우회하는 게 가장 빠른 해결책이었다 (2026-08-11) |
 
 ## 알아둘 것
@@ -899,6 +954,53 @@ ThinQ 401, 유예 창을 넘긴 `expired`. 전부 일부러 실패를 만들어�
 >
 > 삭제 순서도 중요하다 — **퇴실 종료가 끝난 뒤에 지운다.** 기기가 켜져 있는 동안 예약 행을
 > 지우면 끌 주체가 사라져 조명·냉난방이 밤새 켜진 채 남는다(`idle` 경보가 있는 바로 그 상황).
+
+**AWS 병렬 명령 경로(`aws-iot-cmnd-bridge`)는 한 줄도 실증되지 않았다 (2026-08-14).**
+설계 결정과 설정·코드만 레포에 들어갔고, 아래 둘이 남아 있다.
+
+**(1) 자격증명이 아직 없다.** 이 브릿지는 새 AWS IoT 사물·인증서·정책을 요구하는데
+(B-3 의 정책 JSON) **아무것도 만들지 않았다** — 발급은 별도 단계로 미뤘다. 그래서 지금
+설정을 그대로 설치하면 **이 브릿지만 인증 실패로 재시도를 반복한다.** 브로커는 정상 기동하고
+조명도 `rpi-bridge` 로 그대로 돌지만, 로그에 실패가 쌓이고 **병렬 경로의 이점은 0 이다.**
+인증서를 놓기 전까지는 "AWS 경로가 있으니 tailscale 이 끊겨도 괜찮다"고 **믿으면 안 된다.**
+
+**(2) 빈 공간에서 실물 리허설이 필요하다.** 구현 세션 동안 공간이 사용 중이라 아무것도 못
+눌러봤다. 손님이 없는 시간에 아래를 밟는다:
+
+- **`rpi-bridge` 를 실제로 끊고**(tailscale 다운 또는 RPi 주소 오설정) 조명 명령을 눌러,
+  AWS 경로만으로 기기가 실제로 움직이는지 본다. 이게 이 변경의 **유일한 존재 이유**다
+- **중복 `stat` 이 정말 무해한지** 확인한다. `rpi-bridge` 가 살아 있는 동안 Pi 는 같은
+  `stat` 을 자체 AWS 브릿지로도 올리므로, 경로에 따라 같은 보고가 두 번 들어올 수 있다.
+  코드상으로는 안전하지만(`noteDeviceReport` 는 확인된 대기자를 맵에서 지우고 `mergeState`
+  는 순수 함수라 같은 값을 두 번 넣어도 결과가 같다) **실물로는 확인 안 됐다**
+- **AWS 경로의 실제 확인 지연**을 잰다. 지금 `CONFIRM_TIMEOUT_MS` 는 4초인데, 이 값은
+  LAN·tailscale 왕복을 기준으로 정한 것이다. AWS 왕복이 이보다 느리면 **성공한 명령마다
+  HTTP 우회가 한 번씩 더 붙는다**(멱등이라 안 깨지지만 낭비다). 재면 그때 값을 다시 정한다
+- **한 접두사가 두 브릿지에 반대 방향으로 실리지 않았는지** 설치 직후 확인한다. AWS IoT
+  콘솔의 메시지 수가 아무 조작 없이 계속 오르면 루프다(위 '막혔을 때'). 다만 **0 이 정상은
+  아니다** — 아래 초기 질의가 정상 트래픽으로 잡힌다. 루프는 "계속 오른다"로 판별하지
+  "오른다"로 판별하지 않는다
+- **초기 상태 질의가 이제 AWS 로도 나간다.** 에이전트는 접속·재접속할 때마다, 그리고 5분마다
+  기기가 늘었으면 기기당 `cmnd/<addr>/POWER`(빈 payload = 질의)와 `cmnd/<addr>/Status` 를
+  발행한다(`queryInitialState`). 전부 `cmnd/#` 라 새 브릿지로도 나간다 — 즉 **재접속 1회당
+  기기수 × 2 건**이 과금 대상 경로에 실린다. Tasmota 쪽은 빈 payload 를 '설정' 이 아니라
+  '질의' 로 다루므로 중복해서 받아도 전원이 안 바뀌지만, **건수는 실물로 재본 적이 없다.**
+  재접속이 잦은 환경이면 이 값부터 본다
+
+**`stat` 확인은 여전히 `rpi-bridge` 로만 돌아온다 — 의도한 비대칭이다.** 새 브릿지에
+`topic stat/# in` 을 넣으면 기존 `aws-iot-bridge` 의 `stat/# out` 과 정확히 위 루프를 만든다.
+그래서 일부러 뺐고, 결과적으로 **tailscale 이 끊긴 동안에는 명령이 AWS 로 나가 기기에 닿아도
+맥은 확인을 못 받는다** — 4초 뒤 HTTP 로 한 번 더 보낸다(멱등이라 무해하다). 이걸 없애려면
+`aws-iot-bridge` 에서 `stat/# out` 을 빼고 상행을 Pi 의 자체 브릿지에 일임해야 하는데, **Pi
+브릿지가 실제로 `stat` 을 올리도록 설정돼 있는지는 이 레포에서 확인할 수 없다**(정책이
+허용한다는 것과 설정돼 있다는 것은 다르다). 확인되면 그때 정리한다.
+
+**같은 변경에서 `aws-iot-bridge` 의 `topic cmnd/# in 1` 을 지웠다.** 새 브릿지의
+`cmnd/# out` 과 루프를 만들기 때문이고, 없어도 되는 이유는 (a) AWS 의 `cmnd/*` 로 발행하는
+코드가 이 레포에 없고(유일한 명령 생산자는 Supabase Realtime 을 받는 control-agent 이고 그건
+로컬 발행이다) (b) Pi 자체 브릿지가 이미 `cmnd/*` 를 직접 구독하기 때문이다. **레포 밖에서
+AWS 의 `cmnd/*` 로 직접 쏘는 도구가 있다면 그건 이제 맥을 안 거친다** — Pi 가 받으므로 기기엔
+그대로 닿지만, 맥 로그에는 안 남는다. 그런 도구가 있는지는 확인 못 했다.
 
 **손님 페이지(G)는 서버까지만 확인됐다.** 2026-08-06 배포 후 G-3의 세 가지는 실제 함수에
 대고 통과했다 — 현관 비밀번호로 `list` 200(기기 6개, `address` 없음) · `delete` 403 ·
