@@ -274,8 +274,14 @@ runTransition(r, state, column, fire)
 floorApplies(power, mode, target) =
      power === 'ON'
   && Number.isFinite(target) && target < 24
-  && typeof mode === 'string' && mode ∈ {COOL, AUTO}
+  && typeof mode === 'string' && mode ∈ {COOL, AIR_DRY, AUTO}
 ```
+
+모드 집합의 기준은 이름이 아니라 **압축기를 돌려 실내를 목표온도까지 내리는가**다. 제습
+(`AIR_DRY`)이 여기 든 것은 그래서다 — 이 기기의 모드 목록엔 `AUTO`가 없어 제습이 '낮은
+온도로 오래 트는' 유일한 다른 경로이고, 이름만 제습일 뿐 과냉방은 그대로 일어난다
+(형운 결정, 2026-08-15). `HEAT`·`FAN`·`AIR_CLEAN`은 24도를 밀어봐야 난방이 세지거나
+아무 일도 일어나지 않는다.
 
 | 규칙 | 내용 |
 |---|---|
@@ -463,7 +469,7 @@ pg_cron '*/5 * * * *'  (Edge Function 밖 · 순수 SQL)
 | 24도 | `TEMP_FLOOR` | `enforce.ts` | 온도 하한 |
 | 5분 | `TEMP_GRACE_MINUTES` | `enforce.ts` | 하한 미만 가동 유예 |
 | 5분 | (같은 값 재사용) | `enforce.ts` → `startTempFloor({force:true})` | 하한 강제 실패 시 백오프 |
-| COOL·AUTO | `FLOOR_MODES` | `enforce.ts` | 하한을 거는 모드. HEAT·모드 미상은 제외 |
+| COOL·AIR_DRY·AUTO | `FLOOR_MODES` | `enforce.ts` | 하한을 거는 모드(압축기가 도는 것들). HEAT·FAN·AIR_CLEAN·모드 미상은 제외 |
 | 60분 | `IDLE_ALERT_QUIET_MINUTES` | `enforce.ts` | 유휴 경보 재알림 간격 |
 | 60분 | `IDLE_HUMAN_GRACE_MINUTES` | `enforce.ts` | 최근 원격 조작 기기의 유휴 경보 면제 |
 | 600초 | `IDLE_THINQ_MAX_AGE_SECONDS` | `handlers/automation.ts` | 빈 시간의 ThinQ 재조회 기준 |

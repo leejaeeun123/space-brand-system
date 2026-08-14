@@ -29,13 +29,21 @@ const TEMP_GRACE_MINUTES = 5;
  * 세게 만들어 목적과 정반대가 된다(에너지도 더 쓴다). 손님은 `set_mode`로 모드를 바꿀 수 있다.
  *
  * 실기기 프로파일의 모드 표기는 COOL·HEAT·FAN·AIR_DRY·AIR_CLEAN이다(guest-control.html의
- * MODE_LABEL, thinq/state.ts가 currentJobMode를 그대로 attrs.mode에 넣는다). 목표온도를 향해
- * 능동적으로 냉방하는 COOL과, 냉·난방을 자동 선택하는 AUTO에만 건다.
+ * MODE_LABEL, thinq/state.ts가 currentJobMode를 그대로 attrs.mode에 넣는다). 기준은 모드
+ * 이름이 아니라 **압축기를 돌려 목표온도까지 실내를 내리는가**다:
+ *
+ *   · `COOL` — 그렇다. 하한이 처음부터 겨냥한 모드.
+ *   · `AIR_DRY`(제습) — 그렇다(형운 결정, 2026-08-15). 이 기기의 모드 목록엔 AUTO가 없어
+ *     **제습이 '낮은 온도로 오래 트는' 유일한 다른 경로**다. 이름이 제습일 뿐 압축기가 도는
+ *     것은 같아서, 18도 제습은 하한이 막으려던 바로 그 과냉방이 된다.
+ *   · `AUTO` — 이 기기엔 없지만 냉·난방을 자동 선택하므로 남겨 둔다(기기가 바뀔 때를 위해).
+ *   · `HEAT`·`FAN`·`AIR_CLEAN` — 아니다. 24도를 밀면 난방이 세지거나(HEAT) 아무 일도
+ *     일어나지 않는다.
  *
  * **모드를 모르면(값 없음) 강제하지 않는다** — 예전엔 모드와 무관하게 전원만 보고 걸었지만,
  * HEAT를 잘못 미는 위험이 과냉방을 한 틱 놓치는 것보다 크다. 냉방 중이면 상태에 모드가 실려 온다.
  */
-const FLOOR_MODES = new Set(["COOL", "AUTO"]);
+const FLOOR_MODES = new Set(["COOL", "AIR_DRY", "AUTO"]);
 
 export function floorApplies(
   power: string | null | undefined,
