@@ -16,7 +16,11 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:calc(var(--headh) + 20px)}
-  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
+  /* 자간 +3% 는 이 브랜드북이 설명하는 규칙 그대로다 (brand.md 「03. Typography」) */
+  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;
+       letter-spacing:.03em;-webkit-font-smoothing:antialiased}
+  /* 코드·원본 마크다운은 문자 정렬이 목적이라 자간을 걸지 않는다 */
+  code,pre,.mdsrc,.sw .hex,.toc a .n,.ddmenu a small,.spec .sm,.mdbar .p{letter-spacing:normal}
   a{color:inherit}
 
   /* ---------- top bar ---------- */
@@ -75,7 +79,7 @@
   /* ---------- hero ---------- */
   .hero{padding:60px 0 38px;border-bottom:1.5px solid var(--ink)}
   .kicker{font-weight:600;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
-  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:-.02em;margin:14px 0 16px}
+  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:.03em;margin:14px 0 16px}
   .hero .lede{max-width:620px;font-size:16.5px;color:rgba(22,19,15,.72)}
   .hero .lede p{margin:0 0 6px}
   .hero .lede code{font-size:.9em}
@@ -83,7 +87,7 @@
   /* ---------- sections ---------- */
   section{padding:50px 0;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--headh) + 20px)}
   .snum{font-weight:600;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
-  h2{font-weight:600;font-size:28px;letter-spacing:-.01em;margin:6px 0 20px}
+  h2{font-weight:600;font-size:28px;letter-spacing:.03em;margin:6px 0 20px}
   h3{font-weight:600;font-size:17.5px;margin:28px 0 10px}
   h4{font-weight:600;font-size:15px;margin:20px 0 8px;color:rgba(22,19,15,.75)}
   p{margin:0 0 12px}
@@ -151,7 +155,7 @@
   .say.no{color:rgba(22,19,15,.5)}
   .say b{font-weight:600}
 
-  .pill{display:inline-block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  .pill{display:inline-block;font-weight:400;font-size:12px;letter-spacing:.03em;text-transform:uppercase;
     padding:5px 12px;border:1.5px solid var(--ink);border-radius:3px;margin:0 6px 6px 0}
   .pill.on{background:var(--orange);color:#fff;border-color:var(--orange)}
 
@@ -482,8 +486,37 @@
 </table></div>
 <p>전 시스템 <strong>2-웨이트(400 / 600)</strong> 통일 — 600은 로고·디스플레이에만, 나머지는 400.</p>
 <h3>자간</h3>
-<p><strong>영문·국문 모두 +3%</strong> (Figma 기준 · CSS <code>letter-spacing: 0.03em</code>). 크기·역할과 무관하게 한 값으로 통일한다.</p>
-<p>로고는 자간을 지정하지 않는다 — 워드마크 SVG 자체를 쓰기 때문에 텍스트 자간이 개입할 여지가 없다.</p>
+<p><strong>본문 포함, 영문·국문 모두 +3%</strong> (Figma 기준 · CSS <code>letter-spacing: 0.03em</code>).
+크기·역할·언어와 무관하게 한 값으로 통일한다 — 실제 안내문 작업을 이 값으로 했다.</p>
+<h4>로고 자간과 혼동하지 않는다</h4>
+<p>아래는 <strong>로고·타입 태그를 그릴 때</strong> 쓴 값이고, 일반 글씨의 자간 규칙이 아니다.
+둘 다 이미 SVG 아웃라인으로 구워져 있어 이제 와서 자간을 지정할 일이 없다.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>대상</th>
+<th>제작 자간</th>
+<th>어디에</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>워드마크 영문</td>
+<td><strong>−2%</strong></td>
+<td><code>logo-wordmark-*.svg</code> (아웃라인 확정)</td>
+</tr>
+<tr>
+<td>워드마크 국문</td>
+<td>0%</td>
+<td>〃</td>
+</tr>
+<tr>
+<td>타입 태그 (WORK·CLASS·GATHERING)</td>
+<td><strong>+0.05em</strong></td>
+<td><code>mode-*.svg</code> (아웃라인 확정)</td>
+</tr>
+</tbody>
+</table></div>
 <h3>타입 스케일</h3>
 <div class="spec"><div><span class="sv" style="font-weight:600;font-size:56px;letter-spacing:0.03em;line-height:1.15">display/2xl</span><span class="sm">display/2xl · 600</span></div><div><span class="sv" style="font-weight:600;font-size:40px;letter-spacing:0.03em;line-height:1.15">display/xl · 간판·히어로</span><span class="sm">display/xl · 600</span></div><div><span class="sv" style="font-weight:600;font-size:28px;letter-spacing:0.03em;line-height:1.15">display/lg · 섹션 타이틀</span><span class="sm">display/lg · 600</span></div><div><span class="sv" style="font-weight:400;font-size:22px;letter-spacing:0.03em;line-height:1.15">heading/md · 소제목</span><span class="sm">heading/md · 400</span></div><div><span class="sv" style="font-weight:400;font-size:16px;letter-spacing:0.03em;line-height:1.15">body/md · 비어 있어서, 무엇이든 될 수 있어요.</span><span class="sm">body/md · 400</span></div><div><span class="sv" style="font-weight:400;font-size:14px;letter-spacing:0.03em;line-height:1.15">LABEL/MD · WORK · CLASS · GATHERING</span><span class="sm">label/md · 400</span></div></div>
 
@@ -818,9 +851,19 @@ assets/logo/logo-wordmark-h-white.svg | dark | Horizontal · White | 가로 · �
 
 ### 자간
 
-**영문·국문 모두 +3%** (Figma 기준 · CSS `letter-spacing: 0.03em`). 크기·역할과 무관하게 한 값으로 통일한다.
+**본문 포함, 영문·국문 모두 +3%** (Figma 기준 · CSS `letter-spacing: 0.03em`).
+크기·역할·언어와 무관하게 한 값으로 통일한다 — 실제 안내문 작업을 이 값으로 했다.
 
-로고는 자간을 지정하지 않는다 — 워드마크 SVG 자체를 쓰기 때문에 텍스트 자간이 개입할 여지가 없다.
+#### 로고 자간과 혼동하지 않는다
+
+아래는 **로고·타입 태그를 그릴 때** 쓴 값이고, 일반 글씨의 자간 규칙이 아니다.
+둘 다 이미 SVG 아웃라인으로 구워져 있어 이제 와서 자간을 지정할 일이 없다.
+
+| 대상 | 제작 자간 | 어디에 |
+|---|---|---|
+| 워드마크 영문 | **−2%** | `logo-wordmark-*.svg` (아웃라인 확정) |
+| 워드마크 국문 | 0% | 〃 |
+| 타입 태그 (WORK·CLASS·GATHERING) | **+0.05em** | `mode-*.svg` (아웃라인 확정) |
 
 ### 타입 스케일
 

@@ -1,7 +1,6 @@
 # TYPE LOUNGE — Signage (공간 사이니지)
 
 > 타입라운지 공간 사이니지 시스템. **설치 완료·확정본**(2026-08-06) 기준으로 기록한다.
-> 참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템.
 > 원본: `04-signage/signage-system.md` · `pictograms.md` · `notice-template.md` · `notice-copy.md`, `03-identity/design-tokens.md`.
 > 자매 문서: `brand.md`(아이덴티티) · `bx.md`(경험·보이스) · `product.md`(컴포넌트).
 

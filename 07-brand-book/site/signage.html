@@ -16,7 +16,11 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:calc(var(--headh) + 20px)}
-  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
+  /* 자간 +3% 는 이 브랜드북이 설명하는 규칙 그대로다 (brand.md 「03. Typography」) */
+  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;
+       letter-spacing:.03em;-webkit-font-smoothing:antialiased}
+  /* 코드·원본 마크다운은 문자 정렬이 목적이라 자간을 걸지 않는다 */
+  code,pre,.mdsrc,.sw .hex,.toc a .n,.ddmenu a small,.spec .sm,.mdbar .p{letter-spacing:normal}
   a{color:inherit}
 
   /* ---------- top bar ---------- */
@@ -75,7 +79,7 @@
   /* ---------- hero ---------- */
   .hero{padding:60px 0 38px;border-bottom:1.5px solid var(--ink)}
   .kicker{font-weight:600;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
-  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:-.02em;margin:14px 0 16px}
+  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:.03em;margin:14px 0 16px}
   .hero .lede{max-width:620px;font-size:16.5px;color:rgba(22,19,15,.72)}
   .hero .lede p{margin:0 0 6px}
   .hero .lede code{font-size:.9em}
@@ -83,7 +87,7 @@
   /* ---------- sections ---------- */
   section{padding:50px 0;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--headh) + 20px)}
   .snum{font-weight:600;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
-  h2{font-weight:600;font-size:28px;letter-spacing:-.01em;margin:6px 0 20px}
+  h2{font-weight:600;font-size:28px;letter-spacing:.03em;margin:6px 0 20px}
   h3{font-weight:600;font-size:17.5px;margin:28px 0 10px}
   h4{font-weight:600;font-size:15px;margin:20px 0 8px;color:rgba(22,19,15,.75)}
   p{margin:0 0 12px}
@@ -151,7 +155,7 @@
   .say.no{color:rgba(22,19,15,.5)}
   .say b{font-weight:600}
 
-  .pill{display:inline-block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  .pill{display:inline-block;font-weight:400;font-size:12px;letter-spacing:.03em;text-transform:uppercase;
     padding:5px 12px;border:1.5px solid var(--ink);border-radius:3px;margin:0 6px 6px 0}
   .pill.on{background:var(--orange);color:#fff;border-color:var(--orange)}
 
@@ -304,7 +308,6 @@
       <div class="kicker">Design System · 03</div>
       <h1>Signage (공간 사이니지)</h1>
       <div class="lede"><p>타입라운지 공간 사이니지 시스템. <strong>설치 완료·확정본</strong>(2026-08-06) 기준으로 기록한다.
-참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템.
 원본: <code>04-signage/signage-system.md</code> · <code>pictograms.md</code> · <code>notice-template.md</code> · <code>notice-copy.md</code>, <code>03-identity/design-tokens.md</code>.
 자매 문서: <code>brand.md</code>(아이덴티티) · <code>bx.md</code>(경험·보이스) · <code>product.md</code>(컴포넌트).</p>
 <p><strong>표기 원칙</strong>: 색은 항상 토큰으로 지시한다(<code>var(--spine-ink)</code> / <code>#16130F</code> ❌). 물성은 실제 발주 사양으로 적는다.</p></div>
@@ -601,7 +604,6 @@
       <pre class="mdsrc" id="mdsrc"># TYPE LOUNGE — Signage (공간 사이니지)
 
 &gt; 타입라운지 공간 사이니지 시스템. **설치 완료·확정본**(2026-08-06) 기준으로 기록한다.
-&gt; 참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템.
 &gt; 원본: `04-signage/signage-system.md` · `pictograms.md` · `notice-template.md` · `notice-copy.md`, `03-identity/design-tokens.md`.
 &gt; 자매 문서: `brand.md`(아이덴티티) · `bx.md`(경험·보이스) · `product.md`(컴포넌트).
 

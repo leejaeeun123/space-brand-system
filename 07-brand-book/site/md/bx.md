@@ -1,6 +1,6 @@
 # TYPE LOUNGE — BX (Brand Experience)
 
-> 타입라운지 브랜드 경험·언어 시스템. 참조 구조: 모회사 No More Work Company(NMWC) BX(`nmwc.ai.kr/bx`).
+> 타입라운지 브랜드 경험·언어 시스템.
 > 최종 확정본. 원본: `01-strategy/positioning.md` · `brand-voice.md` · `personas.md` · `discovery.md`.
 
 **목차**: Brand Platform · Persona · Tone of Voice · Brand Language · Sample Copy · Target Audience · Positioning · Brand Story
