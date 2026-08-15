@@ -330,6 +330,23 @@
   .st-step .q{font-size:12px;font-weight:600;white-space:nowrap;}
   .st-conv{font-size:11px;color:#8a8478;margin-top:10px;line-height:1.7;}
 
+  /* 전환 분석 */
+  .st-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+  .st-tbl th, .st-tbl td{padding:8px 6px;border-bottom:1px solid var(--hair);text-align:right;}
+  .st-tbl th{font-size:10px;letter-spacing:.04em;color:#6b665c;text-transform:uppercase;font-weight:600;}
+  .st-tbl th:first-child, .st-tbl td:first-child{text-align:left;}
+  .st-tbl tbody tr:last-child td{border-bottom:0;}
+  .st-tbl td.mute{color:#8a8478;}
+  .st-box{border:1px solid var(--hair);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .st-box > .cap{font-size:12px;color:#6b665c;margin-bottom:8px;}
+  .st-box > .cap b{color:var(--ink);font-weight:600;}
+  .st-note{font-size:11px;color:#8a8478;margin-top:9px;line-height:1.7;}
+
+  .st-delta{font-size:11px;font-weight:600;white-space:nowrap;}
+  .st-delta.good{color:#1d7a4c;}
+  .st-delta.bad{color:#c0392b;}
+  .st-delta.flat{color:#8a8478;}
+
   .st-chart{border:1px solid var(--hair);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
   .st-chart .t{font-size:12px;color:#6b665c;display:flex;justify-content:space-between;gap:8px;}
   .st-chart .t b{font-weight:600;color:var(--ink);}
@@ -492,6 +509,9 @@
 
       <h2>요약</h2>
       <div class="st-kpis" id="statKpis"></div>
+
+      <h2>전환 분석</h2>
+      <div id="statConversion"></div>
 
       <h2>일별 추이</h2>
       <div id="statCharts"></div>
@@ -2918,7 +2938,7 @@
     }).catch(function(err){
       /* 빈 화면에 0을 뿌리지 않는다. 조회가 실패했는데 '도달 0'이 뜨면 장사가 안 된 걸로
          읽힌다 — 신청 목록에서와 같은 실패 모드다. */
-      ['statFunnel','statKpis','statCharts','statKeywords','statRaw','statRawKw'].forEach(function(id){
+      ['statFunnel','statKpis','statConversion','statCharts','statKeywords','statRaw','statRawKw'].forEach(function(id){
         document.getElementById(id).innerHTML = '';
       });
       document.getElementById('statAsOf').textContent = '';
@@ -2966,6 +2986,7 @@
       document.getElementById('statAsOf').textContent = '';
       document.getElementById('statFunnel').innerHTML = '';
       document.getElementById('statKpis').innerHTML = '';
+      document.getElementById('statConversion').innerHTML = '';
       document.getElementById('statCharts').innerHTML = '';
       document.getElementById('statKeywords').innerHTML = '';
       document.getElementById('statRaw').innerHTML = '';
@@ -2980,6 +3001,7 @@
 
     renderStatFunnel(rows);
     renderStatKpis(rows);
+    renderStatConversion(rows);
     renderStatCharts(rows);
     renderStatKeywords(rows);
     renderStatRaw(rows);
@@ -3258,6 +3280,134 @@
     document.getElementById('statRaw').innerHTML =
       '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
       '<tfoot style="font-weight:600">' + foot + '</tfoot>';
+  }
+
+  /* ── 전환 분석 ─────────────────────────────────────────────────────────────
+     퍼널이 '이번 구간이 어땠나'를 보여준다면, 여기는 **어디서 새는지**를 본다. */
+
+  /** 보이는 구간 **직전**의 같은 길이 구간. 없으면 null — 비교를 지어내지 않는다. */
+  function statPrevRows(){
+    if(!statsCache || !statsDays) return null;          // 전체 보기는 비교 대상이 없다
+    var n = statRows().length;
+    var end = statsCache.length - n;
+    if(end < n) return null;                            // 앞이 모자라면 반쪽 비교가 된다
+    return statsCache.slice(end - n, end);
+  }
+
+  /**
+   * 증감 칩. `good`은 '올라가면 좋은가'다 — 취소율은 올라가면 나쁘므로 색이 반대다.
+   * 방향에 뜻이 없는 값(도달 같은)은 good을 null로 줘서 회색으로 둔다.
+   */
+  function deltaChip(cur, prev, good, isPct){
+    if(prev === null || prev === undefined || cur === null) return '';
+    if(!prev && !cur) return '';
+    if(!prev) return '<span class="st-delta flat">신규</span>';
+
+    var diff = cur - prev;
+    var rel = (diff / Math.abs(prev)) * 100;
+    if(Math.abs(rel) < 0.5) return '<span class="st-delta flat">─</span>';
+
+    var cls = good === null ? 'flat' : ((diff > 0) === good ? 'good' : 'bad');
+    var sign = diff > 0 ? '▲' : '▼';
+    var body = isPct
+      ? Math.abs(diff).toFixed(2) + '%p'
+      : Math.abs(rel).toFixed(0) + '%';
+    return '<span class="st-delta ' + cls + '">' + sign + ' ' + body + '</span>';
+  }
+
+  function renderStatConversion(rows){
+    var prev = statPrevRows();
+    var S = function(rs, k){ return rs ? statSum(rs, k) : null; };
+
+    // ── 1. 단계별 전환 + 직전 구간 대비 ─────────────────────────────────────
+    var cur = {
+      reach: statSum(rows, 'impression_total'),
+      click: statSum(rows, 'click_total'),
+      confirm: statSum(rows, 'reservation_confirm_count'),
+      amount: statSum(rows, 'reservation_amount')
+    };
+    var pv = prev ? {
+      reach: S(prev, 'impression_total'), click: S(prev, 'click_total'),
+      confirm: S(prev, 'reservation_confirm_count'), amount: S(prev, 'reservation_amount')
+    } : null;
+
+    var lines = [
+      { n: '도달', v: fmtNum(cur.reach), d: deltaChip(cur.reach, pv && pv.reach, true) },
+      { n: '클릭률', v: fmtPct(pct(cur.click, cur.reach), 2),
+        d: deltaChip(pct(cur.click, cur.reach), pv && pct(pv.click, pv.reach), true, true) },
+      { n: '예약 전환율', v: fmtPct(pct(cur.confirm, cur.click), 2),
+        d: deltaChip(pct(cur.confirm, cur.click), pv && pct(pv.confirm, pv.click), true, true) },
+      { n: '확정 매출', v: fmtWon(cur.amount), d: deltaChip(cur.amount, pv && pv.amount, true) }
+    ];
+
+    var html = '<div class="st-box">' +
+      '<div class="cap">' + (prev
+        ? '<b>직전 ' + prev.length + '일</b>(' + prev[0].stat_date + ' ~ ' + prev[prev.length - 1].stat_date + ') 대비'
+        : '비교할 직전 구간이 아직 없어요 — 데이터가 더 쌓이면 증감이 표시됩니다') + '</div>' +
+      '<table class="st-tbl"><tbody>' +
+      lines.map(function(l){
+        return '<tr><td>' + l.n + '</td><td>' + l.v + '</td><td>' + (l.d || '') + '</td></tr>';
+      }).join('') +
+      '</tbody></table></div>';
+
+    // ── 2. 유입 경로별 ──────────────────────────────────────────────────────
+    //
+    // ⚠️ '기타'(찜·기획전·추천공간·리뷰)는 **클릭률을 내면 안 된다.** 도달 집계 대상이
+    // 클릭과 달라서 2026-08-15 실데이터로 415%가 나온다. 숫자가 크게 틀린 게 아니라
+    // 애초에 성립하지 않는 비율이라, 계산해서 보여주는 대신 왜 없는지를 적는다.
+    var channels = [
+      { n: '일반', i: 'impression_normal', c: 'click_normal', rate: true },
+      { n: '광고', i: 'impression_ad', c: 'click_ad', rate: true },
+      { n: '기타', i: 'impression_etc', c: 'click_etc', rate: false }
+    ];
+
+    html += '<div class="st-box"><div class="cap"><b>유입 경로별</b></div>' +
+      '<table class="st-tbl"><thead><tr><th>경로</th><th>도달</th><th>클릭</th><th>클릭률</th></tr></thead><tbody>' +
+      channels.map(function(ch){
+        var imp = statSum(rows, ch.i), clk = statSum(rows, ch.c);
+        var rate = ch.rate ? fmtPct(pct(clk, imp), 2) : '<span class="mute">—</span>';
+        return '<tr><td>' + ch.n + '</td><td>' + fmtNum(imp) + '</td><td>' + fmtNum(clk) + '</td>' +
+               '<td class="' + (ch.rate ? '' : 'mute') + '">' + rate + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div class="st-note">‘기타’는 찜·기획전·추천공간·리뷰처럼 검색결과 밖에서 온 유입입니다. ' +
+      '도달을 세는 기준이 클릭과 달라 <strong>클릭률이 성립하지 않아</strong> 비워 뒀습니다(계산하면 100%가 넘습니다).</div>' +
+      '</div>';
+
+    // ── 3. 요일별 ───────────────────────────────────────────────────────────
+    var dowNames = ['일','월','화','수','목','금','토'];
+    var buckets = [];
+    for(var i = 0; i < 7; i++) buckets.push([]);
+    rows.forEach(function(r){
+      // 'YYYY-MM-DD'를 UTC로 고정해 읽는다. 로컬 파싱이면 타임존에 따라 요일이 하루 밀린다.
+      var wd = new Date(r.stat_date + 'T00:00:00Z').getUTCDay();
+      buckets[wd].push(r);
+    });
+
+    var maxClickRate = 0;
+    buckets.forEach(function(b){
+      var p = pct(statSum(b, 'click_total'), statSum(b, 'impression_total'));
+      if(p !== null && p > maxClickRate) maxClickRate = p;
+    });
+
+    html += '<div class="st-box"><div class="cap"><b>요일별</b></div>' +
+      '<table class="st-tbl"><thead><tr><th>요일</th><th>일수</th><th>도달</th><th>클릭</th><th>클릭률</th><th>확정</th></tr></thead><tbody>' +
+      buckets.map(function(b, wd){
+        if(!b.length) return '<tr><td>' + dowNames[wd] + '</td><td class="mute" colspan="5">—</td></tr>';
+        var imp = statSum(b, 'impression_total'), clk = statSum(b, 'click_total');
+        var cf = statSum(b, 'reservation_confirm_count');
+        var rate = pct(clk, imp);
+        return '<tr><td>' + dowNames[wd] + '</td>' +
+          '<td class="mute">' + b.length + '</td>' +
+          '<td>' + fmtNum(imp) + '</td><td>' + fmtNum(clk) + '</td>' +
+          '<td>' + fmtPct(rate, 2) + '</td><td>' + fmtNum(cf) + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div class="st-note">‘일수’가 그 요일의 표본입니다 — <strong>2~3일짜리 요일은 하루가 크게 흔듭니다.</strong> ' +
+      '몇 주 더 쌓인 뒤에 읽으세요.</div>' +
+      '</div>';
+
+    document.getElementById('statConversion').innerHTML = html;
   }
 
   /** 구간 안의 키워드 원본 행. 최신 날짜가 위, 같은 날은 순위대로. */

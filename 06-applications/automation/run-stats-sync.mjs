@@ -110,7 +110,8 @@ const payload = [
     '   const r = await scStats.run(pw, o);' +
     '   const st = r.stats || [];' +
     '   return { ok: true, written: r.written == null ? null : r.written, days: st.length,' +
-    '            keywords: (r.keywords || []).length, note: r.note || null,' +
+    '            keywords: (r.keywords || []).length, raw: (r.raw || []).length,' +
+    '            note: r.note || null,' +
     '            pending: r.pending || null,' +
     '            asked: o, first: st.length ? st[0].stat_date : null,' +
     '            last: st.length ? st[st.length - 1].stat_date : null };' +
@@ -163,7 +164,7 @@ child.on('close', () => {
 
   console.log(
     (opts.dryRun ? '[미리보기] ' : '') +
-    `${r.first} ~ ${r.last} · ${r.days}일 · 키워드 ${r.keywords}행` +
+    `${r.first} ~ ${r.last} · ${r.days}일 · 키워드 ${r.keywords}행 · 원문 ${r.raw}행` +
     (opts.dryRun ? ' (DB 변경 없음)' : ` · DB 반영 ${r.written}일`)
   );
 

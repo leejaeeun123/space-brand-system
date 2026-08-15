@@ -196,7 +196,26 @@ var scStats = (function () {
       calF: series(stat, 'call_count_data', '실패')
     };
 
-    var stats = [], keywords = [];
+    /**
+     * 그 날의 차트 원문. 위 col은 우리가 쓸 18개만 골라 뒀지만, 이쪽은 응답에 있는
+     * **모든 시리즈·모든 데이터셋**을 훑는다 — 스클이 시리즈를 추가해도 자동으로 실린다.
+     * 키 이름은 스클 원문 그대로 둔다(고쳐 쓰면 원문 보관의 의미가 없다).
+     */
+    function chartAt(i) {
+      var out = {};
+      Object.keys(stat).forEach(function (k) {
+        var s = stat[k];
+        if (!s || !s.datasets) return;
+        var one = {};
+        s.datasets.forEach(function (ds) {
+          one[ds.label] = i >= 0 && ds.data && ds.data[i] != null ? Number(ds.data[i]) : 0;
+        });
+        out[k] = one;
+      });
+      return out;
+    }
+
+    var stats = [], keywords = [], raw = [];
 
     for (var d = start; d <= end; d = addDays(d, 1)) {
       var ind = await get(
@@ -247,6 +266,9 @@ var scStats = (function () {
         call_fail:    at(col.calF, i)
       });
 
+      // 원문은 손대지 않고 통째로. 지표 응답은 하루 단위로 부른 그대로다.
+      raw.push({ space_id: spaceId, stat_date: d, indicators: ind, chart: chartAt(i) });
+
       // ⚠️ 이 값은 건수가 아니라 그 날 유입에서 차지한 **비율(%)** 이고, 상위 5개에서 잘린다.
       // 하루 합이 100이 안 되는 날이 정상이다(실측 73~101). 자세한 함정은 테이블 주석에 있다.
       var sw = ind.search_word_data;
@@ -264,7 +286,7 @@ var scStats = (function () {
     }
 
     return {
-      stats: stats, keywords: keywords, from: start, to: end,
+      stats: stats, keywords: keywords, raw: raw, from: start, to: end,
       // 차트가 아직 못 따라온 꼬리. 러너가 "왜 어제가 안 들어왔나"에 답할 수 있게 실어 보낸다.
       pending: end < to ? (addDays(end, 1) + ' ~ ' + to) : null
     };
@@ -329,12 +351,15 @@ var scStats = (function () {
     }
 
     var written = await rpc('admin_upsert_sc_daily', {
-      p_password: password, p_stats: got.stats, p_keywords: got.keywords
+      p_password: password, p_stats: got.stats, p_keywords: got.keywords, p_raw: got.raw
     });
 
     console.log('반영 완료: ' + got.from + ' ~ ' + got.to + ' · ' + written + '일 · 키워드 ' +
       got.keywords.length + '행');
-    return { written: written, stats: got.stats, keywords: got.keywords, pending: got.pending };
+    return {
+      written: written, stats: got.stats, keywords: got.keywords,
+      raw: got.raw, pending: got.pending
+    };
   }
 
   return {
