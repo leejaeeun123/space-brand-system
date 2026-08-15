@@ -1,6 +1,6 @@
 # TYPE LOUNGE — Brand
 
-> 타입라운지 비주얼 아이덴티티 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템(`nmwc.ai.kr/brand`).
+> 타입라운지 비주얼 아이덴티티 시스템.
 > 최종 확정본 (2026-07-06). 폰트=Paperlogy 단일 · 웨이트 400/600 · 로고=레이어드 E 워드마크(심볼 없음).
 > 원본: `03-identity/logo-system.md` · `color-palette.md` · `typography.md`, `04-signage/pictograms.md`, `01-strategy/visual-principles.md`.
 
@@ -14,7 +14,7 @@
 
 로고를 클릭하면 해당 SVG가 바로 내려받아진다.
 
-```tl-logos zip=type-lounge-logos.zip
+```tl-logos zip=type-lounge-logos.zip also=assets/logo/logo-wordmark-v.svg,assets/logo/logo-wordmark-h.svg
 assets/logo/logo-wordmark-v-ink.svg | light | Primary · Ink | 세로 · 잉크 SVG ↓
 assets/logo/logo-wordmark-v-white.svg | dark | Reversed · White | 세로 · 화이트 SVG ↓
 assets/logo/logo-wordmark-v-white.svg | orange | Accent · White | 세로 · 화이트 SVG ↓
@@ -29,22 +29,6 @@ assets/logo/logo-wordmark-h-white.svg | dark | Horizontal · White | 가로 · �
 - **프라이머리 = 세로 2줄** (`TYPE` / `LOUNGE`), 가운데 정렬 — 레이아웃 원칙과 일치.
 - **베리에이션 = 가로 1줄** (`TYPE LOUNGE`) — 배너·웹 헤더·명함.
 - 국·영 병기 시 국문 위 / 영문 아래. 사이니지는 영문 중심.
-
-### 파일 (납품용 벡터 · 폰트 의존성 없음)
-
-| 파일 | 형태 | 색 | 용도 |
-|---|---|---|---|
-| `logo-wordmark-v-ink.svg` | 세로 2줄 | 잉크 `#16130F` | **프라이머리** · 밝은 배경 |
-| `logo-wordmark-v-white.svg` | 세로 2줄 | 화이트 `#ffffff` | 어두운·오렌지 배경 |
-| `logo-wordmark-h-ink.svg` | 가로 1줄 | 잉크 | 배너·웹 헤더·명함 |
-| `logo-wordmark-h-white.svg` | 가로 1줄 | 화이트 | 어두운·오렌지 배경 |
-| `logo-wordmark-v.svg` / `-h.svg` | 세로 / 가로 | `currentColor` | 웹·CSS `color` 제어 |
-
-```tl-dl quiet zip=type-lounge-logos.zip
-currentColor ↓ | 세로=assets/logo/logo-wordmark-v.svg | 가로=assets/logo/logo-wordmark-h.svg | 파비콘=assets/logo/favicon.svg
-```
-
-경로 접두: `03-identity/`. 재현 스크립트 `gen600.py` (입력 `Paperlogy-6SemiBold.ttf`, E 3선 두께비 0.15).
 
 ### Color 사용
 
@@ -110,40 +94,38 @@ currentColor ↓ | 세로=assets/logo/logo-wordmark-v.svg | 가로=assets/logo/l
 |---|---|---|---|
 | 로고 워드마크 | **Paperlogy** | **600** | `TYPE LOUNGE` / `타입라운지` · E 레이어 커스텀 |
 | 디스플레이(헤드라인·간판) | Paperlogy | 600 | 포스터·히어로·섹션 타이틀 |
-| 소제목 | Paperlogy | 600 | |
+| 소제목 | Paperlogy | **400** | |
 | 본문 (Body) | Paperlogy | **400 · 600** | 기본 400, 강조 600 |
-| 라벨·타입 태그 | Paperlogy | 600 (대문자) | WORK · CLASS · GATHERING |
+| 라벨·타입 태그 | Paperlogy | **400** (대문자) | WORK · CLASS · GATHERING |
 
-전 시스템 **2-웨이트(400 / 600)** 통일.
+전 시스템 **2-웨이트(400 / 600)** 통일 — 600은 로고·디스플레이에만, 나머지는 400.
 
 ### 자간
-| 구분 | 자간 |
-|---|---|
-| 영문 로고·디스플레이 | **−2%** (−0.02em) |
-| 국문 로고·디스플레이 | 0% |
-| 본문 | 0% |
-| 라벨·타입 태그(대문자) | **+0.12~0.14em** |
+
+**영문·국문 모두 +3%** (Figma 기준 · CSS `letter-spacing: 0.03em`). 크기·역할과 무관하게 한 값으로 통일한다.
+
+로고는 자간을 지정하지 않는다 — 워드마크 SVG 자체를 쓰기 때문에 텍스트 자간이 개입할 여지가 없다.
 
 ### 타입 스케일
 
 ```tl-spec
-display/2xl | 600 | 56 | display/2xl · 600 · −2% | -0.02
-display/xl · 간판·히어로 | 600 | 40 | display/xl · 600 | -0.01
-display/lg · 섹션 타이틀 | 600 | 28 | display/lg · 600
-heading/md · 소제목 | 600 | 22 | heading/md · 600
-body/md · 비어 있어서, 무엇이든 될 수 있어요. | 400 | 16 | body/md · 400
-LABEL/MD · WORK · CLASS · GATHERING | 600 | 14 | label/md · 600 · +0.13em | 0.13
+display/2xl | 600 | 56 | display/2xl · 600 | 0.03
+display/xl · 간판·히어로 | 600 | 40 | display/xl · 600 | 0.03
+display/lg · 섹션 타이틀 | 600 | 28 | display/lg · 600 | 0.03
+heading/md · 소제목 | 400 | 22 | heading/md · 400 | 0.03
+body/md · 비어 있어서, 무엇이든 될 수 있어요. | 400 | 16 | body/md · 400 | 0.03
+LABEL/MD · WORK · CLASS · GATHERING | 400 | 14 | label/md · 400 | 0.03
 ```
 
 | 토큰 | 웨이트 | 크기 / 행간 | 용도 |
 |---|---|---|---|
-| `display/2xl` | 600 · 영문 −2% | 56px / 1.0 | 포스터·키비주얼 |
+| `display/2xl` | 600 | 56px / 1.0 | 포스터·키비주얼 |
 | `display/xl` | 600 | 40px / 1.05 | 간판·히어로 |
 | `display/lg` | 600 | 28px / 1.1 | 섹션 타이틀 |
-| `heading/md` | 600 | 22px / 1.3 | 소제목 |
+| `heading/md` | **400** | 22px / 1.3 | 소제목 |
 | `body/lg` | 400 | 18px / 1.6 | 리드 |
 | `body/md` | 400 | 16px / 1.6 | 본문 |
-| `label/md` | 600 · 대문자 | 14px / 1.4 | 라벨·타입 태그 |
+| `label/md` | **400** · 대문자 | 14px / 1.4 | 라벨·타입 태그 |
 
 ### 운용
 - **가운데 정렬 기본** (안내문 위주, 위/아래 배치). 강조는 **굵기(600)·컬러블록**으로. 밑줄·그림자 금지.
@@ -177,7 +159,7 @@ LABEL/MD · WORK · CLASS · GATHERING | 600 | 14 | label/md · 600 · +0.13em |
 
 ### 다운로드 — 픽토그램 (아웃라인 SVG · 세트 20종)
 
-아이콘을 누르면 SVG가 내려받아진다. 픽토 사양·개정 이력의 정본은 `signage.md` §04.
+아이콘을 누르면 SVG가 내려받아진다. 픽토 사양·개정 이력의 정본은 `signage.md`의 「04. 픽토그램」이다.
 
 ```tl-pictos quiet zip=type-lounge-pictograms.zip
 assets/picto/picto-wifi.svg | 와이파이
@@ -288,10 +270,3 @@ md/*.md
 | `logo-wordmark-{v,h}.svg` | 워드마크 currentColor | 웹·CSS |
 | `04-signage/picto-*.svg` (20종 × 3색) | 픽토그램 세트 | viewBox 100, **아웃라인(면)**. 기본 `#16130F` · `-white` · `-current`(CSS 제어) |
 | `04-signage/mode-*.svg` (12종) | 타입 태그 WORK·CLASS·GATHERING | Paperlogy 400 아웃라인 · 자간 +0.05em · 4pt 프레임 · 기본 `#16130F` · `-white` · `-current` |
-| `03-identity/favicon.svg` | 브라우저 탭 | ⚠️ 심볼 기반 — **워드마크(3선) 기반 재제작 필요** |
-
-### 남은 작업
-- [ ] 워드마크(3선) 기반 파비콘/앱 아이콘 재제작
-- [ ] 타입 3종 라인 픽토 SVG 제작
-- [ ] 사이니지용 단색 각인판(트레이싱지/아크릴) 사양
-- [ ] AI(.ai) 마스터 — 필요 시 SVG에서 변환

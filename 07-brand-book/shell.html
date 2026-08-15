@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}}</title>
 <meta name="description" content="{{DESC}}">
-<link rel="icon" href="assets/logo/favicon.svg">
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <style>
   :root{
@@ -281,7 +280,7 @@
         <div class="ddmenu">
           <a href="{{STANDALONE}}" download>HTML page <small>단일 파일</small></a>
           <a href="md/{{SLUG}}.md" download>MD source <small>{{SLUG}}.md</small></a>
-          <a href="assets/logo/logo-wordmark-v-ink.svg" download>Logo (SVG) <small>워드마크</small></a>
+          <a href="type-lounge-logos.zip" download>Logo (SVG) <small>워드마크 전체 zip</small></a>
           <hr>
           <a href="type-lounge-brand-kit.zip" download>Download all <small>{{KITSIZE}}</small></a>
         </div>
@@ -346,6 +345,30 @@
     navigator.clipboard.writeText(document.getElementById('mdsrc').textContent).then(function(){
       cp.textContent='Copied'; setTimeout(function(){cp.textContent='Copy'},1400);
     });
+  });
+
+  // ---- 다운로드: 새 탭으로 열리지 않고 항상 파일로 떨어지게 ----
+  // SVG·MD 처럼 브라우저가 직접 렌더할 수 있는 타입은 download 속성만으로는 탐색이 일어난다.
+  // 같은 출처면 blob 으로 받아 강제로 저장시킨다. (standalone 단일 파일은 절대 URL이라 제외)
+  document.addEventListener('click',function(e){
+    var a=e.target.closest && e.target.closest('a[download]');
+    if(!a||a.dataset.dl)return;
+    var href=a.getAttribute('href')||'';
+    if(/^[a-z]+:/i.test(href)&&href.indexOf(location.origin)!==0)return;  // 교차 출처는 브라우저에 맡긴다
+    if(!window.fetch||location.protocol==='file:')return;                 // file:// 은 그대로가 더 안전
+    e.preventDefault();
+    a.dataset.dl='1';
+    var name=a.getAttribute('download')||href.split('/').pop().split('?')[0];
+    fetch(href).then(function(r){
+      if(!r.ok)throw new Error(r.status);
+      return r.blob();
+    }).then(function(b){
+      var u=URL.createObjectURL(b),t=document.createElement('a');
+      t.href=u;t.download=name;document.body.appendChild(t);t.click();t.remove();
+      setTimeout(function(){URL.revokeObjectURL(u)},2000);
+    }).catch(function(){
+      location.href=href;                                                 // 실패하면 원래 동작으로
+    }).then(function(){delete a.dataset.dl});
   });
 
   // ---- dropdown: close on outside click / Esc ----

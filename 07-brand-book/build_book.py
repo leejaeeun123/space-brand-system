@@ -35,7 +35,7 @@ FOOT = ('TYPE LOUNGE Brand Book · No More Work Company · 2026-08 · '
 EXTRA_ASSETS = [
     ("03-identity/logo-wordmark-v.svg", "assets/logo/logo-wordmark-v.svg"),
     ("03-identity/logo-wordmark-h.svg", "assets/logo/logo-wordmark-h.svg"),
-    ("03-identity/favicon.svg",         "assets/logo/favicon.svg"),
+    # 파비콘은 쓰지 않는다 (2026-08-16 재은) — 사이트에도 킷에도 넣지 않는다
     # 세트 20종 중 조명만 브랜드북 사본에 빠져 있었다 (04-signage 가 정본)
     ("04-signage/picto-light.svg",         "assets/picto/picto-light.svg"),
     ("04-signage/picto-light-white.svg",   "assets/picto/picto-light-white.svg"),
@@ -98,6 +98,8 @@ def group_head(kv, files, flags=()):
         return ""
     ZIPS.setdefault(kv["zip"], [])
     ZIPS[kv["zip"]] += files
+    if "also" in kv:          # 화면에는 안 띄우고 zip 에만 넣을 파일 (예: currentColor 변형)
+        ZIPS[kv["zip"]] += expand(kv["also"].split(","))
     if "quiet" in flags:          # 같은 zip 을 여러 블록이 채울 때 링크는 한 번만 노출
         return ""
     return ('<div class="grouphead"><span></span>'

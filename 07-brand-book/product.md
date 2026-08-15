@@ -1,7 +1,7 @@
 # TYPE LOUNGE — Product (Component System)
 
 > 타입라운지 컴포넌트 시스템. 참조 구조: 모회사 No More Work Company(NMWC) 프로덕트(`nmwc.ai.kr/product`).
-> **현재 프로덕트 = 공간 사이니지 · 인쇄물.** 예약 웹/앱은 추후 확장(§07).
+> **현재 프로덕트 = 공간 사이니지 · 인쇄물.** 예약 웹/앱은 추후 확장(「07. Reservation UI」).
 > **Atom 먼저, Molecule/Organism은 Atom 조합으로.** 이름은 기존 HTML 실제 클래스(`.panel .mode .floor .logo .arrow`)와 토큰(`--spine-*`)을 그대로 채택.
 > 원본: `06-applications/*.html`, `04-signage/signage-system.md` · `interior-wayfinding.md` · `pictograms.md`, `03-identity/design-tokens.md`.
 > **공간 사이니지의 확정 사양·설치 실물·안내문 템플릿은 `signage.md`가 정본이다.** 이 문서는 컴포넌트(Atom/Molecule/Organism) 관점만 다룬다.
@@ -19,7 +19,7 @@
 3. **색·크기는 토큰으로 지시** — "버튼은 파란색" ❌ → `.mode` active, `var(--spine-orange)` ✅.
 4. **추정 금지** — 실제 화면·Figma가 생기면 그때의 컴포넌트 이름을 그대로 채운다.
 
-> **사이니지 6원칙**(자가안내 · 찾아오게 만들기 · 도형이 글자보다 먼저 · 소수·정밀·절제 · 레이어 분리 · 낮은 층고)은 `signage.md` §01이 정본이다. 양쪽에 복사해두면 한쪽만 고쳐져 조용히 어긋난다.
+> **사이니지 6원칙**(자가안내 · 찾아오게 만들기 · 도형이 글자보다 먼저 · 소수·정밀·절제 · 레이어 분리 · 낮은 층고)은 `signage.md`의 「01. Principles」가 정본이다. 양쪽에 복사해두면 한쪽만 고쳐져 조용히 어긋난다.
 
 ---
 
@@ -60,7 +60,7 @@ WORK | CLASS · active* | GATHERING
 #### 4. Pictogram
 | | |
 |---|---|
-| **Element** | `picto-*.svg` **20종** (`04-signage/`) — 목록·규칙은 `signage.md` §04 |
+| **Element** | `picto-*.svg` **20종** (`04-signage/`) — 목록·규칙은 `signage.md`의 「04. 픽토그램」 |
 | **Usage** | 편의·방향·금지 안내. viewBox 100 · 선 두께 2.7 · stroke를 아웃라인(면)으로 변환해 납품 |
 | **States** | 단색(ink / white) · 포인트(orange) |
 | **금지** | 세트 외 아이콘 혼용, 입체·장식, **텍스트 라벨 없이 단독 사용** |
@@ -78,13 +78,13 @@ WORK | CLASS · active* | GATHERING
 - **Floor Header** = `Directional Arrow` + `.floor`(층) + `.sub`(멀티유즈 라운지·합정). 층 안내 상단부.
 - **Type Board** = `Type Tag` × 3 + `Pictogram`(타입 3종) + 한 줄 카피. 교체형 카드.
 - **Guide Row** = `Pictogram` + `label/md` 텍스트(예: `[wifi] 와이파이`). 이용 가이드·웨이파인딩 한 줄.
-- **Notice Sheet** = `Pictogram` + 제목 + 본문 + `Wordmark`. 실내 안내문 1장 — 세로 A5 고정 규격(`signage.md` §03).
+- **Notice Sheet** = `Pictogram` + 제목 + 본문 + `Wordmark`. 실내 안내문 1장 — 세로 A5 고정 규격(`signage.md`의 「03. 안내문 템플릿」).
 - **Business Card** = `Wordmark`(가로) + `Color Token` 면. 앞/뒤 2면.
 
 ### 02c. Organisms — 사인 인벤토리 (2026-08-06 설치 확정 5종)
 
 > **설치 완료·확정본.** 이전 목업 단계의 "실버 알루미늄 + 반투명 골판 아크릴" 사양은 폐기됐다.
-> 상세·사진·유도 시퀀스는 `signage.md` §02.
+> 상세·사진·유도 시퀀스는 `signage.md`의 「02. 사인 인벤토리」.
 
 | # | 사인 | 조합 | 물성 (확정) | 내용 |
 |---|---|---|---|---|
@@ -103,8 +103,8 @@ assets/photo/label-staffroom.jpg | I-2 | 문 라벨 · 스태프룸 | 자석 메
 assets/photo/label-restroom.jpg | I-2 | 문 라벨 · 화장실 | 같은 문법
 ```
 
-- 사진 원본: `07-brand-book/assets/photo/` — 설치 실물·유도 시퀀스의 정본은 `signage.md` §02.
-- **Notice Sheet**(신규 Molecule) = `Pictogram` + 제목 + 본문 + `Wordmark`. 세로 A5 420×595 고정 규격 — `signage.md` §03, 생성기 `04-signage/gen_notice.py`.
+- 사진 원본: `07-brand-book/assets/photo/` — 설치 실물·유도 시퀀스의 정본은 `signage.md`의 「02. 사인 인벤토리」.
+- **Notice Sheet**(신규 Molecule) = `Pictogram` + 제목 + 본문 + `Wordmark`. 세로 A5 420×595 고정 규격 — `signage.md`의 「03. 안내문 템플릿」, 생성기 `04-signage/gen_notice.py`.
 - **레이어드 메커니즘** = 트레이싱지 인쇄물을 **자석으로 겹쳐 쌓기**(각인 대체). 오브제(원형 자석·실버 클립·오렌지 마스킹테이프)로 고정·장식하며, **오렌지는 이 오브제에만** 등장한다.
 - 타입 태그 순서는 실물 기준 **`WORK │ GATHERING │ CLASS`**. 층 표기는 `3F`(국문 `3층` 아님).
 
@@ -139,7 +139,7 @@ assets/photo/label-restroom.jpg | I-2 | 문 라벨 · 화장실 | 같은 문법
 
 ## 04. Iconography
 
-→ 상세는 `brand.md` §04. 프로덕트 적용 규칙만:
+→ 상세는 `brand.md`의 「04. Iconography」. 프로덕트 적용 규칙만:
 - 모든 픽토그램은 **텍스트 라벨과 병행**(색·기호만으로 정보 전달 금지).
 - 방향·자가안내 픽토(QR·입퇴실·결제)가 무인 운영에서 특히 중요.
 
@@ -156,7 +156,7 @@ assets/photo/label-restroom.jpg | I-2 | 문 라벨 · 화장실 | 같은 문법
 | `inverted` | Wordmark, 픽토 | 어두운/오렌지 배경 → 화이트 |
 | `point` | 픽토 | 포인트 1색(orange) |
 
-(예약 UI 추가 시 hover·focus·disabled·loading 등 인터랙션 상태 확장 — §07.)
+(예약 UI 추가 시 hover·focus·disabled·loading 등 인터랙션 상태 확장 — 「07. Reservation UI」.)
 
 ---
 
