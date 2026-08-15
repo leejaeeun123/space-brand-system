@@ -63,7 +63,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 |---|---|---|
 | 게스트 가이드 | 이용 안내 + 영상정보처리기기 법정 고지 | `06-applications/guest-guide.html` → `/` |
 | 손님 제어 | 조명 켜기/끄기 + 냉난방 **온도·모드·바람 세기** (비밀번호 없음 — 서버가 **예약 시간 안에서만** 연다) | `06-applications/guest-control.html` → `/control` |
-| 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV · 공간 지원 신청 · 지원금 신청 | `06-applications/admin.html` → `/admin` |
+| 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV · 공간 지원 신청 · 지원금 신청 · 운영지표 | `06-applications/admin.html` → `/admin` |
 | 예약 자동 반영 | 파트너 API(주) + Gmail 15분 트리거(백업) → Supabase RPC | [`automation/`](./06-applications/automation/README.md) |
 | 냉난방 | LG ThinQ Cloud API (HTTPS) — 현장 장비 불필요 | [`functions/control/`](./supabase/functions/control/README.md) |
 | 조명 | Tasmota → RPi mosquitto → 맥 mosquitto → 상주 에이전트 → Supabase Realtime. 명령은 **tailscale ∥ AWS IoT 두 경로로 병렬 발송**, MQTT가 막히면 **기기 HTTP로 우회**한다 | [`control-agent/`](./06-applications/control-agent/README.md) |
@@ -73,6 +73,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 | 청소 완료 QR | 현장 QR을 찍으면 그 시각 이전에 끝난 예약이 전부 청소 완료 + Mattermost 알림 | [`control-setup.md` L절](./06-applications/control-setup.md) · `06-applications/cleaning-done.html` → `/cleaning` |
 | 공간 지원 신청 | 공개 신청서 → `support_applications` 저장 + Mattermost 알림 (보유 1년) | [`functions/apply/`](./supabase/functions/apply/README.md) · `06-applications/apply.html` → `/apply` |
 | 지원금(페이백) 신청 | 이용 비용 청구 → 3.3% 원천징수 후 지급. **주민번호·계좌는 AES-GCM 암호화**(키는 DB 밖) | [`functions/claim/`](./supabase/functions/claim/README.md) · `06-applications/payback.html` → `/payback` |
+| 운영지표 | 스클 파트너 통계(도달·클릭·예약·후기·키워드)를 **일별 원장**으로 쌓아 어드민에서 본다. 수집은 사람이 돌린다 — 토큰이 24시간이면 죽어 무인화가 안 된다 | [`automation/` 운영지표 수집](./06-applications/automation/README.md#운영지표-수집) |
 
 **합정에 맥 1대가 상주한다** — 조명과 CCTV가 여기에 의존한다(냉난방은 클라우드라 무관).
 **영상은 Supabase를 지나가지 않는다** — 서버는 '카메라가 살아 있나'만 알고, 프레임은

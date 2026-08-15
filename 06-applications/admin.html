@@ -302,6 +302,66 @@
     border:1px solid var(--hair);border-radius:8px;padding:9px 11px;margin-bottom:6px;min-height:0;
   }
   .cam-span.on{border-color:var(--ink);}
+
+  /* 운영지표 */
+  .st-range{display:flex;gap:8px;margin-bottom:14px;}
+  .st-range button{
+    font-family:inherit;font-weight:600;font-size:13px;flex:1;min-height:44px;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;cursor:pointer;
+  }
+  .st-range button.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .st-asof{font-size:12px;color:#8a8478;margin-bottom:14px;}
+
+  .st-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .st-kpi{border:1px solid var(--hair);border-radius:8px;padding:12px 14px;}
+  .st-kpi .k{font-size:11px;color:#8a8478;letter-spacing:.04em;}
+  .st-kpi .v{font-weight:600;font-size:19px;margin-top:4px;letter-spacing:-.02em;}
+  .st-kpi .s{font-size:11px;color:#6b665c;margin-top:3px;}
+  .st-kpi .s em{font-style:normal;color:var(--orange);font-weight:600;}
+
+  /* 퍼널 — 도달에서 이용까지 한 줄로 읽힌다 */
+  .st-funnel{border:1px solid var(--hair);border-radius:8px;padding:14px;}
+  .st-step{display:grid;grid-template-columns:74px 1fr auto;align-items:center;gap:10px;margin-bottom:9px;}
+  .st-step:last-child{margin-bottom:0;}
+  .st-step .n{font-size:12px;color:#6b665c;}
+  .st-step .bar{height:16px;background:var(--hair);border-radius:4px;overflow:hidden;}
+  .st-step .bar i{display:block;height:100%;background:var(--ink);border-radius:4px;}
+  .st-step .bar i.accent{background:var(--orange);}
+  .st-step .q{font-size:12px;font-weight:600;white-space:nowrap;}
+  .st-conv{font-size:11px;color:#8a8478;margin-top:10px;line-height:1.7;}
+
+  .st-chart{border:1px solid var(--hair);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .st-chart .t{font-size:12px;color:#6b665c;display:flex;justify-content:space-between;gap:8px;}
+  .st-chart .t b{font-weight:600;color:var(--ink);}
+  .st-chart svg{display:block;width:100%;height:auto;margin-top:8px;}
+
+  .st-kw{border:1px solid var(--hair);border-radius:8px;padding:12px 14px;}
+  .st-kw-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:13px;margin-bottom:8px;}
+  .st-kw-row:last-child{margin-bottom:0;}
+  .st-kw-row .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .st-kw-row .b{grid-column:1/-1;height:6px;background:var(--hair);border-radius:3px;overflow:hidden;margin-top:-4px;}
+  .st-kw-row .b i{display:block;height:100%;background:var(--orange);border-radius:3px;}
+
+  /* Raw 표 — 컬럼이 35개라 절대 화면에 안 들어간다. 자기 안에서만 가로로 구른다
+     (페이지 본문이 가로로 밀리면 다른 화면까지 망가진다). */
+  .st-rawwrap{border:1px solid var(--hair);border-radius:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* 키워드는 하루 최대 5행이라 금방 길어진다(24일 = 89행). 세로도 자기 안에서 구른다. */
+  .st-rawtall{max-height:420px;overflow-y:auto;}
+  table.st-raw td.kw{text-align:left;white-space:nowrap;}
+  table.st-raw{border-collapse:collapse;font-size:12px;white-space:nowrap;}
+  table.st-raw th, table.st-raw td{padding:7px 10px;border-bottom:1px solid var(--hair);text-align:right;}
+  table.st-raw thead th{
+    position:sticky;top:0;background:var(--white);z-index:2;
+    font-weight:600;font-size:10px;letter-spacing:.04em;color:#6b665c;text-transform:uppercase;
+  }
+  table.st-raw thead th.grp{color:var(--orange);border-bottom:1px solid var(--hair);text-align:center;}
+  table.st-raw th.d, table.st-raw td.d{
+    position:sticky;left:0;background:var(--white);z-index:1;text-align:left;font-weight:600;
+    border-right:1px solid var(--hair);
+  }
+  table.st-raw thead th.d{z-index:3;}
+  table.st-raw tbody tr:last-child td{border-bottom:0;}
+  table.st-raw td.zero{color:#c9c4ba;}
 </style>
 </head>
 <body>
@@ -325,6 +385,7 @@
       <button type="button" class="side-link" data-view="cctv">CCTV</button>
       <button type="button" class="side-link" data-view="applications">공간 지원 신청</button>
       <button type="button" class="side-link" data-view="paybacks">지원금 신청</button>
+      <button type="button" class="side-link" data-view="stats">운영지표</button>
     </nav>
     <button type="button" class="side-logout" onclick="lock()">로그아웃</button>
   </aside>
@@ -413,6 +474,56 @@
         <strong>지급을 마치면 반드시 ‘지급 완료’를 눌러 주세요.</strong> 파기 시점이 그 날짜에
         매달려 있어(지급 1년 후), 표시하지 않으면 주민번호가 제때 안 지워집니다.
         지급하지 않기로 했다면 <strong>반려</strong>를 누르세요 — 그 즉시 암호문을 지웁니다.
+      </div>
+    </section>
+
+    <section class="view" id="view-stats">
+      <div id="statNotice" class="ctl-notice" style="display:none;"></div>
+
+      <div class="st-range">
+        <button type="button" data-days="7">최근 7일</button>
+        <button type="button" data-days="30" class="on">최근 30일</button>
+        <button type="button" data-days="0">전체</button>
+      </div>
+      <div class="st-asof" id="statAsOf"></div>
+
+      <h2>도달에서 이용까지</h2>
+      <div class="st-funnel" id="statFunnel"></div>
+
+      <h2>요약</h2>
+      <div class="st-kpis" id="statKpis"></div>
+
+      <h2>일별 추이</h2>
+      <div id="statCharts"></div>
+
+      <h2>유입 키워드</h2>
+      <div class="st-kw" id="statKeywords"></div>
+
+      <h2>Raw 데이터 — 일별 지표</h2>
+      <div class="st-rawwrap"><table class="st-raw" id="statRaw"></table></div>
+      <button type="button" class="add-btn" onclick="copyStatsCsv()">CSV로 복사</button>
+
+      <h2>Raw 데이터 — 유입 키워드</h2>
+      <div class="st-rawwrap st-rawtall"><table class="st-raw" id="statRawKw"></table></div>
+      <button type="button" class="add-btn" onclick="copyKeywordsCsv()">키워드 CSV로 복사</button>
+
+      <button type="button" class="add-btn" onclick="refreshStats()">새로고침</button>
+
+      <div class="warn">
+        스페이스클라우드 파트너 통계를 하루 단위로 받아 쌓은 것입니다. 수집은 자동이 아니라
+        <strong>사람이 돌립니다</strong> — 파트너 토큰이 24시간이면 죽고 네이버 재로그인이
+        유일한 갱신 수단이라서요(<code>automation/run-stats-sync.mjs</code>).
+        <br><br>
+        <strong>스클 집계는 D-1이 원칙이고 하루 더 늦어지는 날도 있습니다.</strong> 그래서 맨 끝
+        하루이틀이 비어 보이는 건 정상이고, 다음 수집 때 채워집니다.
+        <br><br>
+        읽을 때 주의할 것 셋 —
+        <strong>① 확정 매출은 취소분을 뺀 순액</strong>입니다(Raw 표의 <em>확정액</em>).
+        총액은 <em>확정액(총)</em>이고 둘의 차이가 취소분인데, 확정된 날과 취소된 날이 달라서
+        <strong>하루 단위로는 순액을 계산할 수 없습니다</strong> — 기간 합으로만 맞습니다.
+        <strong>② 재예약률은 기간을 정해야 나오는 값</strong>이라 일별을 더하면 틀립니다.
+        그래서 여기 요약에 넣지 않았습니다.
+        <strong>③ 유입 키워드는 건수가 아니라 비율</strong>이고 매일 상위 5개에서 잘립니다.
       </div>
     </section>
   </div>
@@ -808,6 +919,10 @@
     // '로그아웃했다'는 말이 거짓이 된다.
     leaveCctv();
     CAM.creds = null;
+    // 지표 캐시도 버린다 — 안 버리면 다음 로그인 때 showView가 '이미 있다'고 보고 다시
+    // 받지 않아, 로그아웃 전 화면이 그대로 남는다.
+    statsCache = null;
+    statsKwCache = null;
     closeSidebar();
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
@@ -823,7 +938,7 @@
   }
 
   /* 메뉴 — 추가하려면 VIEWS에 한 줄, 사이드바에 data-view 버튼, 본문에 <section id="view-이름"> 하나 */
-  var VIEWS = { reservations: '예약관리', control: '공간 제어', cctv: 'CCTV', applications: '공간 지원 신청', paybacks: '지원금 신청' };
+  var VIEWS = { reservations: '예약관리', control: '공간 제어', cctv: 'CCTV', applications: '공간 지원 신청', paybacks: '지원금 신청', stats: '운영지표' };
   var currentView = 'reservations';
 
   function showView(name){
@@ -842,6 +957,9 @@
     // 주석에 있다 — 부가 정보 하나가 실패해서 로그인 자체가 막히면 안 된다.
     if(name === 'applications') refreshApplications();
     if(name === 'paybacks') refreshPaybacks();
+    // 지표는 한 번만 받아두고 기간 전환은 화면에서 자른다 — 하루 한 행이라 전체를 들고 있어도
+    // 가볍고, 버튼을 누를 때마다 왕복하면 그게 더 느리다.
+    if(name === 'stats' && !statsCache) refreshStats();
     // CCTV를 떠나면 재생을 반드시 끊는다. 안 끊으면 다른 화면을 보는 내내 스트림이 계속
     // 흐르고, 그건 합정 맥 업링크와 이 기기 데이터를 조용히 태운다.
     if(name === 'cctv') enterCctv(); else leaveCctv();
@@ -2748,6 +2866,483 @@
       });
     }
   })();
+
+  /* ── 운영지표 ───────────────────────────────────────────────────────────────
+     원장은 sc_daily_stats(하루 한 행) + sc_daily_keywords(하루 최대 5행)다. 어디서 오고
+     무엇을 조심해야 하는지는 06-applications/automation/README.md에 있다. 여기서 지키는 것:
+
+      · 비율은 **저장된 걸 읽지 않고 그때그때 카운트로 계산한다.** 기간 비율은 일별 비율의
+        평균이 아니고, 분모가 0인 날이 실제로 있다(즉시예약이라 승인 분모가 0인데 API는
+        100%로 준다). 그래서 나눗셈은 전부 pct()를 지나 0 분모를 null로 떨군다.
+      · 재예약은 **아예 보여주지 않는다.** 일별 합이 기간값과 다른 유일한 지표라(실측 20 vs 22)
+        여기서 더하면 조용히 틀린 수가 나간다. Raw 표에는 원본 그대로 두되 합계행에서 뺀다.
+      · 매출은 순액(reservation_amount)과 총액(rsv_confirm_amount) 둘 다 있는데, 요약에는
+        순액만 쓴다. 하루 단위로는 순액을 유도할 수 없어서(확정일 != 취소일) 차트도 순액을
+        그대로 그린다. */
+
+  var statsCache = null;       // sc_daily_stats 전체
+  var statsKwCache = null;     // sc_daily_keywords 전체
+  var statsDays = 30;          // 0 = 전체
+
+  function statNotice(msg, isError){
+    var el = document.getElementById('statNotice');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+    el.style.color = isError ? 'var(--orange)' : '#6b665c';
+  }
+
+  function fetchScDaily(password){
+    return sb.rpc('admin_list_sc_daily', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+  function fetchScKeywords(password){
+    return sb.rpc('admin_list_sc_keywords', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+
+  function refreshStats(){
+    /* 키워드를 못 받아도 나머지는 그린다 — 부가 정보 하나 때문에 지표 전체가 안 보이면
+       안 된다(refreshApplications와 같은 태도). */
+    return Promise.all([
+      fetchScDaily(currentPassword),
+      fetchScKeywords(currentPassword).catch(function(){ return null; })
+    ]).then(function(r){
+      statsCache = r[0];
+      if(r[1] !== null) statsKwCache = r[1];
+      statNotice('');
+      renderStats();
+    }).catch(function(err){
+      /* 빈 화면에 0을 뿌리지 않는다. 조회가 실패했는데 '도달 0'이 뜨면 장사가 안 된 걸로
+         읽힌다 — 신청 목록에서와 같은 실패 모드다. */
+      ['statFunnel','statKpis','statCharts','statKeywords','statRaw','statRawKw'].forEach(function(id){
+        document.getElementById(id).innerHTML = '';
+      });
+      document.getElementById('statAsOf').textContent = '';
+      statNotice('운영지표를 불러오지 못했어요: ' + (err && err.message ? err.message : err), true);
+    });
+  }
+
+  /** 화면에 보이는 구간. statsDays가 0이면 전체. */
+  function statRows(){
+    if(!statsCache || !statsCache.length) return [];
+    if(!statsDays) return statsCache.slice();
+    return statsCache.slice(-statsDays);
+  }
+
+  function statSum(rows, key){
+    return rows.reduce(function(a, r){ return a + Number(r[key] || 0); }, 0);
+  }
+
+  /** 분모가 0이면 null. '0%'로 쓰면 '아직 아무 일도 없음'이 '전환 실패'로 읽힌다. */
+  function pct(num, den){
+    if(!den) return null;
+    return (num / den) * 100;
+  }
+  function fmtPct(v, digits){
+    if(v === null) return '—';
+    return v.toFixed(digits == null ? 1 : digits) + '%';
+  }
+  function fmtNum(n){ return Number(n || 0).toLocaleString('ko-KR'); }
+  function fmtWon(n){ return fmtNum(n) + '원'; }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c];
+    });
+  }
+  /** '2026-08-14' -> '8/14' */
+  function shortDate(d){
+    var p = String(d).split('-');
+    return Number(p[1]) + '/' + Number(p[2]);
+  }
+
+  function renderStats(){
+    var rows = statRows();
+
+    if(!rows.length){
+      document.getElementById('statAsOf').textContent = '';
+      document.getElementById('statFunnel').innerHTML = '';
+      document.getElementById('statKpis').innerHTML = '';
+      document.getElementById('statCharts').innerHTML = '';
+      document.getElementById('statKeywords').innerHTML = '';
+      document.getElementById('statRaw').innerHTML = '';
+      document.getElementById('statRawKw').innerHTML = '';
+      statNotice('아직 쌓인 지표가 없어요. automation/run-stats-sync.mjs 를 한 번 돌리면 채워집니다.');
+      return;
+    }
+
+    var first = rows[0].stat_date, last = rows[rows.length - 1].stat_date;
+    document.getElementById('statAsOf').textContent =
+      first + ' ~ ' + last + ' · ' + rows.length + '일치';
+
+    renderStatFunnel(rows);
+    renderStatKpis(rows);
+    renderStatCharts(rows);
+    renderStatKeywords(rows);
+    renderStatRaw(rows);
+    renderStatRawKw(rows);
+  }
+
+  /** 도달 -> 클릭 -> 확정 -> 이용완료. 막대는 도달 기준 비율이라 뒤로 갈수록 짧아진다. */
+  function renderStatFunnel(rows){
+    var reach = statSum(rows, 'impression_total');
+    var click = statSum(rows, 'click_total');
+    var confirm = statSum(rows, 'reservation_confirm_count');
+    var used = statSum(rows, 'reservation_usedc_count');
+
+    var steps = [
+      { n: '도달', v: reach, unit: '', accent: false },
+      { n: '클릭', v: click, unit: '', accent: false },
+      { n: '확정 예약', v: confirm, unit: '건', accent: true },
+      { n: '이용 완료', v: used, unit: '건', accent: true }
+    ];
+
+    /* 막대 길이는 도달 대비라 예약(28)이 도달(20262) 옆에서 0px가 된다. 그래서 값이 있는
+       칸은 최소 2%를 남긴다 — '있는데 안 보이는' 것보다 '작게라도 보이는' 쪽이 맞다. */
+    var html = steps.map(function(s){
+      var ratio = reach ? (s.v / reach) * 100 : 0;
+      if(s.v > 0 && ratio < 2) ratio = 2;
+      return '<div class="st-step">' +
+        '<div class="n">' + s.n + '</div>' +
+        '<div class="bar"><i class="' + (s.accent ? 'accent' : '') + '" style="width:' + ratio.toFixed(2) + '%"></i></div>' +
+        '<div class="q">' + fmtNum(s.v) + s.unit + '</div>' +
+        '</div>';
+    }).join('');
+
+    html += '<div class="st-conv">' +
+      '클릭률 ' + fmtPct(pct(click, reach), 2) + ' (도달 → 클릭)<br>' +
+      '예약 전환율 ' + fmtPct(pct(confirm, click), 2) + ' (클릭 → 확정 예약)<br>' +
+      '이용 완료율 ' + fmtPct(pct(used, confirm)) + ' (확정 → 이용, 아직 안 온 예약이 있으면 낮게 나옵니다)' +
+      '</div>';
+
+    document.getElementById('statFunnel').innerHTML = html;
+  }
+
+  function renderStatKpis(rows){
+    var confirm = statSum(rows, 'reservation_confirm_count');
+    var amount = statSum(rows, 'reservation_amount');
+    var used = statSum(rows, 'reservation_usedc_count');
+    var guests = statSum(rows, 'usedc_guest_count');
+    var total = statSum(rows, 'reservation_total_count');
+    var cancel = statSum(rows, 'reservation_cancel_count');
+    var gcancel = statSum(rows, 'reservation_guest_cancel_count');
+    var zzim = statSum(rows, 'zzim_count');
+    var review = statSum(rows, 'review_count');
+    var scoreSum = statSum(rows, 'review_score_sum');
+    var qa = statSum(rows, 'qa_count');
+    var qaDone = statSum(rows, 'qa_answer_complete_count');
+    var reviewDone = statSum(rows, 'review_answer_complete_count');
+    var calls = statSum(rows, 'call_total');
+
+    var cards = [
+      { k: '확정 매출', v: fmtWon(amount),
+        s: '취소분 제외 순액 · 총액 ' + fmtWon(statSum(rows, 'rsv_confirm_amount')) },
+      { k: '확정 예약', v: fmtNum(confirm) + '건',
+        s: used ? '이용 완료 ' + fmtNum(used) + '건' : '' },
+      { k: '이용 게스트', v: fmtNum(guests) + '명',
+        s: used ? '예약당 <em>' + (guests / used).toFixed(1) + '명</em>' : '' },
+      { k: '건당 평균', v: confirm ? fmtWon(Math.round(amount / confirm)) : '—',
+        s: used ? '이용 기준 ' + fmtWon(Math.round(statSum(rows, 'rsv_usedc_amount') / used)) : '' },
+      { k: '예약 취소율', v: fmtPct(pct(cancel, total)),
+        s: cancel ? '전체 ' + fmtNum(total) + '건 중 ' + fmtNum(cancel) + '건 · 게스트 ' + fmtNum(gcancel) + '건' : '취소 없음' },
+      { k: '찜', v: fmtNum(zzim) + '개', s: calls ? '전화문의 ' + fmtNum(calls) + '건' : '' },
+      { k: '후기', v: fmtNum(review) + '개',
+        s: review ? '평균 <em>' + (scoreSum / review).toFixed(1) + '점</em>' : '아직 없음' },
+      { k: '응답률', v: (qa + review) ? fmtPct(pct(qaDone + reviewDone, qa + review), 0) : '—',
+        s: 'Q&amp;A ' + fmtNum(qa) + ' · 후기 ' + fmtNum(review) }
+    ];
+
+    document.getElementById('statKpis').innerHTML = cards.map(function(c){
+      return '<div class="st-kpi"><div class="k">' + c.k + '</div>' +
+        '<div class="v">' + c.v + '</div>' +
+        (c.s ? '<div class="s">' + c.s + '</div>' : '') + '</div>';
+    }).join('');
+  }
+
+  /**
+   * 선 그래프 하나를 SVG 문자열로. 라이브러리를 안 쓰는 이유는 이 페이지가 이미 CDN 두 개에
+   * 매달려 있고, 여기 필요한 건 60줄이면 되기 때문이다. (원본 통계 화면이 캔버스라 값을
+   * 못 읽었던 걸 생각하면, 값이 DOM에 남는 SVG가 이 레포 취향에도 맞다.)
+   */
+  function statSvg(rows, key, color, kind){
+    var W = 640, H = 130, PB = 18, PT = 10;
+    var vals = rows.map(function(r){ return Number(r[key] || 0); });
+    var max = Math.max.apply(null, vals.concat([1]));
+    var n = vals.length;
+    var x = function(i){ return n === 1 ? W / 2 : (i / (n - 1)) * W; };
+    var y = function(v){ return PT + (1 - v / max) * (H - PT - PB); };
+
+    var body = '';
+    if(kind === 'bar'){
+      var bw = Math.max(2, (W / Math.max(n, 1)) * 0.62);
+      body = vals.map(function(v, i){
+        if(!v) return '';
+        var bx = (n === 1 ? W / 2 : (i / (n - 1)) * (W - bw)) ;
+        var by = y(v), bh = (H - PB) - by;
+        return '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) +
+               '" height="' + Math.max(bh, 1).toFixed(1) + '" fill="' + color + '" rx="1.5"/>';
+      }).join('');
+    } else {
+      var d = vals.map(function(v, i){ return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' ');
+      var area = d + ' L' + x(n - 1).toFixed(1) + ' ' + (H - PB) + ' L' + x(0).toFixed(1) + ' ' + (H - PB) + ' Z';
+      body = '<path d="' + area + '" fill="' + color + '" opacity=".08"/>' +
+             '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
+             'stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+
+    // 기준선 + 양끝/최댓값 날짜만 적는다. 24~90개 라벨을 다 적으면 읽을 수 없다.
+    var maxAt = vals.indexOf(max);
+    var ticks = [0, n - 1];
+    if(maxAt > 1 && maxAt < n - 2) ticks.push(maxAt);
+    var labels = ticks.map(function(i){
+      var anchor = i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle');
+      return '<text x="' + x(i).toFixed(1) + '" y="' + (H - 5) + '" font-size="10" fill="#8a8478" ' +
+             'text-anchor="' + anchor + '">' + esc(shortDate(rows[i].stat_date)) + '</text>';
+    }).join('');
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img">' +
+      '<line x1="0" y1="' + (H - PB) + '" x2="' + W + '" y2="' + (H - PB) + '" stroke="rgba(22,19,15,.12)" stroke-width="1"/>' +
+      body + labels + '</svg>';
+  }
+
+  function renderStatCharts(rows){
+    var charts = [
+      { key: 'impression_total', title: '도달', color: '#16130F', kind: 'line', fmt: fmtNum },
+      { key: 'click_total',      title: '클릭', color: '#E2531E', kind: 'line', fmt: fmtNum },
+      { key: 'reservation_amount', title: '확정 매출(순액)', color: '#E2531E', kind: 'bar', fmt: fmtWon },
+      { key: 'usedc_guest_count',  title: '이용 게스트', color: '#16130F', kind: 'bar', fmt: fmtNum }
+    ];
+
+    document.getElementById('statCharts').innerHTML = charts.map(function(c){
+      var total = statSum(rows, c.key);
+      var peak = Math.max.apply(null, rows.map(function(r){ return Number(r[c.key] || 0); }).concat([0]));
+      return '<div class="st-chart">' +
+        '<div class="t"><b>' + c.title + '</b><span>합계 ' + c.fmt(total) + ' · 최고 ' + c.fmt(peak) + '</span></div>' +
+        statSvg(rows, c.key, c.color, c.kind) +
+        '</div>';
+    }).join('');
+  }
+
+  /**
+   * 유입 키워드.
+   *
+   * ⚠️ 저장된 값은 **그 날 유입에서 차지한 비율(%)** 이고 매일 상위 5개에서 잘린다. 그래서
+   * 날짜별 비율을 그냥 더하면 유입이 적은 날의 100%가 많은 날의 50%를 이긴다. 여기서는 그 날의
+   * 클릭수로 가중해 '대략 몇 클릭어치였나'로 환산한다 — **근사이고, 5위 밖은 애초에 안 온다.**
+   * 정확한 기간 상위가 필요하면 파트너 API를 그 기간으로 다시 부르는 수밖에 없다.
+   */
+  function renderStatKeywords(rows){
+    var el = document.getElementById('statKeywords');
+    if(!statsKwCache){
+      el.innerHTML = '<div class="st-conv">키워드를 불러오지 못했어요. 새로고침을 눌러보세요.</div>';
+      return;
+    }
+
+    var from = rows[0].stat_date, to = rows[rows.length - 1].stat_date;
+    var clickBy = {};
+    rows.forEach(function(r){ clickBy[r.stat_date] = Number(r.click_total || 0); });
+
+    var weight = {};
+    statsKwCache.forEach(function(k){
+      if(k.stat_date < from || k.stat_date > to) return;
+      if(k.keyword === '기타') return;          // 검색어가 아니라 스클이 묶은 덩어리다
+      var w = (Number(k.share_pct || 0) / 100) * (clickBy[k.stat_date] || 0);
+      if(!w) return;
+      weight[k.keyword] = (weight[k.keyword] || 0) + w;
+    });
+
+    var list = Object.keys(weight).map(function(w){ return { w: w, v: weight[w] }; })
+      .sort(function(a, b){ return b.v - a.v; }).slice(0, 8);
+
+    if(!list.length){
+      el.innerHTML = '<div class="st-conv">이 구간에 집계된 키워드가 없어요.</div>';
+      return;
+    }
+
+    var top = list[0].v;
+    el.innerHTML = list.map(function(r){
+      return '<div class="st-kw-row">' +
+        '<div class="w">' + esc(r.w) + '</div>' +
+        '<div>' + Math.round(r.v).toLocaleString('ko-KR') + '</div>' +
+        '<div class="b"><i style="width:' + ((r.v / top) * 100).toFixed(1) + '%"></i></div>' +
+        '</div>';
+    }).join('') +
+    '<div class="st-conv">그 날 클릭수로 가중한 <strong>근사 클릭수</strong>입니다 — 원본이 비율이라 그냥 더하면 ' +
+    '한산한 날이 과대평가됩니다. 매일 상위 5개만 오므로 그 아래는 애초에 잡히지 않습니다.</div>';
+  }
+
+  /* Raw 표 컬럼. 순서와 이름이 CSV와 공유된다 — 한 군데만 고치면 둘 다 바뀐다. */
+  var STAT_COLS = [
+    { g: '지표', c: [
+      ['usedc_guest_count', '게스트'],
+      ['reservation_confirm_count', '확정'],
+      ['reservation_amount', '확정액'],
+      ['reservation_usedc_count', '이용완료'],
+      ['reservation_total_count', '전체예약'],
+      ['reservation_cancel_count', '취소'],
+      ['reservation_guest_cancel_count', '취소(게)'],
+      ['reservation_host_cancel_count', '취소(호)'],
+      ['reservation_approve_count', '승인'],
+      ['re_reservation_count', '재예약*']
+    ]},
+    { g: '도달', c: [
+      ['impression_total', '전체'],
+      ['impression_normal', '일반'],
+      ['impression_ad', '광고'],
+      ['impression_etc', '기타']
+    ]},
+    { g: '클릭', c: [
+      ['click_total', '전체'],
+      ['click_normal', '일반'],
+      ['click_ad', '광고'],
+      ['click_etc', '기타']
+    ]},
+    { g: '예약(총액)', c: [
+      ['rsv_confirm_count', '확정'],
+      ['rsv_usedc_count', '이용'],
+      ['rsv_cancel_count', '취소'],
+      ['rsv_confirm_amount', '확정액'],
+      ['rsv_usedc_amount', '이용액'],
+      ['rsv_cancel_amount', '취소액']
+    ]},
+    { g: '반응', c: [
+      ['qa_count', 'QnA'],
+      ['qa_answer_complete_count', 'QnA답변'],
+      ['review_count', '후기'],
+      ['review_answer_complete_count', '후기답변'],
+      ['review_score_sum', '평점합'],
+      ['zzim_count', '찜']
+    ]},
+    { g: '전화', c: [
+      ['call_total', '전체'],
+      ['call_success', '성공'],
+      ['call_fail', '실패']
+    ]}
+  ];
+
+  function statFlatCols(){
+    return STAT_COLS.reduce(function(a, g){
+      return a.concat(g.c.map(function(c){ return { key: c[0], label: g.g + ' ' + c[1] }; }));
+    }, []);
+  }
+
+  function renderStatRaw(rows){
+    var groupRow = '<tr><th class="d grp" rowspan="2">날짜</th>' +
+      STAT_COLS.map(function(g){ return '<th class="grp" colspan="' + g.c.length + '">' + esc(g.g) + '</th>'; }).join('') +
+      '</tr>';
+    var headRow = '<tr>' + STAT_COLS.map(function(g){
+      return g.c.map(function(c){ return '<th>' + esc(c[1]) + '</th>'; }).join('');
+    }).join('') + '</tr>';
+
+    var flat = statFlatCols();
+
+    // 최신이 위. '오늘 기준 어떤가'로 읽는 표라 위에서부터 최근이어야 한다.
+    var body = rows.slice().reverse().map(function(r){
+      return '<tr><td class="d">' + esc(r.stat_date) + '</td>' +
+        flat.map(function(c){
+          var v = Number(r[c.key] || 0);
+          return '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmtNum(v) : '·') + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+
+    /* 합계행 — 단, 재예약은 비운다. 여기만 더하면 안 되는 값이라(구간에 의존) 숫자를 넣으면
+       그럴듯해 보여서 더 위험하다. */
+    var foot = '<tr><td class="d">합계</td>' + flat.map(function(c){
+      if(c.key === 're_reservation_count') return '<td class="zero">—</td>';
+      return '<td>' + fmtNum(statSum(rows, c.key)) + '</td>';
+    }).join('') + '</tr>';
+
+    document.getElementById('statRaw').innerHTML =
+      '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
+      '<tfoot style="font-weight:600">' + foot + '</tfoot>';
+  }
+
+  /** 구간 안의 키워드 원본 행. 최신 날짜가 위, 같은 날은 순위대로. */
+  function statKwRows(rows){
+    if(!statsKwCache || !rows.length) return [];
+    var from = rows[0].stat_date, to = rows[rows.length - 1].stat_date;
+    return statsKwCache.filter(function(k){
+      return k.stat_date >= from && k.stat_date <= to;
+    }).slice().sort(function(a, b){
+      if(a.stat_date !== b.stat_date) return a.stat_date < b.stat_date ? 1 : -1;
+      return Number(a.rank) - Number(b.rank);
+    });
+  }
+
+  /* 가공 없이 저장된 그대로 보여준다. 위의 '유입 키워드' 블록은 클릭수로 가중한 근사라,
+     원본이 무엇이었는지 대조할 자리가 하나는 있어야 한다. */
+  function renderStatRawKw(rows){
+    var kws = statKwRows(rows);
+    var el = document.getElementById('statRawKw');
+
+    if(!kws.length){
+      el.innerHTML = '<tbody><tr><td class="d">—</td><td>이 구간에 키워드가 없어요</td></tr></tbody>';
+      return;
+    }
+
+    var head = '<thead><tr><th class="d">날짜</th><th>순위</th><th style="text-align:left">키워드</th><th>비율</th></tr></thead>';
+    var body = kws.map(function(k){
+      return '<tr>' +
+        '<td class="d">' + esc(k.stat_date) + '</td>' +
+        '<td>' + esc(k.rank) + '</td>' +
+        '<td class="kw">' + esc(k.keyword) + '</td>' +
+        '<td>' + esc(k.share_pct) + '%</td>' +
+        '</tr>';
+    }).join('');
+
+    el.innerHTML = head + '<tbody>' + body + '</tbody>';
+  }
+
+  function copyKeywordsCsv(){
+    var kws = statKwRows(statRows());
+    if(!kws.length){ statNotice('복사할 키워드가 없어요.'); return; }
+
+    /* 검색어에 쉼표가 들어올 수 있다("합정, 회의실" 같은 입력). 큰따옴표로 감싸고 내부
+       따옴표는 두 번 써서 이스케이프한다 — 안 하면 열이 밀려 CSV가 통째로 어긋난다. */
+    var q = function(s){ return '"' + String(s).replace(/"/g, '""') + '"'; };
+    var lines = ['날짜,순위,키워드,비율(%)'];
+    kws.forEach(function(k){
+      lines.push([k.stat_date, k.rank, q(k.keyword), k.share_pct].join(','));
+    });
+    copyText(lines.join('\n'), kws.length + '행을 클립보드에 복사했어요 (키워드 CSV).');
+  }
+
+  /* navigator.clipboard는 https(또는 localhost)에서만 산다. 현장에서 IP로 열어보는 일이
+     있어서, 막히면 조용히 넘어가지 말고 사실대로 알린다. */
+  function copyText(text, okMsg){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        statNotice(okMsg);
+      }).catch(function(){
+        statNotice('복사가 막혔어요. 표를 직접 끌어서 복사해 주세요.', true);
+      });
+    } else {
+      statNotice('이 브라우저에서는 자동 복사가 안 돼요. 표를 직접 끌어서 복사해 주세요.', true);
+    }
+  }
+
+  function copyStatsCsv(){
+    var rows = statRows();
+    if(!rows.length){ statNotice('복사할 데이터가 없어요.'); return; }
+
+    var flat = statFlatCols();
+    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).join(',')];
+    rows.forEach(function(r){
+      lines.push([r.stat_date].concat(flat.map(function(c){ return Number(r[c.key] || 0); })).join(','));
+    });
+    copyText(lines.join('\n'), rows.length + '일치를 클립보드에 복사했어요 (CSV).');
+  }
+
+  document.querySelectorAll('.st-range button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      statsDays = Number(btn.dataset.days);
+      document.querySelectorAll('.st-range button').forEach(function(b){ b.classList.toggle('on', b === btn); });
+      renderStats();
+    });
+  });
 </script>
 
 </body>
