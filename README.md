@@ -26,7 +26,9 @@
 | 브랜드 전체 훑기 | [`05-design-system/README.md`](./05-design-system/README.md) — 우산 문서 |
 | 로고·컬러·타이포 쓰기 | [`07-brand-book/brand.md`](./07-brand-book/brand.md) · 토큰 원본 [`03-identity/design-tokens.md`](./03-identity/design-tokens.md) |
 | 카피 쓰기 · 톤 맞추기 | [`07-brand-book/bx.md`](./07-brand-book/bx.md) |
-| 사이니지·인쇄물 만들기 | [`07-brand-book/product.md`](./07-brand-book/product.md) · [`04-signage/`](./04-signage/) |
+| 사이니지·인쇄물 만들기 | [`07-brand-book/signage.md`](./07-brand-book/signage.md) · [`04-signage/`](./04-signage/) |
+| 컴포넌트 규칙 | [`07-brand-book/product.md`](./07-brand-book/product.md) |
+| 브랜드북 웹으로 보기 | `typelounge.vercel.app/brand` — 사이드바 TOC · MD view · 에셋 다운로드 |
 | **합정 맥 세팅(현장)** | [`06-applications/onsite-handoff.md`](./06-applications/onsite-handoff.md) ← 여기부터 |
 | 예약이 왜 자동으로 들어오나 | [`06-applications/automation/README.md`](./06-applications/automation/README.md) |
 
@@ -45,9 +47,12 @@ PLAN.md            초기 구축 계획 (이력 — 현재 상태는 이 README�
                    설치 체크리스트(control/cctv/onsite)
                    automation/     스페이스클라우드 예약 자동 반영 (파트너 API + Gmail)
                    control-agent/  합정 상주 맥 에이전트 (MQTT 중계 + MediaMTX 관찰)
-07-brand-book/     brand · bx · product (+ 렌더 HTML) — 위 정본에서 파생된 문서
+07-brand-book/     brand · bx · signage · product (md = 단일 소스) — 위 정본에서 파생된 문서
+                   build_book.py   md → site/ 정적 사이트 (TOC·MD view·zip)
+                   standalone.py   site/ → 단일 자립 HTML (에셋·폰트 인라인)
+                   shell.html      페이지 템플릿 · site/ 는 빌드 산출물이라 직접 고치지 않는다
 supabase/          migrations/ · functions/control/ (Edge Function)
-public/            배포 대상 — 06-applications/ 심링크
+public/            배포 대상 — 06-applications/ · 07-brand-book/site 심링크
 assets/            무드보드 · 레퍼런스 · 목업
 ```
 

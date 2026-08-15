@@ -37,7 +37,22 @@ origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는�
 | CCTV 보관기간 | `mediamtx.yml`의 `recordDeleteAfter` | **실제로 파기하는 유일한 주체.** 나머지 3곳은 그걸 사람에게 설명하는 문장이다 |
 | 기기 capabilities | ThinQ 기기 프로파일 | 클라이언트가 준 값·문서 예시 아님. 실기기와 세 군데가 달랐던 실측이 있다 |
 
-`07-brand-book/`(brand·bx·product)은 위 정본에서 **파생된** 문서다. 원본을 고치면 여기도 같이 고친다.
+`07-brand-book/`(brand·bx·signage·product)은 위 정본에서 **파생된** 문서다. 원본을 고치면 여기도 같이 고친다.
+
+## 브랜드북은 md가 단일 소스다
+
+`07-brand-book/site/`와 `public/brand`(→ `site/` 심링크)는 **빌드 산출물이다. 손으로 고치지 않는다.**
+고칠 곳은 `07-brand-book/{brand,bx,signage,product}.md` 뿐이고, 그다음 반드시:
+
+```
+python 07-brand-book/build_book.py     # site/ 전체 + zip + standalone 재생성
+```
+
+사이트에만 있고 md에는 없는 내용을 만들면 **MD view 토글이 거짓말을 한다** — 그게 이 구조를 택한 이유다.
+스와치·로고칩·픽토 그리드 같은 시각 요소는 md 안의 ` ```tl-* ` 펜스로 적는다(깃허브에서는 코드블록으로
+조용히 표시되고, 빌드가 컴포넌트로 바꾼다). 블록 문법의 정본은 `build_book.py`의 각 `r_*` 함수 docstring이다.
+
+`index.html`(구 수기 4탭 SPA)은 이관 대조용으로 남겨둔 이력이다 — 배포에는 쓰이지 않는다.
 `PLAN.md`는 초기 계획의 이력이라 현재 상태의 근거로 쓰지 않는다.
 
 ## 절대 하면 안 되는 것

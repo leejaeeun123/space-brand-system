@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TYPE LOUNGE — Signage (공간 사이니지)</title>
+<meta name="description" content="공간 사이니지 — 설치 확정 5종 · 6원칙 · 세로 A5 안내문 규격 · 재질 위계.">
+<link rel="icon" href="assets/logo/favicon.svg">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{
+    --orange:#E2531E; --white:#ffffff; --ink:#16130F;
+    --paper:#ffffff; --line:rgba(22,19,15,.14);
+    --ff:'Paperlogy','Pretendard',sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --maxw:1200px; --side:212px; --headh:59px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:calc(var(--headh) + 20px)}
+  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  /* ---------- top bar ---------- */
+  header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1.5px solid var(--ink)}
+  .nav{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:20px}
+  .brandmark{display:flex;align-items:center;flex:0 0 auto}
+  .brandmark img{height:22px;width:auto;display:block}
+  .tabs{display:flex;gap:4px;flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    text-decoration:none;border:1.5px solid transparent;color:var(--ink);padding:7px 13px;border-radius:2px;
+    white-space:nowrap;transition:.12s ease-out}
+  .tabs a:hover{border-color:var(--line)}
+  .tabs a.on{background:var(--ink);color:var(--white)}
+  .navtools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+  .tbtn{font-family:var(--ff);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    background:none;border:1.5px solid var(--line);color:var(--ink);padding:6px 11px;border-radius:3px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;transition:.12s ease-out;white-space:nowrap}
+  .tbtn:hover{border-color:var(--orange);color:var(--orange)}
+  .tbtn[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+
+  /* download dropdown */
+  .dd{position:relative}
+  .dd>summary{list-style:none;cursor:pointer}
+  .dd>summary::-webkit-details-marker{display:none}
+  .dd[open]>summary .caret{transform:rotate(180deg)}
+  .caret{font-size:9px;transition:.14s}
+  .ddmenu{position:absolute;right:0;top:calc(100% + 7px);min-width:216px;background:var(--white);
+    border:1.5px solid var(--ink);border-radius:5px;box-shadow:0 10px 30px rgba(22,19,15,.13);padding:5px;z-index:70}
+  .ddmenu a{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:9px 11px;border-radius:3px;text-decoration:none;font-size:13.5px;font-weight:600;transition:.1s}
+  .ddmenu a:hover{background:rgba(226,83,30,.09);color:var(--orange)}
+  .ddmenu a small{font-family:var(--mono);font-size:10.5px;font-weight:400;color:rgba(22,19,15,.45);white-space:nowrap}
+  .ddmenu a:hover small{color:var(--orange)}
+  .ddmenu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+
+  /* ---------- layout ---------- */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:0 24px;display:grid;grid-template-columns:var(--side) 1fr;gap:44px;align-items:start}
+  main{min-width:0;padding-bottom:140px}
+
+  /* ---------- sidebar TOC ---------- */
+  .toc{position:sticky;top:calc(var(--headh) + 34px);padding:34px 0 40px;font-size:13px}
+  .toc .tt{font-weight:600;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(22,19,15,.42);margin-bottom:12px}
+  .toc ol{list-style:none}
+  .toc li{margin:0}
+  .toc a{display:flex;gap:9px;padding:5px 0 5px 10px;text-decoration:none;color:rgba(22,19,15,.62);
+    border-left:2px solid var(--line);line-height:1.4;transition:.12s ease-out}
+  .toc a:hover{color:var(--ink);border-left-color:rgba(22,19,15,.4)}
+  .toc a.on{color:var(--orange);border-left-color:var(--orange);font-weight:600}
+  .toc a .n{font-family:var(--mono);font-size:11px;opacity:.62;flex:0 0 auto}
+  .toc .other{margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+  .toc .other a{border-left:0;padding-left:0;font-size:12.5px}
+  .toc .other .tt{margin-bottom:8px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:60px 0 38px;border-bottom:1.5px solid var(--ink)}
+  .kicker{font-weight:600;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:-.02em;margin:14px 0 16px}
+  .hero .lede{max-width:620px;font-size:16.5px;color:rgba(22,19,15,.72)}
+  .hero .lede p{margin:0 0 6px}
+  .hero .lede code{font-size:.9em}
+
+  /* ---------- sections ---------- */
+  section{padding:50px 0;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--headh) + 20px)}
+  .snum{font-weight:600;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
+  h2{font-weight:600;font-size:28px;letter-spacing:-.01em;margin:6px 0 20px}
+  h3{font-weight:600;font-size:17.5px;margin:28px 0 10px}
+  h4{font-weight:600;font-size:15px;margin:20px 0 8px;color:rgba(22,19,15,.75)}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px;padding-left:20px}li{margin:5px 0}
+  strong{font-weight:600}
+  a.ext{color:var(--orange)}
+  code{font-family:var(--mono);font-size:.87em;background:rgba(22,19,15,.07);padding:2px 6px;border-radius:3px}
+  pre{background:rgba(22,19,15,.05);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;margin:14px 0}
+  pre code{background:none;padding:0;font-size:12.5px;line-height:1.75}
+  hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:rgba(22,19,15,.6);border-bottom:1.5px solid var(--ink)}
+  tr:hover td{background:rgba(226,83,30,.04)}
+  .tablewrap{overflow-x:auto;margin:14px 0 20px}
+  .tablewrap table{margin:0}
+  /* 식별자 열(E-1 · 토큰명)이 글자 단위로 접히지 않게 — 넘치면 표가 가로로 스크롤된다 */
+  td:first-child,th:first-child{white-space:nowrap}
+  td code{white-space:nowrap}
+
+  /* blockquote → note callout */
+  blockquote{background:var(--paper);border-left:3px solid var(--orange);padding:12px 16px;
+    border-radius:0 4px 4px 0;font-size:14px;margin:16px 0}
+  blockquote p:last-child{margin-bottom:0}
+
+  /* ---------- swatches ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sw{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+  .sw .chip{height:78px}
+  .sw .meta{padding:10px 12px}
+  .sw .nm{font-weight:600;font-size:14px}
+  .sw .hex{font-family:var(--mono);font-size:12px;color:rgba(22,19,15,.6);margin-top:3px}
+  .sw .use{font-size:12px;color:rgba(22,19,15,.6);margin-top:6px;line-height:1.4}
+
+  /* ---------- logo chips ---------- */
+  .logobox{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:16px;margin:18px 0}
+  .lchip{min-width:0;padding:32px 20px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:7px;
+    border:1px solid var(--line);text-decoration:none;color:inherit;cursor:pointer;transition:.12s ease-out}
+  .lchip:hover{border-color:var(--orange)}
+  .lchip.light{background:var(--paper)}
+  .lchip.dark{background:var(--ink);color:var(--white)}
+  .lchip.orange{background:var(--orange);color:#fff}
+  .lchip .dlhint{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .lchip:hover .dlhint{opacity:1}
+  .lchip.dark .dlhint,.lchip.orange .dlhint{color:#fff}
+  .lchip img{height:70px;width:auto;display:block;max-width:100%}
+  .lchip.h img{height:34px}
+  .plabel{font-weight:600;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+
+  /* inline download row */
+  .dl{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:6px 0 10px}
+  .dl-label{font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(22,19,15,.55)}
+  .dl a{font-size:12.5px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:3px;padding:5px 11px;transition:.12s ease-out}
+  .dl a:hover{border-color:var(--orange);color:var(--orange)}
+
+  /* ---------- cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;margin:16px 0}
+  .card{border:1.5px solid var(--ink);border-radius:6px;padding:18px 18px 20px;background:var(--paper)}
+  .card .t{font-weight:600;font-size:16px;margin-bottom:2px}
+  .card .t.warn{color:var(--orange)}
+  .card .anb{font-size:13px;color:var(--orange);font-weight:600;margin-bottom:10px}
+  .card ul{margin:0;padding-left:17px;font-size:13.5px}
+  .say{font-size:13.5px;margin-top:8px}
+  .say.no{color:rgba(22,19,15,.5)}
+  .say b{font-weight:600}
+
+  .pill{display:inline-block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    padding:5px 12px;border:1.5px solid var(--ink);border-radius:3px;margin:0 6px 6px 0}
+  .pill.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+  /* ---------- picto / mode grids ---------- */
+  .pictos{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:10px;margin:16px 0}
+  .picto{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 10px;
+    border:1px solid var(--line);border-radius:6px;background:var(--paper);text-decoration:none;color:inherit;transition:.12s ease-out}
+  .picto:hover{border-color:var(--orange)}
+  .picto img{width:38px;height:38px;object-fit:contain}
+  .picto span{font-size:11.5px;font-weight:600;color:rgba(22,19,15,.7);text-align:center;line-height:1.3}
+  .picto small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .picto:hover small{opacity:1}
+
+  .modetags{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+  .mtag{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 20px;border:1px solid var(--line);
+    border-radius:6px;background:var(--paper);text-decoration:none;color:inherit;transition:.12s ease-out}
+  .mtag:hover{border-color:var(--orange)}
+  .mtag img{height:32px;width:auto;display:block}
+  .mtag small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .mtag:hover small{opacity:1}
+
+  /* ---------- photos ---------- */
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:20px 0}
+  .shot{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column}
+  .shot .ph{background:#EFEDE9;display:flex;align-items:center;justify-content:center;height:300px}
+  .shot .ph img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .shot .cap{padding:11px 13px;border-top:1px solid var(--line)}
+  .shot .cap .tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--orange);margin-bottom:4px}
+  .shot .cap b{font-weight:600;font-size:14.5px;display:block}
+  .shot .cap span{font-size:12.5px;color:rgba(22,19,15,.62);line-height:1.45;display:block;margin-top:4px}
+  .shots.wide{grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+  .shots.wide .ph{height:340px}
+
+  /* ---------- A5 sheets ---------- */
+  .sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sheets.land{grid-template-columns:repeat(auto-fill,minmax(224px,1fr))}
+  .sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);
+    text-decoration:none;color:inherit;display:block;transition:.12s ease-out}
+  .sheet:hover{border-color:var(--orange)}
+  .sheet img{width:100%;height:auto;display:block;background:#fff}
+  .sheet .cap{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .sheet .cap b{font-weight:600;font-size:12.5px}
+  .sheet .cap small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s;white-space:nowrap}
+  .sheet:hover .cap small{opacity:1}
+
+  /* ---------- type specimen ---------- */
+  .spec{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:16px 0}
+  .spec div{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:18px}
+  .spec div:last-child{border-bottom:0}
+  .spec .sm{font-family:var(--mono);font-size:10.5px;color:rgba(22,19,15,.42);white-space:nowrap;flex:0 0 auto}
+  .spec .sv{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---------- sequence ---------- */
+  .seq{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:18px 0;
+    font-size:13.5px;line-height:1.9;overflow-x:auto;white-space:nowrap}
+  .seq b{font-weight:600}
+  .seq .ar{color:var(--orange);margin:0 8px}
+
+  /* ---------- asset download center ---------- */
+  .kit{border:1.5px solid var(--ink);border-radius:6px;padding:18px 20px;margin:18px 0;display:flex;
+    align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .kit .kt{font-weight:600;font-size:16px}
+  .kit .ks{font-size:13px;color:rgba(22,19,15,.6);margin-top:3px}
+  .kit a{background:var(--ink);color:var(--white);text-decoration:none;font-weight:600;font-size:13px;
+    letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;border-radius:3px;transition:.12s}
+  .kit a:hover{background:var(--orange)}
+  .grouphead{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:30px 0 4px}
+  .grouphead h3{margin:0}
+  .grouphead a{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);
+    text-decoration:none;border-bottom:1.5px solid transparent;transition:.12s}
+  .grouphead a:hover{border-bottom-color:var(--orange)}
+
+  /* ---------- MD view ---------- */
+  #mdview{display:none;padding:34px 0 0}
+  #mdview.on{display:block}
+  body.md main>.hero,body.md main>section{display:none}
+  body.md #toc ol,body.md #toc>.tt{display:none}   /* 원본 보기에는 앵커가 없다 */
+  .mdbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+  .mdbar .p{font-family:var(--mono);font-size:12px;color:rgba(22,19,15,.5)}
+  .mdsrc{background:rgba(22,19,15,.04);border:1px solid var(--line);border-radius:6px;padding:20px 22px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word;overflow-x:auto;tab-size:2}
+
+  .foot{padding:44px 0 0;font-size:13px;color:rgba(22,19,15,.5)}
+  .foot a{color:var(--orange);text-decoration:none}
+
+  @media(max-width:900px){
+    :root{--headh:56px}
+    .shell{grid-template-columns:1fr;gap:0}
+    .toc{position:static;padding:26px 0 0;border-bottom:1px solid var(--line);padding-bottom:20px}
+    .toc ol{display:flex;flex-wrap:wrap;gap:4px 0}
+    .toc a{border-left:0;padding:5px 11px 5px 0}
+    .toc a.on{border-left:0}
+    .toc .other{width:100%}
+    .hero{padding:38px 0 30px}
+    section{padding:40px 0}
+    .nav{padding:11px 16px;gap:12px;flex-wrap:wrap}
+    .shell{padding:0 16px}
+    .brandmark{order:1}.navtools{order:2;margin-left:auto}.tabs{order:3;width:100%;flex:1 0 100%}
+  }
+  @media(max-width:520px){
+    /* 좁은 화면에서 헤더가 뷰포트를 넘기면 문서 전체가 가로로 밀린다 */
+    .nav{padding:10px 14px;gap:8px}
+    .shell{padding:0 14px}
+    .brandmark img{height:19px}
+    .tbtn{font-size:11px;padding:5px 9px;letter-spacing:.05em}
+    .ddmenu{min-width:200px}
+    .lchip{padding:24px 14px}
+    .lchip img{height:56px}
+    .lchip.h img{height:26px}
+    .kit{flex-direction:column;align-items:stretch}
+    .kit a{text-align:center}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brandmark" href="index.html"><img src="assets/logo/logo-wordmark-h-ink.svg" alt="TYPE LOUNGE" height="22"></a>
+    <nav class="tabs"><a href="index.html">Brand</a><a href="bx.html">BX</a><a href="signage.html" class="on">Signage</a><a href="product.html">Product</a></nav>
+    <div class="navtools">
+      <button class="tbtn" id="mdtoggle" aria-pressed="false" title="원본 마크다운 보기">MD</button>
+      <details class="dd" id="dd">
+        <summary class="tbtn">Download <span class="caret">▼</span></summary>
+        <div class="ddmenu">
+          <a href="standalone/signage.html" download>HTML page <small>단일 파일</small></a>
+          <a href="md/signage.md" download>MD source <small>signage.md</small></a>
+          <a href="assets/logo/logo-wordmark-v-ink.svg" download>Logo (SVG) <small>워드마크</small></a>
+          <hr>
+          <a href="type-lounge-brand-kit.zip" download>Download all <small>0.2 MB</small></a>
+        </div>
+      </details>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="toc" id="toc">
+    <div class="tt">On this page</div>
+    <ol><li><a href="#principles"><span class="n">01</span><span>Principles</span></a></li><li><a href="#사인-인벤토리-확정-5종"><span class="n">02</span><span>사인 인벤토리 (확정 5종)</span></a></li><li><a href="#안내문-템플릿-i-1"><span class="n">03</span><span>안내문 템플릿 (I-1)</span></a></li><li><a href="#픽토그램"><span class="n">04</span><span>픽토그램</span></a></li><li><a href="#재질-부착-위계"><span class="n">05</span><span>재질 · 부착 위계</span></a></li><li><a href="#문구"><span class="n">06</span><span>문구</span></a></li><li><a href="#확장-절차"><span class="n">07</span><span>확장 절차</span></a></li></ol>
+    <div class="other">
+      <div class="tt">Brand book</div>
+      <a href="index.html">Brand</a><a href="bx.html">BX</a><a href="signage.html" class="on">Signage</a><a href="product.html">Product</a>
+    </div>
+  </aside>
+
+  <main id="top">
+    <div class="hero">
+      <div class="kicker">Design System · 03</div>
+      <h1>Signage (공간 사이니지)</h1>
+      <div class="lede"><p>타입라운지 공간 사이니지 시스템. <strong>설치 완료·확정본</strong>(2026-08-06) 기준으로 기록한다.
+참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템.
+원본: <code>04-signage/signage-system.md</code> · <code>pictograms.md</code> · <code>notice-template.md</code> · <code>notice-copy.md</code>, <code>03-identity/design-tokens.md</code>.
+자매 문서: <code>brand.md</code>(아이덴티티) · <code>bx.md</code>(경험·보이스) · <code>product.md</code>(컴포넌트).</p>
+<p><strong>표기 원칙</strong>: 색은 항상 토큰으로 지시한다(<code>var(--spine-ink)</code> / <code>#16130F</code> ❌). 물성은 실제 발주 사양으로 적는다.</p></div>
+    </div>
+
+    <section id="principles">
+      <div class="snum">01 — PRINCIPLES</div>
+      <h2>Principles</h2>
+<ol>
+<li><strong>자가안내 우선 (Self-guide first)</strong> — 무인 자동화 운영. 사인이 곧 안내 데스크. 입실→이용→퇴실을 이용객이 혼자 완결한다.</li>
+<li><strong>찾아오게 만들기</strong> — 합정역 앞 <strong>3층</strong> 입지라 1층 노출이 없다. 1층 입간판 → 계단 참 현판 → 대문 현판까지 <strong>한 번도 끊기지 않는</strong> 유도가 사이니지의 첫 임무다.</li>
+<li><strong>도형이 글자보다 먼저</strong> — 픽토그램·층 표기가 먼저 읽히고 글자는 보조. 단 <strong>픽토는 항상 라벨과 병행</strong>한다.</li>
+<li><strong>소수·정밀·절제</strong> — 전용 52.49㎡. 사인 종류를 늘리지 않고, 같은 문법을 반복한다.</li>
+<li><strong>레이어 분리</strong> — 외부는 <strong>아이보리·화이트 면 + 잉크 레터링</strong>으로 차분하게, 오렌지는 실내 안내판의 <strong>고정 오브제(마스킹테이프)에만</strong> 포인트로 쓴다. 사인이 가구를 이기지 않는다.</li>
+<li><strong>낮은 층고(약 2m) 대응</strong> — 시선 높이 1.4~1.6m, 천장 행잉·돌출 없음.</li>
+</ol>
+    </section>
+    <section id="사인-인벤토리-확정-5종">
+      <div class="snum">02 — 사인 인벤토리 (확정 5종)</div>
+      <h2>사인 인벤토리 (확정 5종)</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>사인</th>
+<th>위치</th>
+<th>물성</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E-1</td>
+<td><strong>1층 입간판</strong></td>
+<td>건물 앞 보행 동선, 자립</td>
+<td><strong>T형 아이보리 철제</strong> (T자 베이스 자립형)</td>
+<td>계단 픽토 · <code>TYPE LOUNGE</code> · <code>WORK│GATHERING│CLASS</code> · <code>3F</code> · 영문 소개 카피 · <code>Powered by NMWC</code></td>
+</tr>
+<tr>
+<td>E-2</td>
+<td><strong>대문 현판</strong></td>
+<td>3층 출입문 옆 벽면</td>
+<td><strong>무광 아크릴</strong></td>
+<td><code>TYPE LOUNGE</code> · <code>WORK│GATHERING│CLASS</code> · 영문 소개 카피 · <code>Powered by NMWC</code></td>
+</tr>
+<tr>
+<td>E-3</td>
+<td><strong>계단 중간 현판</strong></td>
+<td>계단 참 간유리면</td>
+<td><strong>무광 아크릴</strong></td>
+<td><code>TYPE LOUNGE</code>(우측 정렬) · 계단 픽토 + <code>3F</code></td>
+</tr>
+<tr>
+<td>I-1</td>
+<td><strong>자석 안내판</strong></td>
+<td>실내 벽, 시선 높이</td>
+<td>블랙 프레임 스틸 자석보드</td>
+<td>세로 A5 안내문 다수 — 와이파이(QR·ID/PW) · 냉난방기 · 블루투스 스피커 · TV · 조명</td>
+</tr>
+<tr>
+<td>I-2</td>
+<td><strong>문 라벨</strong></td>
+<td>스태프룸 · 화장실 문 옆</td>
+<td>트레이싱지 라벨 + 실버 자석 메모홀더 클립 바</td>
+<td>픽토 + <code>STAFF ROOM / Do not enter</code> · <code>TOILET</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>설치 실물</h3>
+<div class="shots wide"><div class="shot"><div class="ph"><img src="assets/photo/stand-1f.jpg" alt="1층 입간판" loading="lazy"></div><div class="cap"><span class="tag">E-1 · 외부</span><b>1층 입간판</b><span>T형 아이보리 철제(T자 베이스 자립) · 계단 픽토 + 워드마크 + 타입 태그 + <code>3F</code> + 영문 카피 + Powered by NMWC</span></div></div><div class="shot"><div class="ph"><img src="assets/photo/plate-gate.jpg" alt="대문 현판" loading="lazy"></div><div class="cap"><span class="tag">E-2 · 외부</span><b>대문 현판</b><span>무광 아크릴 · 3층 출입문 옆 벽면 · 워드마크 + 타입 태그 + 영문 카피 + Powered by NMWC</span></div></div><div class="shot"><div class="ph"><img src="assets/photo/plate-stairs.jpg" alt="계단 중간 현판" loading="lazy"></div><div class="cap"><span class="tag">E-3 · 외부</span><b>계단 중간 현판</b><span>무광 아크릴 · 계단 참 간유리면 부착 · 워드마크(우측 정렬) + 계단 픽토 + <code>3F</code>. 최소 정보만</span></div></div><div class="shot"><div class="ph"><img src="assets/photo/board-magnet.jpg" alt="자석 안내판" loading="lazy"></div><div class="cap"><span class="tag">I-1 · 실내</span><b>자석 안내판</b><span>블랙 프레임 스틸 자석보드 + 세로 A5 트레이싱지 안내문 · 원형 실버 자석 · 실버 클립 · <strong>오렌지 마스킹테이프</strong>로 레이어드 고정</span></div></div><div class="shot"><div class="ph"><img src="assets/photo/label-staffroom.jpg" alt="문 라벨 · 스태프룸" loading="lazy"></div><div class="cap"><span class="tag">I-2 · 실내</span><b>문 라벨 · 스태프룸</b><span>트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 · 픽토 + <code>STAFF ROOM / Do not enter</code></span></div></div><div class="shot"><div class="ph"><img src="assets/photo/label-restroom.jpg" alt="문 라벨 · 화장실" loading="lazy"></div><div class="cap"><span class="tag">I-2 · 실내</span><b>문 라벨 · 화장실</b><span>같은 문법 · 픽토 + <code>TOILET</code>. 문 옆 시선 높이</span></div></div></div>
+
+<p>원본: <code>07-brand-book/assets/photo/{stand-1f,plate-gate,plate-stairs,board-magnet,label-staffroom,label-restroom}.jpg</code></p>
+<h3>유도 시퀀스</h3>
+<div class="seq"><b>길 위 보행자</b><span class="ar">→</span><b>E-1 1층 입간판</b><span class="ar">→</span><b>E-3 계단 참 현판</b><span class="ar">→</span><b>E-2 대문 현판</b><span class="ar">→</span><b>I-1 안내판 · I-2 문 라벨</b></div>
+
+<p>각 접점에 최소 1개. <strong>3층까지 한 번도 끊기지 않게</strong> — 이것이 인벤토리를 5종으로 묶어둔 이유다.</p>
+<h3>외부 3종의 공통 문법</h3>
+<ul>
+<li><strong>워드마크 가로형 단독</strong>. 심볼은 존재하지 않는다(<code>brand.md</code> §01).</li>
+<li>타입 태그 순서는 실물 기준 <strong><code>WORK │ GATHERING │ CLASS</code></strong> 로 통일(태그 프레임 3개, 대문자, Paperlogy).</li>
+<li>소개 카피는 <strong>영문 단독</strong>. 층 표기는 <code>3F</code>(국문 <code>3층</code> 아님).</li>
+<li><code>Powered by NMWC</code> — 모회사 표기는 E-1·E-2에만. E-3(계단)은 최소 정보(워드마크 + 픽토 + 층)만.</li>
+</ul>
+    </section>
+    <section id="안내문-템플릿-i-1">
+      <div class="snum">03 — 안내문 템플릿 (I-1)</div>
+      <h2>안내문 템플릿 (I-1)</h2>
+<p>실내 안내문은 <strong>세로 A5 420×595</strong> 를 기본으로 한다. 규격 정본은 <code>04-signage/notice-template.md</code>, 생성기는 <code>04-signage/gen_notice.py</code>.</p>
+<h3>확정 8종</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>판형</th>
+<th>안내문</th>
+<th>부착</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>세로 A5 (420×595)</td>
+<td>와이파이(QR) · 냉난방기 · 블루투스 스피커 · TV · 조명</td>
+<td>자석 안내판 레이어드</td>
+</tr>
+<tr>
+<td>가로 A5 (595×420)</td>
+<td>신발장 · 쓰레기 처리 방법 · 소변기 사용 금지</td>
+<td>벽·기물 직접 부착</td>
+</tr>
+</tbody>
+</table></div>
+<p>아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.</p>
+<h4>세로 A5 5종 · 자석 안내판</h4>
+<div class="grouphead"><span></span><a href="type-lounge-notices.zip" download>전체 받기 · zip ↓</a></div><div class="sheets"><a class="sheet" href="assets/notice/notice-wifi.svg" download><img src="assets/notice/notice-wifi.svg" alt="와이파이" loading="lazy"><div class="cap"><b>와이파이</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-aircon.svg" download><img src="assets/notice/notice-aircon.svg" alt="냉난방기" loading="lazy"><div class="cap"><b>냉난방기</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-bluetooth.svg" download><img src="assets/notice/notice-bluetooth.svg" alt="블루투스 스피커" loading="lazy"><div class="cap"><b>블루투스 스피커</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-tv.svg" download><img src="assets/notice/notice-tv.svg" alt="TV" loading="lazy"><div class="cap"><b>TV</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-light.svg" download><img src="assets/notice/notice-light.svg" alt="조명" loading="lazy"><div class="cap"><b>조명</b><small>SVG ↓</small></div></a></div>
+
+<h4>가로 A5 3종 · 벽 직접부착</h4>
+<p>같은 요소 순서(픽토 → 제목 → 본문 → 워드마크)를 595×420 판형에 담는다.</p>
+<div class="sheets land"><a class="sheet" href="assets/notice/notice-shoe.svg" download><img src="assets/notice/notice-shoe.svg" alt="신발장" loading="lazy"><div class="cap"><b>신발장</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-trash.svg" download><img src="assets/notice/notice-trash.svg" alt="쓰레기 처리 방법" loading="lazy"><div class="cap"><b>쓰레기 처리 방법</b><small>SVG ↓</small></div></a><a class="sheet" href="assets/notice/notice-urinal.svg" download><img src="assets/notice/notice-urinal.svg" alt="소변기 사용 금지" loading="lazy"><div class="cap"><b>소변기 사용 금지</b><small>SVG ↓</small></div></a></div>
+
+<ul>
+<li>원본 SVG: <code>04-signage/out/notice-*.svg</code> (브랜드북 사본 <code>07-brand-book/assets/notice/</code>)</li>
+<li><strong>가로형은 세로형을 눕힌 게 아니라 자체 판형이다</strong> — 요소 순서(픽토 → 제목 → 본문 → 워드마크)는 같지만 제목 14px, 본문 상단 <code>y 254</code>, 로고 <code>y 367</code>.</li>
+<li><strong>소변기 안내문은 경고문 변형</strong> — 본문 없이 제목만 24px 2줄(행간 28), 픽토 <code>no</code> 53×53에 세로중심 <code>y 86.5</code>. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 쓴다.</li>
+<li>와이파이 QR 페이로드: <code>WIFI:T:WPA;S:TYPE LOUNGE;P:075C62183A;H:false;;</code> (<code>04-signage/wifi-qr.png</code>)</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>요소</th>
+<th>사양</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>픽토그램</td>
+<td>가로 중앙, 세로 중심 <code>y 72</code>, 높이 40 전후(고유 비율 유지)</td>
+</tr>
+<tr>
+<td>제목</td>
+<td>Paperlogy <strong>600</strong> · 15px · 자간 0.45 · 가운데 · <code>y = 픽토 하단 + 18</code></td>
+</tr>
+<tr>
+<td>본문</td>
+<td>Paperlogy <strong>400</strong> · 11px · 행간 16 · 자간 0.44 · 가운데 · 상단 <code>y 405</code> 고정</td>
+</tr>
+<tr>
+<td>로고 락업</td>
+<td>워드마크 가로형 <code>76 × 8.46</code>, 가운데, <code>y 539</code></td>
+</tr>
+<tr>
+<td>색</td>
+<td>전부 <code>spine/ink</code></td>
+</tr>
+<tr>
+<td>부가 이미지</td>
+<td>QR 등 <code>60 × 60</code>, 가운데, <code>y 329</code></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>본문은 <strong>2줄이 기본, 최대 3줄</strong>(권장값 — 넘겨야 할 내용이면 그대로 진행한다).</li>
+<li>한 줄 최대폭 <strong>325px</strong>.</li>
+<li>출력: <strong>세로 A5 트레이싱지</strong> → 자석보드에 레이어드 부착. 벽에 직접 붙이는 안내문만 <strong>가로 A5 두꺼운 종이</strong>(별도 요청 시).</li>
+<li>글자는 <strong>Paperlogy 아웃라인(벡터)</strong> 으로 구워서 납품한다 — 폰트 설치 환경에 좌우되지 않는다.</li>
+</ul>
+<h3>부착 방식이 디자인의 일부다</h3>
+<p>트레이싱지 안내문을 <strong>원형 실버 자석 · 실버 클립 · 오렌지 마스킹테이프</strong>로 겹쳐 고정한다. 각인·프레임 인쇄를 쓰지 않는 이유는 비용만이 아니라, 겹쳐 쌓인 층이 곧 브랜드 컨셉("모드의 겹침")이기 때문이다. <strong>오렌지는 이 오브제에만</strong> 등장한다.</p>
+    </section>
+    <section id="픽토그램">
+      <div class="snum">04 — 픽토그램</div>
+      <h2>픽토그램</h2>
+<p>세트 <strong>20종</strong> (<code>04-signage/picto-*.svg</code>), 색 3종(<code>기본 잉크</code> / <code>-white</code> / <code>-current</code>).</p>
+<div class="grouphead"><span></span><a href="type-lounge-pictograms.zip" download>전체 받기 · zip ↓</a></div><div class="pictos"><a class="picto" href="assets/picto/picto-wifi.svg" download><img src="assets/picto/picto-wifi.svg" alt="와이파이"><span>와이파이</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-tv.svg" download><img src="assets/picto/picto-tv.svg" alt="TV"><span>TV</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-aircon.svg" download><img src="assets/picto/picto-aircon.svg" alt="냉난방"><span>냉난방</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-bluetooth.svg" download><img src="assets/picto/picto-bluetooth.svg" alt="블루투스"><span>블루투스</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-speaker.svg" download><img src="assets/picto/picto-speaker.svg" alt="스피커"><span>스피커</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-power.svg" download><img src="assets/picto/picto-power.svg" alt="전원"><span>전원</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-light.svg" download><img src="assets/picto/picto-light.svg" alt="조명"><span>조명</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-phone.svg" download><img src="assets/picto/picto-phone.svg" alt="전화기"><span>전화기</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-notouch.svg" download><img src="assets/picto/picto-notouch.svg" alt="손대지 마세요"><span>손대지 마세요</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-no.svg" download><img src="assets/picto/picto-no.svg" alt="금지"><span>금지</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-nosmoke.svg" download><img src="assets/picto/picto-nosmoke.svg" alt="금연"><span>금연</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-shoe.svg" download><img src="assets/picto/picto-shoe.svg" alt="신발장"><span>신발장</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-trash.svg" download><img src="assets/picto/picto-trash.svg" alt="쓰레기통"><span>쓰레기통</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-toilet.svg" download><img src="assets/picto/picto-toilet.svg" alt="화장실"><span>화장실</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-room.svg" download><img src="assets/picto/picto-room.svg" alt="룸·공간"><span>룸·공간</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-stairs.svg" download><img src="assets/picto/picto-stairs.svg" alt="계단"><span>계단</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-coffee.svg" download><img src="assets/picto/picto-coffee.svg" alt="탕비·커피"><span>탕비·커피</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-bbq.svg" download><img src="assets/picto/picto-bbq.svg" alt="바베큐"><span>바베큐</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-umbrella.svg" download><img src="assets/picto/picto-umbrella.svg" alt="우산"><span>우산</span><small>SVG ↓</small></a><a class="picto" href="assets/picto/picto-extinguisher.svg" download><img src="assets/picto/picto-extinguisher.svg" alt="소화기"><span>소화기</span><small>SVG ↓</small></a></div>
+
+<ul>
+<li>viewBox 100×100 · 각진 모노라인 · square 캡 · miter 조인 · 선 두께 2.7.</li>
+<li>납품 SVG는 <strong>stroke를 아웃라인(면)으로 변환</strong> — 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.</li>
+<li>기본 파일은 리터럴 잉크(<code>#16130F</code>). 디자인 툴이 <code>currentColor</code>를 검정으로 떨구는 문제를 피하려는 선택이다.</li>
+<li><strong><code>tv · aircon · speaker · trash · shoe</code> 5종은 Figma 확정본이 정본</strong>(2026-08-06). 레포 세트 개정이 Figma에 반영되지 않아 어긋나 있었고, 실제 부착된 것이 Figma라 그쪽으로 맞췄다 — <code>04-signage/figma_to_picto.py</code>.</li>
+<li>안내문에 쓰는 픽토는 <strong>이름이 아니라 실물을 따른다</strong> — "블루투스 스피커" 안내문의 픽토는 <code>bluetooth</code>(룬)가 아니라 <code>speaker</code>(박스+우퍼)다.</li>
+<li><strong>라벨 없이 단독 사용 금지</strong> (KWCAG — 색·기호만으로 정보 전달 금지).</li>
+<li>세트에 없는 주제가 필요하면 <strong>먼저 픽토를 만든다</strong> — <code>04-signage/gen_new_pictos.py</code>에 정의를 추가하고 3색으로 출력, <code>pictograms.md</code>에 등재.</li>
+</ul>
+    </section>
+    <section id="재질-부착-위계">
+      <div class="snum">05 — 재질 · 부착 위계</div>
+      <h2>재질 · 부착 위계</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>요소</th>
+<th>재질(발주 사양)</th>
+<th>부착</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1층 입간판</td>
+<td>T형 아이보리 철제</td>
+<td>자립(T자 베이스)</td>
+</tr>
+<tr>
+<td>대문 현판 · 계단 현판</td>
+<td>무광 아크릴</td>
+<td>벽면 · 간유리면 직접 부착</td>
+</tr>
+<tr>
+<td>자석 안내판</td>
+<td>블랙 프레임 스틸 자석보드</td>
+<td>벽면 고정</td>
+</tr>
+<tr>
+<td>안내문 인쇄</td>
+<td><strong>반투명 트레이싱지</strong> (세로 A5)</td>
+<td>자석 레이어드</td>
+</tr>
+<tr>
+<td>문 라벨</td>
+<td>트레이싱지</td>
+<td>실버 자석 메모홀더 클립 바</td>
+</tr>
+<tr>
+<td>포인트</td>
+<td>오렌지 마스킹테이프 · 실버 클립 · 원형 자석</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<h3>형태 토큰</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>토큰</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>radius/sm</code></td>
+<td>2px — 기하, 거의 직각</td>
+</tr>
+<tr>
+<td><code>radius/md</code></td>
+<td>8px — 카드</td>
+</tr>
+<tr>
+<td><code>space/*</code></td>
+<td>4·8·16·24·40·64px (8px 베이스)</td>
+</tr>
+</tbody>
+</table></div>
+    </section>
+    <section id="문구">
+      <div class="snum">06 — 문구</div>
+      <h2>문구</h2>
+<p>문구 정본은 <code>04-signage/notice-copy.md</code>. 보이스 기준은 <code>bx.md</code> Tone of Voice.</p>
+<p>핵심 원칙 — <strong>정보량은 최대, 수식어는 절제</strong>:</p>
+<ol>
+<li>어미는 <strong>허용형</strong> — "~해주세요"보다 "~하시면 돼요".</li>
+<li>필수 규칙만 요청형으로 쓰고, 이유·맥락을 한 문장 안에 둔다.</li>
+<li>자명한 관습(실내 슬리퍼 등)에 이유를 붙이지 않는다 — 가르치는 톤이 된다.</li>
+<li>기기 식별은 <strong>색·크기·위치</strong>로 (리모컨이 둘이면 반드시 구분자).</li>
+<li><strong>부사 대신 사실</strong> — "꾹" 자리에 초 수·장소·신호.</li>
+<li>확실하지 않은 수치는 쓰지 않는다.</li>
+<li>동작이 2단계면 순서어("먼저 → 다음")를 명시.</li>
+</ol>
+    </section>
+    <section id="확장-절차">
+      <div class="snum">07 — 확장 절차</div>
+      <h2>확장 절차</h2>
+<p>새 안내문이 필요할 때:</p>
+<ol>
+<li><strong>문구 확정</strong> → <code>notice-copy.md</code>에 등재 (§06 원칙 적용).</li>
+<li><strong>픽토 확인</strong> → 없으면 먼저 제작 (§04).</li>
+<li><strong>생성</strong> → <code>python 04-signage/gen_notice.py &lt;key&gt;</code> → <code>out/notice-&lt;key&gt;.html</code>로 실물 크기 확인.</li>
+<li><strong>Figma 등재</strong> → SVG를 <code>TYPE LOUNGE</code> 파일 <code>최종</code> 페이지에 임포트(기존 프레임 오른쪽 <code>x + 452</code>).</li>
+<li><strong>출력·부착</strong> → 세로 A5 트레이싱지 → 자석보드 레이어드.</li>
+</ol>
+<h3>하지 말 것</h3>
+<ul>
+<li>사인 <strong>종류를 늘리지 않는다</strong> — 새 정보는 기존 5종 안에서 해결한다(대개 I-1 안내문 한 장).</li>
+<li>안내문이 길다고 <strong>프레임을 늘리거나 폰트를 줄이지 않는다</strong> — 문구를 줄인다.</li>
+<li><strong>오렌지를 소형 본문 텍스트에 쓰지 않는다</strong>(대비 부족). 마스킹테이프·면·대형 타이포에만.</li>
+<li>워드마크 <strong>비율 변형·3선 변경·심볼 추가</strong> 금지.</li>
+<li>천장 행잉·돌출 사인 금지(층고 약 2m).</li>
+</ul>
+    </section>
+
+
+    <div id="mdview">
+      <div class="mdbar">
+        <span class="p">07-brand-book/signage.md</span>
+        <button class="tbtn" id="mdcopy">Copy</button>
+      </div>
+      <pre class="mdsrc" id="mdsrc"># TYPE LOUNGE — Signage (공간 사이니지)
+
+&gt; 타입라운지 공간 사이니지 시스템. **설치 완료·확정본**(2026-08-06) 기준으로 기록한다.
+&gt; 참조 구조: 모회사 No More Work Company(NMWC) 디자인 시스템.
+&gt; 원본: `04-signage/signage-system.md` · `pictograms.md` · `notice-template.md` · `notice-copy.md`, `03-identity/design-tokens.md`.
+&gt; 자매 문서: `brand.md`(아이덴티티) · `bx.md`(경험·보이스) · `product.md`(컴포넌트).
+
+**목차**: Principles · 사인 인벤토리 · 안내문 템플릿 · 픽토그램 · 재질·부착 · 문구 · 확장 절차
+
+&gt; **표기 원칙**: 색은 항상 토큰으로 지시한다(`var(--spine-ink)` / `#16130F` ❌). 물성은 실제 발주 사양으로 적는다.
+
+---
+
+## 01. Principles
+
+1. **자가안내 우선 (Self-guide first)** — 무인 자동화 운영. 사인이 곧 안내 데스크. 입실→이용→퇴실을 이용객이 혼자 완결한다.
+2. **찾아오게 만들기** — 합정역 앞 **3층** 입지라 1층 노출이 없다. 1층 입간판 → 계단 참 현판 → 대문 현판까지 **한 번도 끊기지 않는** 유도가 사이니지의 첫 임무다.
+3. **도형이 글자보다 먼저** — 픽토그램·층 표기가 먼저 읽히고 글자는 보조. 단 **픽토는 항상 라벨과 병행**한다.
+4. **소수·정밀·절제** — 전용 52.49㎡. 사인 종류를 늘리지 않고, 같은 문법을 반복한다.
+5. **레이어 분리** — 외부는 **아이보리·화이트 면 + 잉크 레터링**으로 차분하게, 오렌지는 실내 안내판의 **고정 오브제(마스킹테이프)에만** 포인트로 쓴다. 사인이 가구를 이기지 않는다.
+6. **낮은 층고(약 2m) 대응** — 시선 높이 1.4~1.6m, 천장 행잉·돌출 없음.
+
+---
+
+## 02. 사인 인벤토리 (확정 5종)
+
+| # | 사인 | 위치 | 물성 | 내용 |
+|---|---|---|---|---|
+| E-1 | **1층 입간판** | 건물 앞 보행 동선, 자립 | **T형 아이보리 철제** (T자 베이스 자립형) | 계단 픽토 · `TYPE LOUNGE` · `WORK│GATHERING│CLASS` · `3F` · 영문 소개 카피 · `Powered by NMWC` |
+| E-2 | **대문 현판** | 3층 출입문 옆 벽면 | **무광 아크릴** | `TYPE LOUNGE` · `WORK│GATHERING│CLASS` · 영문 소개 카피 · `Powered by NMWC` |
+| E-3 | **계단 중간 현판** | 계단 참 간유리면 | **무광 아크릴** | `TYPE LOUNGE`(우측 정렬) · 계단 픽토 + `3F` |
+| I-1 | **자석 안내판** | 실내 벽, 시선 높이 | 블랙 프레임 스틸 자석보드 | 세로 A5 안내문 다수 — 와이파이(QR·ID/PW) · 냉난방기 · 블루투스 스피커 · TV · 조명 |
+| I-2 | **문 라벨** | 스태프룸 · 화장실 문 옆 | 트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 | 픽토 + `STAFF ROOM / Do not enter` · `TOILET` |
+
+### 설치 실물
+
+```tl-shots wide
+assets/photo/stand-1f.jpg | E-1 · 외부 | 1층 입간판 | T형 아이보리 철제(T자 베이스 자립) · 계단 픽토 + 워드마크 + 타입 태그 + `3F` + 영문 카피 + Powered by NMWC
+assets/photo/plate-gate.jpg | E-2 · 외부 | 대문 현판 | 무광 아크릴 · 3층 출입문 옆 벽면 · 워드마크 + 타입 태그 + 영문 카피 + Powered by NMWC
+assets/photo/plate-stairs.jpg | E-3 · 외부 | 계단 중간 현판 | 무광 아크릴 · 계단 참 간유리면 부착 · 워드마크(우측 정렬) + 계단 픽토 + `3F`. 최소 정보만
+assets/photo/board-magnet.jpg | I-1 · 실내 | 자석 안내판 | 블랙 프레임 스틸 자석보드 + 세로 A5 트레이싱지 안내문 · 원형 실버 자석 · 실버 클립 · **오렌지 마스킹테이프**로 레이어드 고정
+assets/photo/label-staffroom.jpg | I-2 · 실내 | 문 라벨 · 스태프룸 | 트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 · 픽토 + `STAFF ROOM / Do not enter`
+assets/photo/label-restroom.jpg | I-2 · 실내 | 문 라벨 · 화장실 | 같은 문법 · 픽토 + `TOILET`. 문 옆 시선 높이
+```
+
+원본: `07-brand-book/assets/photo/{stand-1f,plate-gate,plate-stairs,board-magnet,label-staffroom,label-restroom}.jpg`
+
+### 유도 시퀀스
+
+```tl-seq
+길 위 보행자 &gt; E-1 1층 입간판 &gt; E-3 계단 참 현판 &gt; E-2 대문 현판 &gt; I-1 안내판 · I-2 문 라벨
+```
+
+각 접점에 최소 1개. **3층까지 한 번도 끊기지 않게** — 이것이 인벤토리를 5종으로 묶어둔 이유다.
+
+### 외부 3종의 공통 문법
+
+- **워드마크 가로형 단독**. 심볼은 존재하지 않는다(`brand.md` §01).
+- 타입 태그 순서는 실물 기준 **`WORK │ GATHERING │ CLASS`** 로 통일(태그 프레임 3개, 대문자, Paperlogy).
+- 소개 카피는 **영문 단독**. 층 표기는 `3F`(국문 `3층` 아님).
+- `Powered by NMWC` — 모회사 표기는 E-1·E-2에만. E-3(계단)은 최소 정보(워드마크 + 픽토 + 층)만.
+
+---
+
+## 03. 안내문 템플릿 (I-1)
+
+실내 안내문은 **세로 A5 420×595** 를 기본으로 한다. 규격 정본은 `04-signage/notice-template.md`, 생성기는 `04-signage/gen_notice.py`.
+
+### 확정 8종
+
+| 판형 | 안내문 | 부착 |
+|---|---|---|
+| 세로 A5 (420×595) | 와이파이(QR) · 냉난방기 · 블루투스 스피커 · TV · 조명 | 자석 안내판 레이어드 |
+| 가로 A5 (595×420) | 신발장 · 쓰레기 처리 방법 · 소변기 사용 금지 | 벽·기물 직접 부착 |
+
+아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.
+
+#### 세로 A5 5종 · 자석 안내판
+
+```tl-sheets zip=type-lounge-notices.zip
+assets/notice/notice-wifi.svg | 와이파이
+assets/notice/notice-aircon.svg | 냉난방기
+assets/notice/notice-bluetooth.svg | 블루투스 스피커
+assets/notice/notice-tv.svg | TV
+assets/notice/notice-light.svg | 조명
+```
+
+#### 가로 A5 3종 · 벽 직접부착
+
+같은 요소 순서(픽토 → 제목 → 본문 → 워드마크)를 595×420 판형에 담는다.
+
+```tl-sheets land quiet zip=type-lounge-notices.zip
+assets/notice/notice-shoe.svg | 신발장
+assets/notice/notice-trash.svg | 쓰레기 처리 방법
+assets/notice/notice-urinal.svg | 소변기 사용 금지
+```
+
+- 원본 SVG: `04-signage/out/notice-*.svg` (브랜드북 사본 `07-brand-book/assets/notice/`)
+- **가로형은 세로형을 눕힌 게 아니라 자체 판형이다** — 요소 순서(픽토 → 제목 → 본문 → 워드마크)는 같지만 제목 14px, 본문 상단 `y 254`, 로고 `y 367`.
+- **소변기 안내문은 경고문 변형** — 본문 없이 제목만 24px 2줄(행간 28), 픽토 `no` 53×53에 세로중심 `y 86.5`. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 쓴다.
+- 와이파이 QR 페이로드: `WIFI:T:WPA;S:TYPE LOUNGE;P:075C62183A;H:false;;` (`04-signage/wifi-qr.png`)
+
+| 요소 | 사양 |
+|---|---|
+| 픽토그램 | 가로 중앙, 세로 중심 `y 72`, 높이 40 전후(고유 비율 유지) |
+| 제목 | Paperlogy **600** · 15px · 자간 0.45 · 가운데 · `y = 픽토 하단 + 18` |
+| 본문 | Paperlogy **400** · 11px · 행간 16 · 자간 0.44 · 가운데 · 상단 `y 405` 고정 |
+| 로고 락업 | 워드마크 가로형 `76 × 8.46`, 가운데, `y 539` |
+| 색 | 전부 `spine/ink` |
+| 부가 이미지 | QR 등 `60 × 60`, 가운데, `y 329` |
+
+- 본문은 **2줄이 기본, 최대 3줄**(권장값 — 넘겨야 할 내용이면 그대로 진행한다).
+- 한 줄 최대폭 **325px**.
+- 출력: **세로 A5 트레이싱지** → 자석보드에 레이어드 부착. 벽에 직접 붙이는 안내문만 **가로 A5 두꺼운 종이**(별도 요청 시).
+- 글자는 **Paperlogy 아웃라인(벡터)** 으로 구워서 납품한다 — 폰트 설치 환경에 좌우되지 않는다.
+
+### 부착 방식이 디자인의 일부다
+
+트레이싱지 안내문을 **원형 실버 자석 · 실버 클립 · 오렌지 마스킹테이프**로 겹쳐 고정한다. 각인·프레임 인쇄를 쓰지 않는 이유는 비용만이 아니라, 겹쳐 쌓인 층이 곧 브랜드 컨셉(&quot;모드의 겹침&quot;)이기 때문이다. **오렌지는 이 오브제에만** 등장한다.
+
+---
+
+## 04. 픽토그램
+
+세트 **20종** (`04-signage/picto-*.svg`), 색 3종(`기본 잉크` / `-white` / `-current`).
+
+```tl-pictos zip=type-lounge-pictograms.zip
+assets/picto/picto-wifi.svg | 와이파이
+assets/picto/picto-tv.svg | TV
+assets/picto/picto-aircon.svg | 냉난방
+assets/picto/picto-bluetooth.svg | 블루투스
+assets/picto/picto-speaker.svg | 스피커
+assets/picto/picto-power.svg | 전원
+assets/picto/picto-light.svg | 조명
+assets/picto/picto-phone.svg | 전화기
+assets/picto/picto-notouch.svg | 손대지 마세요
+assets/picto/picto-no.svg | 금지
+assets/picto/picto-nosmoke.svg | 금연
+assets/picto/picto-shoe.svg | 신발장
+assets/picto/picto-trash.svg | 쓰레기통
+assets/picto/picto-toilet.svg | 화장실
+assets/picto/picto-room.svg | 룸·공간
+assets/picto/picto-stairs.svg | 계단
+assets/picto/picto-coffee.svg | 탕비·커피
+assets/picto/picto-bbq.svg | 바베큐
+assets/picto/picto-umbrella.svg | 우산
+assets/picto/picto-extinguisher.svg | 소화기
+```
+
+- viewBox 100×100 · 각진 모노라인 · square 캡 · miter 조인 · 선 두께 2.7.
+- 납품 SVG는 **stroke를 아웃라인(면)으로 변환** — 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.
+- 기본 파일은 리터럴 잉크(`#16130F`). 디자인 툴이 `currentColor`를 검정으로 떨구는 문제를 피하려는 선택이다.
+- **`tv · aircon · speaker · trash · shoe` 5종은 Figma 확정본이 정본**(2026-08-06). 레포 세트 개정이 Figma에 반영되지 않아 어긋나 있었고, 실제 부착된 것이 Figma라 그쪽으로 맞췄다 — `04-signage/figma_to_picto.py`.
+- 안내문에 쓰는 픽토는 **이름이 아니라 실물을 따른다** — &quot;블루투스 스피커&quot; 안내문의 픽토는 `bluetooth`(룬)가 아니라 `speaker`(박스+우퍼)다.
+- **라벨 없이 단독 사용 금지** (KWCAG — 색·기호만으로 정보 전달 금지).
+- 세트에 없는 주제가 필요하면 **먼저 픽토를 만든다** — `04-signage/gen_new_pictos.py`에 정의를 추가하고 3색으로 출력, `pictograms.md`에 등재.
+
+---
+
+## 05. 재질 · 부착 위계
+
+| 요소 | 재질(발주 사양) | 부착 |
+|---|---|---|
+| 1층 입간판 | T형 아이보리 철제 | 자립(T자 베이스) |
+| 대문 현판 · 계단 현판 | 무광 아크릴 | 벽면 · 간유리면 직접 부착 |
+| 자석 안내판 | 블랙 프레임 스틸 자석보드 | 벽면 고정 |
+| 안내문 인쇄 | **반투명 트레이싱지** (세로 A5) | 자석 레이어드 |
+| 문 라벨 | 트레이싱지 | 실버 자석 메모홀더 클립 바 |
+| 포인트 | 오렌지 마스킹테이프 · 실버 클립 · 원형 자석 | — |
+
+### 형태 토큰
+
+| 토큰 | 값 |
+|---|---|
+| `radius/sm` | 2px — 기하, 거의 직각 |
+| `radius/md` | 8px — 카드 |
+| `space/*` | 4·8·16·24·40·64px (8px 베이스) |
+
+---
+
+## 06. 문구
+
+문구 정본은 `04-signage/notice-copy.md`. 보이스 기준은 `bx.md` Tone of Voice.
+
+핵심 원칙 — **정보량은 최대, 수식어는 절제**:
+
+1. 어미는 **허용형** — &quot;~해주세요&quot;보다 &quot;~하시면 돼요&quot;.
+2. 필수 규칙만 요청형으로 쓰고, 이유·맥락을 한 문장 안에 둔다.
+3. 자명한 관습(실내 슬리퍼 등)에 이유를 붙이지 않는다 — 가르치는 톤이 된다.
+4. 기기 식별은 **색·크기·위치**로 (리모컨이 둘이면 반드시 구분자).
+5. **부사 대신 사실** — &quot;꾹&quot; 자리에 초 수·장소·신호.
+6. 확실하지 않은 수치는 쓰지 않는다.
+7. 동작이 2단계면 순서어(&quot;먼저 → 다음&quot;)를 명시.
+
+---
+
+## 07. 확장 절차
+
+새 안내문이 필요할 때:
+
+1. **문구 확정** → `notice-copy.md`에 등재 (§06 원칙 적용).
+2. **픽토 확인** → 없으면 먼저 제작 (§04).
+3. **생성** → `python 04-signage/gen_notice.py &lt;key&gt;` → `out/notice-&lt;key&gt;.html`로 실물 크기 확인.
+4. **Figma 등재** → SVG를 `TYPE LOUNGE` 파일 `최종` 페이지에 임포트(기존 프레임 오른쪽 `x + 452`).
+5. **출력·부착** → 세로 A5 트레이싱지 → 자석보드 레이어드.
+
+### 하지 말 것
+
+- 사인 **종류를 늘리지 않는다** — 새 정보는 기존 5종 안에서 해결한다(대개 I-1 안내문 한 장).
+- 안내문이 길다고 **프레임을 늘리거나 폰트를 줄이지 않는다** — 문구를 줄인다.
+- **오렌지를 소형 본문 텍스트에 쓰지 않는다**(대비 부족). 마스킹테이프·면·대형 타이포에만.
+- 워드마크 **비율 변형·3선 변경·심볼 추가** 금지.
+- 천장 행잉·돌출 사인 금지(층고 약 2m).
+</pre>
+    </div>
+
+    <div class="foot">TYPE LOUNGE Brand Book · No More Work Company · 2026-08 · <a href="https://github.com/nmwc-ai/space-brand-system">GitHub</a></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  // ---- MD view toggle ----
+  var body=document.body, btn=document.getElementById('mdtoggle'), view=document.getElementById('mdview');
+  function setMd(on,push){
+    body.classList.toggle('md',on); view.classList.toggle('on',on);
+    btn.setAttribute('aria-pressed',on?'true':'false');
+    try{localStorage.setItem('tl-view',on?'md':'doc')}catch(e){}
+    if(push){
+      var u=new URL(location.href);
+      if(on)u.searchParams.set('view','md'); else u.searchParams.delete('view');
+      history.replaceState(null,'',u);
+    }
+  }
+  var q=new URLSearchParams(location.search).get('view'), stored=null;
+  try{stored=localStorage.getItem('tl-view')}catch(e){}
+  setMd(q==='md'||(q===null&&stored==='md'),false);
+  btn.addEventListener('click',function(){setMd(!body.classList.contains('md'),true);window.scrollTo({top:0,behavior:'instant'})});
+
+  // ---- copy md ----
+  var cp=document.getElementById('mdcopy');
+  cp.addEventListener('click',function(){
+    navigator.clipboard.writeText(document.getElementById('mdsrc').textContent).then(function(){
+      cp.textContent='Copied'; setTimeout(function(){cp.textContent='Copy'},1400);
+    });
+  });
+
+  // ---- dropdown: close on outside click / Esc ----
+  var dd=document.getElementById('dd');
+  document.addEventListener('click',function(e){if(!dd.contains(e.target))dd.removeAttribute('open')});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')dd.removeAttribute('open')});
+  dd.addEventListener('click',function(e){if(e.target.closest('.ddmenu a'))dd.removeAttribute('open')});
+
+  // ---- scroll spy ----
+  var links={}, secs=[].slice.call(document.querySelectorAll('main > section[id]'));
+  [].forEach.call(document.querySelectorAll('#toc ol a'),function(a){links[a.getAttribute('href').slice(1)]=a});
+  if(secs.length && 'IntersectionObserver' in window){
+    var seen={};
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){seen[e.target.id]=e.isIntersecting?e.intersectionRatio:0});
+      var best=null,bv=-1;
+      secs.forEach(function(s){var v=seen[s.id]||0; if(v>bv){bv=v;best=s.id}});
+      if(bv<=0){ // nothing visible: pick last section above the fold
+        for(var i=0;i<secs.length;i++){if(secs[i].getBoundingClientRect().top<160)best=secs[i].id}
+      }
+      Object.keys(links).forEach(function(k){links[k].classList.toggle('on',k===best)});
+    },{rootMargin:'-70px 0px -55% 0px',threshold:[0,.05,.25,.5,1]});
+    secs.forEach(function(s){io.observe(s)});
+  }
+})();
+</script>
+</body>
+</html>
