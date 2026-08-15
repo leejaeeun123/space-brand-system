@@ -3,19 +3,23 @@
 타입라운지(TYPE LOUNGE) 브랜드 시스템 + 무인 운영 시스템.
 레포가 무엇이고 지금 어떤 상태인지는 [`README.md`](./README.md)에 있다. 이 문서는 **어떻게 고치는가**만 다룬다.
 
-## 정본 위치 (2026-08-03 이전)
+## 클론 위치 — 머신마다 다르다
 
-**정본은 `~/Dev/space-brand-system`.** `Work/NMWC/Project/_core/space-brand-system`(iCloud 동기 경로)은
-origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는다.
+**정본은 `origin/main`이다.** 로컬 체크아웃을 어디에 두느냐는 머신마다 다르고, 어느 한쪽이 다른 쪽의
+'낡은 사본'이 아니다 — 둘 다 origin을 보고 있다.
 
-- **이전 사유**: 이 경로가 iCloud "데스크탑·문서" 동기화 대상이라, 인자 없는 `git status`/`git commit`이
-  워킹트리 전체를 stat하는 인덱스 refresh 단계에서 60초+ hang했다(2~3.5MB PNG 목업 여러 개 보유).
-  dataless 스텁이 없는 상태에서도 발생 — 흔한 "dataless라서 느리다" 진단으로는 안 잡힌다.
-  상세: 글로벌 메모리 `reference_icloud_dataless_git.md` 2026-08-03 항목.
-- **커밋 신원**: `~/Dev`는 `Work/*` gitdir includeIf 밖이지만, 글로벌 기본값이 이미
-  `hyungwoon <hyungwoon.kr@gmail.com>`라 별도 설정 불필요(확인됨).
-- **NMWC 클론을 다시 정본으로 되돌리지 않는다.** 작업은 항상 `~/Dev/space-brand-system`에서, 커밋 후
-  push하면 iCloud 클론은 `git pull`로만 따라온다.
+| 머신 | 클론 위치 |
+|---|---|
+| 이 머신 (iCloud 동기 맥) | `Work/NMWC/Project/_core/space-brand-system` — **여기 하나뿐이다.** 한때 정본이라 적혀 있던 `~/Dev/space-brand-system` 사본은 2026-08-14에 제거됐다(고유 커밋 0 · 미커밋 0 · 앵커한 워크트리 0 확인 후) |
+| 합정 현장 맥 | `~/Dev/space-brand-system` — iCloud 밖. 사유·설정은 아래 "현장 맥" 절 |
+
+- **머신 간 동기화는 origin으로만 한다.** 한쪽에서 커밋·푸시하고 다른 쪽은 `git pull`. 파일을 복사해 옮기지 않는다.
+- **⚠️ iCloud 경로의 위험은 그대로다.** 인자 없는 `git status`/`git commit`이 워킹트리 전체를 stat하는
+  인덱스 refresh 단계에서 60초+ hang한다(2~3.5MB PNG 목업 여러 개 보유). dataless 스텁이 없는 상태에서도
+  발생 — 흔한 "dataless라서 느리다" 진단으로는 안 잡힌다. **경로를 지정해 쓴다** — `git status --short -- .`
+  처럼. 상세: 글로벌 메모리 `reference_icloud_dataless_git.md` 2026-08-03 항목.
+- **커밋 신원**: 이 경로는 `Work/*` gitdir includeIf 안이라 `hyungwoon <hyungwoon.kr@gmail.com>`가 자동 적용된다
+  (`Work/.gitconfig-nmwc`, 확인됨). 현장 맥의 `~/Dev`는 includeIf 밖이라 레포에 직접 박는다 — 아래 "현장 맥" 절.
 
 ## 이 레포의 성격
 
@@ -46,7 +50,7 @@ origin에서 새로 받은 **클론**일 뿐 — 거기서 작업하지 않는�
   타입(스코프) + 한국어 제목.
 - **시크릿 커밋 금지.** ThinQ PAT · Supabase service_role 키 · 스트림 계정/비번 ·
   Mattermost 웹훅 URL은 Supabase 시크릿 / Apps Script 스크립트 속성 / `.env`에만 둔다.
-- **`public/` 안을 직접 고치지 않는다.** `06-applications/`를 가리키는 심링크다.
+- **`public/` 안을 직접 고치지 않는다.** 그 안은 `06-applications/`의 페이지를 하나씩 가리키는 심링크다.
 - **서버에 오디오를 들이지 않는다.** 카메라를 `mediamtx.yml`에 직접 소스로 걸지 않는다 — 오디오를
   떼는 ffmpeg `-an` 재발행(`camera-republish.sh`, 전 path `source: publisher`)이 유일 경로다. 직결하면
   오디오가 서버로 흐르고, 녹화를 켠 상태면 「개인정보 보호법」 §25⑤(녹음)이 된다. MediaMTX엔 오디오를

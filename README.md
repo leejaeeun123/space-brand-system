@@ -4,7 +4,7 @@
 전략·네이밍·아이덴티티·사이니지 정본과, 실제로 공간을 돌리는 예약 어드민·자동화·공간 제어·CCTV가
 한 레포에 있다.
 
-## 현재 상태 (2026-08-14)
+## 현재 상태 (2026-08-15)
 
 브랜드는 확정됐고, 운영 시스템은 라이브다.
 
@@ -46,11 +46,11 @@ PLAN.md            초기 구축 계획 (이력 — 현재 상태는 이 README�
                    사이니지 시안 · 목업 PNG
                    설치 체크리스트(control/cctv/onsite)
                    automation/     스페이스클라우드 예약 자동 반영 (파트너 API + Gmail)
-                   control-agent/  합정 상주 맥 에이전트 (MQTT 중계 + MediaMTX 관찰)
+                   control-agent/  합정 상주 맥 에이전트 (MQTT 중계 2경로 + 기기 HTTP 우회 + MediaMTX 관찰)
                    sihas-bridge/   SiHAS SQM-300 스위치 UDP↔MQTT 브리지 (현장 맥 상주)
 07-brand-book/     brand · bx · product (+ 렌더 HTML) — 위 정본에서 파생된 문서
 supabase/          migrations/ · functions/control/ · functions/apply/ · functions/claim/
-public/            배포 대상 — 06-applications/ 심링크
+public/            배포 대상 — 06-applications/ 의 페이지를 하나씩 가리키는 심링크 6개
 assets/            무드보드 · 레퍼런스 · 목업
 ```
 
@@ -66,7 +66,7 @@ assets/            무드보드 · 레퍼런스 · 목업
 | 어드민 | 입장 · 예약관리 · 공간 제어 · CCTV · 공간 지원 신청 · 지원금 신청 | `06-applications/admin.html` → `/admin` |
 | 예약 자동 반영 | 파트너 API(주) + Gmail 15분 트리거(백업) → Supabase RPC | [`automation/`](./06-applications/automation/README.md) |
 | 냉난방 | LG ThinQ Cloud API (HTTPS) — 현장 장비 불필요 | [`functions/control/`](./supabase/functions/control/README.md) |
-| 조명 | Tasmota → 로컬 mosquitto → 상주 에이전트 → Supabase Realtime | [`control-agent/`](./06-applications/control-agent/README.md) |
+| 조명 | Tasmota → RPi mosquitto → 맥 mosquitto → 상주 에이전트 → Supabase Realtime. 명령은 **tailscale ∥ AWS IoT 두 경로로 병렬 발송**, MQTT가 막히면 **기기 HTTP로 우회**한다 | [`control-agent/`](./06-applications/control-agent/README.md) |
 | CCTV | Tapo RTSP → MediaMTX(**실시간 시청만** — 서버 녹화·되감기는 껐다, 2026-08-10) → cloudflared → 어드민 | [`cctv-setup.md`](./06-applications/cctv-setup.md) |
 | 안내 문자 | SOLAPI LMS — 예약별 자동발송 옵트인, 보증금 유무로 2벌 | [`control-setup.md` J절](./06-applications/control-setup.md) · 문구 [`_sms-templates.html`](./06-applications/_sms-templates.html) |
 | 청소 안내 문자 | 담당자에게 매일 07:00 당일 스케줄 + 청소 가능 구간, 바뀌면 변경 안내 | [`control-setup.md` K절](./06-applications/control-setup.md) · 설계 [`.specs/spec_cleaning_sms/`](./.specs/spec_cleaning_sms/spec.md) |
@@ -81,8 +81,8 @@ assets/            무드보드 · 레퍼런스 · 목업
 ### 배포
 
 `main`에 머지되면 GitHub Actions가 Vercel로 올린다 — 트리거는 `public/**` · `06-applications/*.html`(글로브) ·
-`vercel.json` · `.github/workflows/deploy.yml` 변경이다. `public/`은 `06-applications/`를 가리키는 **심링크**라
-원본만 고치면 되고, `06-applications/*.html` 글로브가 심링크가 `public/**`에 안 걸리는 문제를 덮어
+`vercel.json` · `.github/workflows/deploy.yml` 변경이다. `public/` 안은 `06-applications/`의 페이지를 하나씩
+가리키는 **심링크**라 원본만 고치면 되고, `06-applications/*.html` 글로브가 심링크가 `public/**`에 안 걸리는 문제를 덮어
 **새 페이지는 자동으로 배포 대상에 들어온다**(파일 이름을 하나씩 열거하지 않는다 — `deploy.yml` 주석 참조).
 
 ## 남은 일
