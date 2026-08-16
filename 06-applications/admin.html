@@ -318,6 +318,7 @@
   .st-kpi .v{font-weight:600;font-size:19px;margin-top:4px;letter-spacing:-.02em;}
   .st-kpi .s{font-size:11px;color:#6b665c;margin-top:3px;}
   .st-kpi .s em{font-style:normal;color:var(--orange);font-weight:600;}
+  .st-kpi .spark{display:block;width:100%;height:30px;margin-top:8px;}
 
   /* 퍼널 — 도달에서 이용까지 한 줄로 읽힌다 */
   .st-funnel{border:1px solid var(--hair);border-radius:8px;padding:14px;}
@@ -3030,40 +3031,103 @@
     var reviewDone = statSum(rows, 'review_answer_complete_count');
     var calls = statSum(rows, 'call_total');
 
+    /* 카드 숫자는 창(7/30/전체) 합산이라 그 안의 날짜별 흐름이 숫자 하나로 뭉개진다.
+       spark가 그 흐름을 옆에 붙인다 — 분모가 0인 날은 0%가 아니라 빈틈으로 남긴다
+       (getter가 null을 돌려주면 statSparkline이 선을 끊는다, statSvg와 같은 규칙). */
     var cards = [
       { k: '확정 매출', v: fmtWon(amount),
-        s: '취소분 제외 순액 · 총액 ' + fmtWon(statSum(rows, 'rsv_confirm_amount')) },
+        s: '취소분 제외 순액 · 총액 ' + fmtWon(statSum(rows, 'rsv_confirm_amount')),
+        spark: function(r){ return Number(r.reservation_amount || 0); } },
       { k: '확정 예약', v: fmtNum(confirm) + '건',
-        s: used ? '이용 완료 ' + fmtNum(used) + '건' : '' },
+        s: used ? '이용 완료 ' + fmtNum(used) + '건' : '',
+        spark: function(r){ return Number(r.reservation_confirm_count || 0); } },
       { k: '이용 게스트', v: fmtNum(guests) + '명',
-        s: used ? '예약당 <em>' + (guests / used).toFixed(1) + '명</em>' : '' },
+        s: used ? '예약당 <em>' + (guests / used).toFixed(1) + '명</em>' : '',
+        spark: function(r){ return Number(r.usedc_guest_count || 0); } },
       { k: '건당 평균', v: confirm ? fmtWon(Math.round(amount / confirm)) : '—',
-        s: used ? '이용 기준 ' + fmtWon(Math.round(statSum(rows, 'rsv_usedc_amount') / used)) : '' },
+        s: used ? '이용 기준 ' + fmtWon(Math.round(statSum(rows, 'rsv_usedc_amount') / used)) : '',
+        spark: function(r){
+          var c = Number(r.reservation_confirm_count || 0), a = Number(r.reservation_amount || 0);
+          return c ? a / c : null;
+        } },
       { k: '예약 취소율', v: fmtPct(pct(cancel, total)),
-        s: cancel ? '전체 ' + fmtNum(total) + '건 중 ' + fmtNum(cancel) + '건 · 게스트 ' + fmtNum(gcancel) + '건' : '취소 없음' },
-      { k: '찜', v: fmtNum(zzim) + '개', s: calls ? '전화문의 ' + fmtNum(calls) + '건' : '' },
+        s: cancel ? '전체 ' + fmtNum(total) + '건 중 ' + fmtNum(cancel) + '건 · 게스트 ' + fmtNum(gcancel) + '건' : '취소 없음',
+        spark: function(r){ return pct(Number(r.reservation_cancel_count || 0), Number(r.reservation_total_count || 0)); } },
+      { k: '찜', v: fmtNum(zzim) + '개', s: calls ? '전화문의 ' + fmtNum(calls) + '건' : '',
+        spark: function(r){ return Number(r.zzim_count || 0); } },
       { k: '후기', v: fmtNum(review) + '개',
-        s: review ? '평균 <em>' + (scoreSum / review).toFixed(1) + '점</em>' : '아직 없음' },
+        s: review ? '평균 <em>' + (scoreSum / review).toFixed(1) + '점</em>' : '아직 없음',
+        spark: function(r){ return Number(r.review_count || 0); } },
       { k: '응답률', v: (qa + review) ? fmtPct(pct(qaDone + reviewDone, qa + review), 0) : '—',
-        s: 'Q&amp;A ' + fmtNum(qa) + ' · 후기 ' + fmtNum(review) }
+        s: 'Q&amp;A ' + fmtNum(qa) + ' · 후기 ' + fmtNum(review),
+        spark: function(r){
+          return pct(Number(r.qa_answer_complete_count || 0) + Number(r.review_answer_complete_count || 0),
+                      Number(r.qa_count || 0) + Number(r.review_count || 0));
+        } }
     ];
 
     document.getElementById('statKpis').innerHTML = cards.map(function(c){
       return '<div class="st-kpi"><div class="k">' + c.k + '</div>' +
         '<div class="v">' + c.v + '</div>' +
+        statSparkline(rows, c.spark) +
         (c.s ? '<div class="s">' + c.s + '</div>' : '') + '</div>';
     }).join('');
   }
 
   /**
-   * 선 그래프 하나를 SVG 문자열로. 라이브러리를 안 쓰는 이유는 이 페이지가 이미 CDN 두 개에
-   * 매달려 있고, 여기 필요한 건 60줄이면 되기 때문이다. (원본 통계 화면이 캔버스라 값을
-   * 못 읽었던 걸 생각하면, 값이 DOM에 남는 SVG가 이 레포 취향에도 맞다.)
+   * 미니 스파크라인. 요약 카드 숫자 하나로 뭉개진 창(rows) 안의 날짜별 흐름을 옆에 붙인다.
+   * 선은 무채색으로 죽이고 마지막 점(오늘 기준)만 강조색을 준다 — 숫자가 이미 진하게
+   * 강조돼 있어 선까지 진하면 카드 여덟 개가 한꺼번에 시끄러워진다. 점 2개 미만이면
+   * 추세를 그릴 수 없으니 아예 안 그린다.
    */
-  function statSvg(rows, key, color, kind){
+  function statSparkline(rows, getter){
+    var W = 120, H = 30, P = 3;
+    var vals = rows.map(getter);
+    var present = vals.filter(function(v){ return v !== null && v !== undefined; });
+    if(present.length < 2) return '';
+
+    var max = Math.max.apply(null, present), min = Math.min.apply(null, present);
+    var span = (max - min) || 1;
+    var n = vals.length;
+    var x = function(i){ return n === 1 ? W / 2 : (i / (n - 1)) * W; };
+    var y = function(v){ return P + (1 - (v - min) / span) * (H - P * 2); };
+
+    var segs = [], cur = '';
+    vals.forEach(function(v, i){
+      if(v === null || v === undefined){ if(cur) segs.push(cur); cur = ''; return; }
+      cur += (cur ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1) + ' ';
+    });
+    if(cur) segs.push(cur);
+
+    var lastIdx = -1;
+    for(var i = n - 1; i >= 0; i--){ if(vals[i] !== null && vals[i] !== undefined){ lastIdx = i; break; } }
+
+    var paths = segs.map(function(seg){
+      return '<path d="' + seg.trim() + '" fill="none" stroke="#c9c4ba" stroke-width="1.5" ' +
+             'stroke-linejoin="round" stroke-linecap="round"/>';
+    }).join('');
+    var dot = lastIdx >= 0
+      ? '<circle cx="' + x(lastIdx).toFixed(1) + '" cy="' + y(vals[lastIdx]).toFixed(1) + '" r="2.5" fill="#E2531E"/>'
+      : '';
+
+    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-hidden="true">' +
+      paths + dot + '</svg>';
+  }
+
+  /**
+   * 선/막대 그래프 하나를 SVG 문자열로. 라이브러리를 안 쓰는 이유는 이 페이지가 이미 CDN
+   * 두 개에 매달려 있고, 여기 필요한 건 60줄이면 되기 때문이다. (원본 통계 화면이 캔버스라
+   * 값을 못 읽었던 걸 생각하면, 값이 DOM에 남는 SVG가 이 레포 취향에도 맞다.)
+   *
+   * getter(row)가 null을 돌려주는 날은 선을 끊는다(구간을 나눠 그린다) — 분모 0인 비율
+   * 지표를 0%로 채우면 '그날 전환 실패'로 읽힌다. area 채움은 끊김 없는 시리즈(원본
+   * 카운트)에서만 그린다 — 끊긴 선에 area를 채우면 빈 구간이 0으로 착시된다.
+   */
+  function statSvg(rows, getter, color, kind){
     var W = 640, H = 130, PB = 18, PT = 10;
-    var vals = rows.map(function(r){ return Number(r[key] || 0); });
-    var max = Math.max.apply(null, vals.concat([1]));
+    var vals = rows.map(getter);
+    var present = vals.filter(function(v){ return v !== null && v !== undefined; });
+    var max = Math.max.apply(null, present.concat([1]));
     var n = vals.length;
     var x = function(i){ return n === 1 ? W / 2 : (i / (n - 1)) * W; };
     var y = function(v){ return PT + (1 - v / max) * (H - PT - PB); };
@@ -3079,11 +3143,22 @@
                '" height="' + Math.max(bh, 1).toFixed(1) + '" fill="' + color + '" rx="1.5"/>';
       }).join('');
     } else {
-      var d = vals.map(function(v, i){ return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' ');
-      var area = d + ' L' + x(n - 1).toFixed(1) + ' ' + (H - PB) + ' L' + x(0).toFixed(1) + ' ' + (H - PB) + ' Z';
-      body = '<path d="' + area + '" fill="' + color + '" opacity=".08"/>' +
-             '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
-             'stroke-linejoin="round" stroke-linecap="round"/>';
+      var segs = [], cur = '';
+      vals.forEach(function(v, i){
+        if(v === null || v === undefined){ if(cur) segs.push(cur); cur = ''; return; }
+        cur += (cur ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1) + ' ';
+      });
+      if(cur) segs.push(cur);
+
+      if(present.length === n){
+        var d = segs.join(' ').trim();
+        var area = d + ' L' + x(n - 1).toFixed(1) + ' ' + (H - PB) + ' L' + x(0).toFixed(1) + ' ' + (H - PB) + ' Z';
+        body += '<path d="' + area + '" fill="' + color + '" opacity=".08"/>';
+      }
+      body += segs.map(function(seg){
+        return '<path d="' + seg.trim() + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
+               'stroke-linejoin="round" stroke-linecap="round"/>';
+      }).join('');
     }
 
     // 기준선 + 양끝/최댓값 날짜만 적는다. 24~90개 라벨을 다 적으면 읽을 수 없다.
@@ -3101,20 +3176,50 @@
       body + labels + '</svg>';
   }
 
+  /** num/den은 컬럼 키 문자열이거나, 여러 컬럼을 합쳐야 할 때 쓰는 함수(row => number)다. */
+  function chartField(spec, r){
+    return typeof spec === 'function' ? spec(r) : Number(r[spec] || 0);
+  }
+  function sumField(rows, spec){
+    return rows.reduce(function(a, r){ return a + chartField(spec, r); }, 0);
+  }
+
   function renderStatCharts(rows){
     var charts = [
       { key: 'impression_total', title: '도달', color: '#16130F', kind: 'line', fmt: fmtNum },
       { key: 'click_total',      title: '클릭', color: '#E2531E', kind: 'line', fmt: fmtNum },
+      /* 전환율 넷 — 여기 오기 전엔 요약 카드·전환 분석에서 창 전체를 합친 숫자 하나였다.
+         분모가 0인 날은 pct()가 null을 돌려주고 statSvg가 그 지점에서 선을 끊는다(0%로
+         잇지 않는다) — 즉시예약뿐인 날처럼 분모가 0인 날을 '전환 실패'로 읽으면 틀린다. */
+      { title: '클릭률', color: '#16130F', kind: 'line', rate: true,
+        num: 'click_total', den: 'impression_total' },
+      { title: '예약 전환율', color: '#16130F', kind: 'line', rate: true,
+        num: 'reservation_confirm_count', den: 'click_total' },
       { key: 'reservation_amount', title: '확정 매출(순액)', color: '#E2531E', kind: 'bar', fmt: fmtWon },
-      { key: 'usedc_guest_count',  title: '이용 게스트', color: '#16130F', kind: 'bar', fmt: fmtNum }
+      { key: 'usedc_guest_count',  title: '이용 게스트', color: '#16130F', kind: 'bar', fmt: fmtNum },
+      { title: '예약 취소율', color: '#16130F', kind: 'line', rate: true,
+        num: 'reservation_cancel_count', den: 'reservation_total_count' },
+      { title: '응답률', color: '#16130F', kind: 'line', rate: true,
+        num: function(r){ return Number(r.qa_answer_complete_count || 0) + Number(r.review_answer_complete_count || 0); },
+        den: function(r){ return Number(r.qa_count || 0) + Number(r.review_count || 0); } }
     ];
 
     document.getElementById('statCharts').innerHTML = charts.map(function(c){
+      if(c.rate){
+        var getter = function(r){ return pct(chartField(c.num, r), chartField(c.den, r)); };
+        var periodPct = pct(sumField(rows, c.num), sumField(rows, c.den));
+        var presentVals = rows.map(getter).filter(function(v){ return v !== null; });
+        var peak = presentVals.length ? Math.max.apply(null, presentVals) : null;
+        return '<div class="st-chart">' +
+          '<div class="t"><b>' + c.title + '</b><span>기간 ' + fmtPct(periodPct, 1) + ' · 최고 ' + fmtPct(peak, 1) + '</span></div>' +
+          statSvg(rows, getter, c.color, c.kind) +
+          '</div>';
+      }
       var total = statSum(rows, c.key);
-      var peak = Math.max.apply(null, rows.map(function(r){ return Number(r[c.key] || 0); }).concat([0]));
+      var peak2 = Math.max.apply(null, rows.map(function(r){ return Number(r[c.key] || 0); }).concat([0]));
       return '<div class="st-chart">' +
-        '<div class="t"><b>' + c.title + '</b><span>합계 ' + c.fmt(total) + ' · 최고 ' + c.fmt(peak) + '</span></div>' +
-        statSvg(rows, c.key, c.color, c.kind) +
+        '<div class="t"><b>' + c.title + '</b><span>합계 ' + c.fmt(total) + ' · 최고 ' + c.fmt(peak2) + '</span></div>' +
+        statSvg(rows, function(r){ return Number(r[c.key] || 0); }, c.color, c.kind) +
         '</div>';
     }).join('');
   }
