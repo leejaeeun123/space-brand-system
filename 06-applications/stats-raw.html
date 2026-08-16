@@ -122,6 +122,17 @@
   .note-input:hover{border-color:var(--hair);}
   .note-input:focus{border-color:var(--ink);outline:none;}
   .note-input.note-err{border-color:var(--orange);}
+  /* 수기 숫자 칸 — 메모와 같은 편집 UX. type=number를 안 쓰는 건 의도다: 포커스된 number
+     입력은 크롬에서 마우스 휠로 값이 바뀐다 — 35컬럼을 휠로 끄는 이 표에선 단가가 조용히
+     바뀌어 저장되는 사고 경로가 된다. text + inputmode로 키패드만 숫자로. */
+  .manual-input{
+    font-family:inherit;font-size:12px;width:76px;color:var(--ink);text-align:right;
+    background:transparent;border:1px solid transparent;border-radius:4px;padding:4px 6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .manual-input:hover{border-color:var(--hair);}
+  .manual-input:focus{border-color:var(--ink);outline:none;}
+  .manual-input.note-err{border-color:var(--orange);}
 </style>
 </head>
 <body>
@@ -179,9 +190,10 @@
     그래서 합계행을 비워 뒀습니다.
     <strong>③ 유입 키워드는 건수가 아니라 비율</strong>이고 매일 상위 5개에서 잘립니다.
     <br><br>
-    <strong>맨 오른쪽 메모 칸은 자동 수집과 무관합니다</strong> — 가격 변경·쿠폰 발행·광고
-    집행처럼 숫자만으론 안 보이는 사정을 직접 남기는 자리입니다. 재수집이 몇 번을 돌아도
-    지워지지 않습니다.
+    <strong>오른쪽 끝의 수기 입력 컬럼들은 자동 수집과 무관합니다</strong> — 메모는 가격
+    변경·쿠폰 발행처럼 숫자만으론 안 보이는 사정을, 평일/주말 단가·최소 인원·최소
+    시간·광고비는 그날의 판매 조건과 지출을 숫자로 남기는 자리입니다. 재수집이 몇 번을
+    돌아도 지워지지 않고, 합계행에는 더해도 말이 되는 광고비만 합산됩니다.
   </div>
 </div>
 
@@ -196,6 +208,7 @@
   var statsCache = null;       // sc_daily_stats 전체
   var statsKwCache = null;     // sc_daily_keywords 전체
   var statsNotesCache = null;  // sc_daily_notes 전체 (날짜별 수기 메모)
+  var statsManualCache = null; // sc_daily_manual 전체 (날짜별 수기 숫자: 단가·최소조건·광고비)
   var statsDays = 30;          // 0 = 전체
 
   function isAuthError(err){
@@ -232,6 +245,12 @@
       return res.data || [];
     });
   }
+  function fetchScDailyManual(password){
+    return sb.rpc('admin_list_sc_daily_manual', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
 
   function tryUnlock(){
     var val = document.getElementById('pw').value;
@@ -244,10 +263,12 @@
       showApp();
       return Promise.all([
         fetchScKeywords(val).catch(function(){ return null; }),
-        fetchScDailyNotes(val).catch(function(){ return null; })
+        fetchScDailyNotes(val).catch(function(){ return null; }),
+        fetchScDailyManual(val).catch(function(){ return null; })
       ]).then(function(r){
         if(r[0] !== null) statsKwCache = r[0];
         if(r[1] !== null) statsNotesCache = r[1];
+        if(r[2] !== null) statsManualCache = r[2];
         renderRaw();
       });
     }).catch(function(err){
@@ -263,6 +284,7 @@
     statsCache = null;
     statsKwCache = null;
     statsNotesCache = null;
+    statsManualCache = null;
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('pw').value = '';
@@ -276,11 +298,13 @@
     return Promise.all([
       fetchScDaily(currentPassword),
       fetchScKeywords(currentPassword).catch(function(){ return null; }),
-      fetchScDailyNotes(currentPassword).catch(function(){ return null; })
+      fetchScDailyNotes(currentPassword).catch(function(){ return null; }),
+      fetchScDailyManual(currentPassword).catch(function(){ return null; })
     ]).then(function(r){
       statsCache = r[0];
       if(r[1] !== null) statsKwCache = r[1];
       if(r[2] !== null) statsNotesCache = r[2];
+      if(r[3] !== null) statsManualCache = r[3];
       statNotice('');
       renderRaw();
     }).catch(function(err){
@@ -364,26 +388,49 @@
     }, []);
   }
 
+  /* 수기 숫자 컬럼. 키는 sc_daily_manual의 컬럼명이자 admin_upsert_sc_daily_manual의
+     필드 화이트리스트와 같아야 한다 — 네 곳(표 컬럼·RPC 화이트리스트·이 배열·data-field) 중
+     하나만 틀려도 그 컬럼만 조용히 저장이 죽는다. 순서·라벨은 표와 CSV가 공유한다. */
+  var MANUAL_COLS = [
+    ['weekday_price', '평일 단가'],
+    ['weekend_price', '주말 단가'],
+    ['min_guests', '최소 인원'],
+    ['min_hours', '최소 시간'],
+    ['ad_spend', '광고비']
+  ];
+
   function renderStatRaw(rows){
     var notesByDate = {};
     (statsNotesCache || []).forEach(function(n){ notesByDate[n.stat_date] = n.note; });
+    var manualByDate = {};
+    (statsManualCache || []).forEach(function(m){ manualByDate[m.stat_date] = m; });
 
     var groupRow = '<tr><th class="d grp" rowspan="2">날짜</th>' +
       STAT_COLS.map(function(g){ return '<th class="grp" colspan="' + g.c.length + '">' + esc(g.g) + '</th>'; }).join('') +
+      '<th class="grp" colspan="' + MANUAL_COLS.length + '">수기 입력</th>' +
       '<th class="n grp" rowspan="2">메모</th>' +
       '</tr>';
     var headRow = '<tr>' + STAT_COLS.map(function(g){
       return g.c.map(function(c){ return '<th>' + esc(c[1]) + '</th>'; }).join('');
-    }).join('') + '</tr>';
+    }).join('') + MANUAL_COLS.map(function(mc){ return '<th>' + esc(mc[1]) + '</th>'; }).join('') + '</tr>';
 
     var flat = statFlatCols();
 
     // 최신이 위. '오늘 기준 어떤가'로 읽는 표라 위에서부터 최근이어야 한다.
     var body = rows.slice().reverse().map(function(r){
+      var m = manualByDate[r.stat_date];
       return '<tr><td class="d">' + esc(r.stat_date) + '</td>' +
         flat.map(function(c){
           var v = Number(r[c.key] || 0);
           return '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmtNum(v) : '·') + '</td>';
+        }).join('') +
+        MANUAL_COLS.map(function(mc){
+          var mv = m && m[mc[0]] != null ? String(m[mc[0]]) : '';
+          return '<td><input type="text" inputmode="decimal" class="manual-input" ' +
+            'data-date="' + esc(r.stat_date) + '" data-field="' + mc[0] + '" ' +
+            'data-orig="' + esc(mv) + '" value="' + esc(mv) + '" title="' + esc(mc[1]) + '" ' +
+            'onchange="saveManual(this)" ' +
+            'onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.value=this.dataset.orig;this.blur();}"></td>';
         }).join('') +
         '<td class="n"><input type="text" class="note-input" data-date="' + esc(r.stat_date) + '" ' +
           'data-orig="' + esc(notesByDate[r.stat_date] || '') + '" ' +
@@ -394,11 +441,21 @@
     }).join('');
 
     /* 합계행 — 단, 재예약은 비운다. 여기만 더하면 안 되는 값이라(구간에 의존) 숫자를 넣으면
-       그럴듯해 보여서 더 위험하다. 메모도 합쳐질 수 없는 값이라 비운다. */
+       그럴듯해 보여서 더 위험하다. 수기 컬럼도 광고비만 합산한다 — 단가·최소조건의 합은
+       그럴듯해 보이는 쓰레기다. 메모도 합쳐질 수 없는 값이라 비운다. */
+    var manualFoot = MANUAL_COLS.map(function(mc){
+      if(mc[0] !== 'ad_spend') return '<td class="zero">—</td>';
+      var sum = 0, has = false;
+      rows.forEach(function(r){
+        var mm = manualByDate[r.stat_date];
+        if(mm && mm.ad_spend != null){ sum += Number(mm.ad_spend); has = true; }
+      });
+      return has ? '<td>' + fmtNum(sum) + '</td>' : '<td class="zero">—</td>';
+    }).join('');
     var foot = '<tr><td class="d">합계</td>' + flat.map(function(c){
       if(c.key === 're_reservation_count') return '<td class="zero">—</td>';
       return '<td>' + fmtNum(statSum(rows, c.key)) + '</td>';
-    }).join('') + '<td class="n zero">—</td></tr>';
+    }).join('') + manualFoot + '<td class="n zero">—</td></tr>';
 
     document.getElementById('statRaw').innerHTML =
       '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
@@ -431,6 +488,52 @@
           isThrottleError(err) ? '비밀번호 시도가 너무 많아요. 10분 뒤에 다시 로그인해 주세요 — 이 메모는 아직 저장되지 않았어요.'
           : isAuthError(err)   ? '로그인이 만료된 것 같아요. 다시 로그인해 주세요 — 이 메모는 아직 저장되지 않았어요.'
           : '메모 저장에 실패했어요: ' + (err && err.message ? err.message : err);
+        statNotice(msg, true);
+      });
+  }
+
+  /** 수기 숫자 칸 저장 — saveNote와 같은 규율(칸 하나만, 성공 시 Escape 기준점 갱신,
+     실패 사유 구분). 빈 값은 '그 필드 지움'(null)이고, 숫자가 아니면 서버에 보내지 않는다. */
+  function saveManual(el){
+    var date = el.dataset.date, field = el.dataset.field;
+    var label = field;
+    MANUAL_COLS.forEach(function(mc){ if(mc[0] === field) label = mc[1]; });
+
+    var raw = el.value.trim();
+    var value = raw === '' ? null : Number(raw.replace(/,/g, ''));
+    if(value !== null && (!isFinite(value) || value < 0)){
+      // 입력값을 지우지 않고 남겨둔다 — 무엇을 잘못 쳤는지 본인이 봐야 고친다.
+      el.classList.add('note-err');
+      statNotice(label + '에는 0 이상의 숫자만 넣을 수 있어요 — 아직 저장되지 않았습니다.', true);
+      return;
+    }
+
+    el.disabled = true;
+    el.classList.remove('note-err');
+    sb.rpc('admin_upsert_sc_daily_manual', { p_password: currentPassword, p_stat_date: date, p_field: field, p_value: value })
+      .then(function(res){
+        if(res.error) throw res.error;
+        statsManualCache = statsManualCache || [];
+        var row = null;
+        statsManualCache.forEach(function(mm){ if(mm.stat_date === date) row = mm; });
+        if(!row){ row = { stat_date: date }; statsManualCache.push(row); }
+        row[field] = value;
+        if(MANUAL_COLS.every(function(mc){ return row[mc[0]] == null; })){
+          statsManualCache = statsManualCache.filter(function(mm){ return mm.stat_date !== date; });
+        }
+        var shown = value === null ? '' : String(value);
+        el.value = shown;               // '1,000' 같은 입력을 저장된 형태로 정리해 보여준다
+        el.dataset.orig = shown;        // 저장 직후 Escape 기준점도 갱신 (saveNote와 같은 이유)
+        el.disabled = false;
+        statNotice(date + ' ' + label + ' 저장했어요.');
+      })
+      .catch(function(err){
+        el.disabled = false;
+        el.classList.add('note-err');
+        var msg =
+          isThrottleError(err) ? '비밀번호 시도가 너무 많아요. 10분 뒤에 다시 로그인해 주세요 — 이 값은 아직 저장되지 않았어요.'
+          : isAuthError(err)   ? '로그인이 만료된 것 같아요. 다시 로그인해 주세요 — 이 값은 아직 저장되지 않았어요.'
+          : label + ' 저장에 실패했어요: ' + (err && err.message ? err.message : err);
         statNotice(msg, true);
       });
   }
@@ -508,14 +611,19 @@
 
     var notesByDate = {};
     (statsNotesCache || []).forEach(function(n){ notesByDate[n.stat_date] = n.note; });
+    var manualByDate = {};
+    (statsManualCache || []).forEach(function(m){ manualByDate[m.stat_date] = m; });
     var q = function(s){ return '"' + String(s).replace(/"/g, '""') + '"'; };
 
     var flat = statFlatCols();
-    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).concat(['메모']).join(',')];
+    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; }))
+      .concat(MANUAL_COLS.map(function(mc){ return mc[1]; })).concat(['메모']).join(',')];
     rows.forEach(function(r){
+      var m = manualByDate[r.stat_date];
       lines.push(
         [r.stat_date]
           .concat(flat.map(function(c){ return Number(r[c.key] || 0); }))
+          .concat(MANUAL_COLS.map(function(mc){ return m && m[mc[0]] != null ? m[mc[0]] : ''; }))
           .concat([q(notesByDate[r.stat_date] || '')])
           .join(',')
       );
@@ -554,10 +662,12 @@
         showApp();
         return Promise.all([
           fetchScKeywords(savedPw).catch(function(){ return null; }),
-          fetchScDailyNotes(savedPw).catch(function(){ return null; })
+          fetchScDailyNotes(savedPw).catch(function(){ return null; }),
+          fetchScDailyManual(savedPw).catch(function(){ return null; })
         ]).then(function(r){
           if(r[0] !== null) statsKwCache = r[0];
           if(r[1] !== null) statsNotesCache = r[1];
+          if(r[2] !== null) statsManualCache = r[2];
           renderRaw();
         });
       }).catch(function(err){
