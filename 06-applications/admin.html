@@ -935,6 +935,7 @@
     statsCache = null;
     statsKwCache = null;
     statsNotesCache = null;
+    statsManualCache = null;
     closeSidebar();
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
@@ -2904,6 +2905,7 @@
   }
 
   var statsNotesCache = null;  // sc_daily_notes 전체 — 이벤트 마커용. 못 받으면 null 그대로(차트는 마커 없이 뜬다).
+  var statsManualCache = null; // sc_daily_manual 전체 — 실측 CPC(광고비÷광고클릭) 계산용. 못 받으면 상한선만 보인다.
 
   function fetchScDaily(password){
     return sb.rpc('admin_list_sc_daily', { p_password: password }).then(function(res){
@@ -2924,6 +2926,13 @@
       return res.data || [];
     });
   }
+  /** 날짜별 수기 숫자(sc_daily_manual). 여기선 광고비만 쓴다 — 실측 CPC의 분자다. */
+  function fetchScDailyManual(password){
+    return sb.rpc('admin_list_sc_daily_manual', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
 
   function refreshStats(){
     /* 키워드를 못 받아도 나머지는 그린다 — 부가 정보 하나 때문에 지표 전체가 안 보이면
@@ -2931,12 +2940,14 @@
     return Promise.all([
       fetchScDaily(currentPassword),
       fetchScKeywords(currentPassword).catch(function(){ return null; }),
-      // 메모도 같은 태도 — 마이그레이션 전이거나 실패해도 차트는 마커 없이 그려진다.
-      fetchScDailyNotes(currentPassword).catch(function(){ return null; })
+      // 메모·수기 숫자도 같은 태도 — 실패해도 차트는 마커 없이, 기대매출 박스는 상한선만으로 그려진다.
+      fetchScDailyNotes(currentPassword).catch(function(){ return null; }),
+      fetchScDailyManual(currentPassword).catch(function(){ return null; })
     ]).then(function(r){
       statsCache = r[0];
       if(r[1] !== null) statsKwCache = r[1];
       if(r[2] !== null) statsNotesCache = r[2];
+      if(r[3] !== null) statsManualCache = r[3];
       statNotice('');
       renderStats();
     }).catch(function(err){
@@ -3605,6 +3616,38 @@
     // 광고 집행 비용은 스클이 안 주지만, '클릭 하나가 평균 얼마를 버는가'는 지금 데이터로
     // 나온다. 스클 광고는 CPC 과금이므로 이 값이 곧 입찰 상한선이 된다.
     var evClick = cur.click ? cur.amount / cur.click : null;
+
+    /* 실측 — 수기 입력된 광고비(sc_daily_manual)가 이 구간에 있으면 상한선 옆에 실제 CPC를
+       나란히 놓는다. 광고비 입력이 빠진 날이 있으면 실측이 실제보다 낮게 나온다 — 그 사실을
+       숨기지 않고 커버리지를 같이 적는다. */
+    var dateSet = {};
+    rows.forEach(function(r){ dateSet[r.stat_date] = true; });
+    var adSpend = 0, adSpendDays = 0;
+    (statsManualCache || []).forEach(function(m){
+      if(dateSet[m.stat_date] && m.ad_spend != null){ adSpend += Number(m.ad_spend); adSpendDays++; }
+    });
+    var adClicks = statSum(rows, 'click_ad');
+    var adClickDays = rows.filter(function(r){ return Number(r.click_ad || 0) > 0; }).length;
+
+    var actualHtml = '';
+    if(adSpendDays > 0){
+      var actualCpc = adClicks ? adSpend / adClicks : null;
+      var verdict = (actualCpc !== null && evClick !== null)
+        ? (actualCpc <= evClick
+            ? ' <span class="st-delta good">상한선 안쪽</span>'
+            : ' <span class="st-delta bad">상한선 초과</span>')
+        : '';
+      actualHtml = '<div class="st-note" style="border-top:1px solid var(--hair);margin-top:9px;padding-top:9px;">' +
+        '<strong>실측</strong> — 광고비 ' + fmtWon(adSpend) + ' ÷ 광고 클릭 ' + fmtNum(adClicks) +
+        (actualCpc === null
+          ? ' : 광고 클릭이 0이라 CPC가 성립하지 않아요. 광고비만 나가고 클릭이 안 잡힌 구간입니다.'
+          : ' = CPC <strong>' + fmtWon(Math.round(actualCpc)) + '</strong>' + verdict) +
+        (adClickDays > adSpendDays
+          ? '<br>광고 클릭이 있던 ' + adClickDays + '일 중 광고비가 입력된 날은 ' + adSpendDays + '일 — 빠진 날만큼 실측 CPC가 실제보다 낮게 보입니다.'
+          : '') +
+        '</div>';
+    }
+
     html += '<div class="st-box"><div class="cap"><b>클릭 1건의 기대 매출</b> — 광고 입찰 상한선</div>' +
       (evClick === null
         ? '<div class="st-conv" style="margin-top:0">이 구간에 클릭이 없어 계산할 수 없어요.</div>'
@@ -3613,6 +3656,7 @@
           '스클 광고 CPC가 이보다 비싸면 <strong>이 구간 성과 기준으로는 손해</strong>입니다. ' +
           '단 ① 플랫폼 수수료를 빼기 전이고 ② 광고 클릭이 일반 클릭만큼 전환한다고 가정한 ' +
           '<strong>상한선</strong>이며 ③ 구간(7·30·전체)을 바꾸면 다시 계산됩니다.</div>') +
+      actualHtml +
       '</div>';
 
     // ── 3. 요일별 ───────────────────────────────────────────────────────────
