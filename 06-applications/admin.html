@@ -359,6 +359,18 @@
   .st-kw-row .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .st-kw-row .b{grid-column:1/-1;height:6px;background:var(--hair);border-radius:3px;overflow:hidden;margin-top:-4px;}
   .st-kw-row .b i{display:block;height:100%;background:var(--orange);border-radius:3px;}
+  .st-kw-row .days{font-size:10px;color:#8a8478;font-weight:400;margin-left:6px;}
+
+  /* 이벤트 범례(차트 아래) + 가동률 히트맵 */
+  .st-ev{font-size:11px;color:#6b665c;line-height:1.8;border:1px solid var(--hair);border-radius:8px;padding:10px 14px;margin-bottom:10px;}
+  .st-ev .sym{color:var(--orange);font-weight:600;}
+  .st-hm{display:grid;gap:2px;font-size:10px;}
+  .st-hm .lab{color:#8a8478;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;}
+  .st-hm .col-lab{color:#6b665c;text-align:center;font-weight:600;padding-bottom:2px;}
+  .st-hm .cell{height:16px;border-radius:2px;background:var(--hair);}
+  .st-lead{display:grid;grid-template-columns:64px 1fr auto;gap:8px;align-items:center;font-size:12px;margin-bottom:6px;}
+  .st-lead .bar{height:10px;background:var(--hair);border-radius:3px;overflow:hidden;}
+  .st-lead .bar i{display:block;height:100%;background:var(--ink);border-radius:3px;}
 
 </style>
 </head>
@@ -493,6 +505,9 @@
 
       <h2>전환 분석</h2>
       <div id="statConversion"></div>
+
+      <h2>이용 리듬</h2>
+      <div id="statUsage"></div>
 
       <h2>일별 추이</h2>
       <div id="statCharts"></div>
@@ -919,6 +934,7 @@
     // 받지 않아, 로그아웃 전 화면이 그대로 남는다.
     statsCache = null;
     statsKwCache = null;
+    statsNotesCache = null;
     closeSidebar();
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
@@ -2887,6 +2903,8 @@
     el.style.color = isError ? 'var(--orange)' : '#6b665c';
   }
 
+  var statsNotesCache = null;  // sc_daily_notes 전체 — 이벤트 마커용. 못 받으면 null 그대로(차트는 마커 없이 뜬다).
+
   function fetchScDaily(password){
     return sb.rpc('admin_list_sc_daily', { p_password: password }).then(function(res){
       if(res.error) throw res.error;
@@ -2899,22 +2917,32 @@
       return res.data || [];
     });
   }
+  /** 날짜별 수기 메모(sc_daily_notes). 일별 추이 차트의 이벤트 마커에만 쓴다. */
+  function fetchScDailyNotes(password){
+    return sb.rpc('admin_list_sc_daily_notes', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
 
   function refreshStats(){
     /* 키워드를 못 받아도 나머지는 그린다 — 부가 정보 하나 때문에 지표 전체가 안 보이면
        안 된다(refreshApplications와 같은 태도). */
     return Promise.all([
       fetchScDaily(currentPassword),
-      fetchScKeywords(currentPassword).catch(function(){ return null; })
+      fetchScKeywords(currentPassword).catch(function(){ return null; }),
+      // 메모도 같은 태도 — 마이그레이션 전이거나 실패해도 차트는 마커 없이 그려진다.
+      fetchScDailyNotes(currentPassword).catch(function(){ return null; })
     ]).then(function(r){
       statsCache = r[0];
       if(r[1] !== null) statsKwCache = r[1];
+      if(r[2] !== null) statsNotesCache = r[2];
       statNotice('');
       renderStats();
     }).catch(function(err){
       /* 빈 화면에 0을 뿌리지 않는다. 조회가 실패했는데 '도달 0'이 뜨면 장사가 안 된 걸로
          읽힌다 — 신청 목록에서와 같은 실패 모드다. */
-      ['statFunnel','statKpis','statConversion','statCharts','statKeywords'].forEach(function(id){
+      ['statFunnel','statKpis','statConversion','statUsage','statCharts','statKeywords'].forEach(function(id){
         document.getElementById(id).innerHTML = '';
       });
       document.getElementById('statAsOf').textContent = '';
@@ -2963,6 +2991,7 @@
       document.getElementById('statFunnel').innerHTML = '';
       document.getElementById('statKpis').innerHTML = '';
       document.getElementById('statConversion').innerHTML = '';
+      document.getElementById('statUsage').innerHTML = '';
       document.getElementById('statCharts').innerHTML = '';
       document.getElementById('statKeywords').innerHTML = '';
       statNotice('아직 쌓인 지표가 없어요. automation/run-stats-sync.mjs 를 한 번 돌리면 채워집니다.');
@@ -2976,6 +3005,7 @@
     renderStatFunnel(rows);
     renderStatKpis(rows);
     renderStatConversion(rows);
+    renderStatUsage(rows);
     renderStatCharts(rows);
     renderStatKeywords(rows);
   }
@@ -3142,7 +3172,8 @@
    * 지표를 0%로 채우면 '그날 전환 실패'로 읽힌다. area 채움은 끊김 없는 시리즈(원본
    * 카운트)에서만 그린다 — 끊긴 선에 area를 채우면 빈 구간이 0으로 착시된다.
    */
-  function statSvg(rows, getter, color, kind){
+  function statSvg(rows, getter, color, kind, opts){
+    opts = opts || {};
     var W = 640, H = 130, PB = 18, PT = 10;
     var vals = rows.map(getter);
     var present = vals.filter(function(v){ return v !== null && v !== undefined; });
@@ -3150,20 +3181,13 @@
     var n = vals.length;
     var x = function(i){ return n === 1 ? W / 2 : (i / (n - 1)) * W; };
     var y = function(v){ return PT + (1 - v / max) * (H - PT - PB); };
+    var half = n > 1 ? (W / (n - 1)) / 2 : W / 2;
 
-    var body = '';
-    if(kind === 'bar'){
-      var bw = Math.max(2, (W / Math.max(n, 1)) * 0.62);
-      body = vals.map(function(v, i){
-        if(!v) return '';
-        var bx = (n === 1 ? W / 2 : (i / (n - 1)) * (W - bw)) ;
-        var by = y(v), bh = (H - PB) - by;
-        return '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) +
-               '" height="' + Math.max(bh, 1).toFixed(1) + '" fill="' + color + '" rx="1.5"/>';
-      }).join('');
-    } else {
+    /* null에서 선을 끊어 조각(segs)과 조각 사이 점선(bridges)을 만든다 — 원값과 이동평균이
+       같은 결측 규칙을 쓰도록 빼냈다. */
+    function buildSegs(arr){
       var segs = [], bridges = [], cur = '', lastPt = null;
-      vals.forEach(function(v, i){
+      arr.forEach(function(v, i){
         if(v === null || v === undefined){ if(cur){ segs.push(cur); cur = ''; } return; }
         var px = x(i), py = y(v);
         if(lastPt && !cur) bridges.push('M' + lastPt.x.toFixed(1) + ' ' + lastPt.y.toFixed(1) + ' L' + px.toFixed(1) + ' ' + py.toFixed(1));
@@ -3171,20 +3195,88 @@
         lastPt = { x: px, y: py };
       });
       if(cur) segs.push(cur);
+      return { segs: segs, bridges: bridges };
+    }
 
-      if(present.length === n){
-        var d = segs.join(' ').trim();
+    var body = '';
+
+    /* 광고 노출 밴드 — 광고는 점(마커)이 아니라 구간이다. 배경이므로 맨 먼저 깐다. */
+    if(opts.band){
+      var runStart = -1;
+      for(var bi = 0; bi <= n; bi++){
+        var on = bi < n && opts.band[bi];
+        if(on && runStart < 0) runStart = bi;
+        if(!on && runStart >= 0){
+          var bx0 = Math.max(0, x(runStart) - half), bx1 = Math.min(W, x(bi - 1) + half);
+          body += '<rect x="' + bx0.toFixed(1) + '" y="0" width="' + (bx1 - bx0).toFixed(1) +
+                  '" height="' + (H - PB) + '" fill="var(--orange)" opacity=".06"/>';
+          runStart = -1;
+        }
+      }
+    }
+
+    if(kind === 'bar'){
+      var bw = Math.max(2, (W / Math.max(n, 1)) * 0.62);
+      body += vals.map(function(v, i){
+        if(!v) return '';
+        var bx = (n === 1 ? W / 2 : (i / (n - 1)) * (W - bw)) ;
+        var by = y(v), bh = (H - PB) - by;
+        return '<rect x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) +
+               '" height="' + Math.max(bh, 1).toFixed(1) + '" fill="' + color + '" rx="1.5"/>';
+      }).join('');
+    } else if(kind === 'stack2'){
+      /* 아래(parts[0])+위(parts[1]) 누적 막대. getter는 반드시 합계를 돌려줘야 스케일이 맞는다. */
+      var bw2 = Math.max(2, (W / Math.max(n, 1)) * 0.62);
+      rows.forEach(function(r, i){
+        var a = chartField(opts.parts[0].get, r), b = chartField(opts.parts[1].get, r);
+        if(!a && !b) return;
+        var bx = (n === 1 ? W / 2 : (i / (n - 1)) * (W - bw2));
+        var yTopA = y(a);
+        if(a){
+          body += '<rect x="' + bx.toFixed(1) + '" y="' + yTopA.toFixed(1) + '" width="' + bw2.toFixed(1) +
+                  '" height="' + Math.max((H - PB) - yTopA, 1).toFixed(1) + '" fill="' + opts.parts[0].color + '" rx="1.5"/>';
+        }
+        if(b){
+          var yTopB = y(a + b), base = a ? yTopA : (H - PB);
+          body += '<rect x="' + bx.toFixed(1) + '" y="' + yTopB.toFixed(1) + '" width="' + bw2.toFixed(1) +
+                  '" height="' + Math.max(base - yTopB, 1).toFixed(1) + '" fill="' + opts.parts[1].color + '" rx="1.5"/>';
+        }
+      });
+    } else {
+      var raw = buildSegs(vals);
+      /* 이동평균이 겹칠 땐 원값을 가늘게 — 신호는 평균이고 원값은 질감이다. area도 그때는
+         생략한다(셋을 다 그리면 뭘 읽어야 할지 모르게 된다). */
+      var rawW = opts.ma ? '1.25' : '2', rawOp = opts.ma ? ' opacity=".45"' : '';
+      if(present.length === n && !opts.ma){
+        var d = raw.segs.join(' ').trim();
         var area = d + ' L' + x(n - 1).toFixed(1) + ' ' + (H - PB) + ' L' + x(0).toFixed(1) + ' ' + (H - PB) + ' Z';
         body += '<path d="' + area + '" fill="' + color + '" opacity=".08"/>';
       }
-      body += bridges.map(function(b){
+      body += raw.bridges.map(function(b){
         return '<path d="' + b + '" fill="none" stroke="#c9c4ba" stroke-width="1.5" stroke-dasharray="3 3"/>';
       }).join('');
-      body += segs.map(function(seg){
-        return '<path d="' + seg.trim() + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
-               'stroke-linejoin="round" stroke-linecap="round"/>';
+      body += raw.segs.map(function(seg){
+        return '<path d="' + seg.trim() + '" fill="none" stroke="' + color + '" stroke-width="' + rawW + '"' + rawOp +
+               ' stroke-linejoin="round" stroke-linecap="round"/>';
       }).join('');
     }
+
+    /* 7일 이동평균 — 흰 테두리(halo)를 깔아 막대·밴드 위에서도 읽힌다. */
+    if(opts.ma){
+      var ma = buildSegs(opts.ma);
+      body += ma.segs.map(function(seg){
+        var dPath = seg.trim();
+        return '<path d="' + dPath + '" fill="none" stroke="var(--white)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+               '<path d="' + dPath + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      }).join('');
+    }
+
+    /* 이벤트 마커(가격·쿠폰 등 비광고 메모) — 세로 점선 + 상단 삼각형. 내용은 차트 아래 범례에. */
+    (opts.marks || []).forEach(function(m){
+      var mx = x(m.i);
+      body += '<line x1="' + mx.toFixed(1) + '" y1="7" x2="' + mx.toFixed(1) + '" y2="' + (H - PB) + '" stroke="#16130F" stroke-width="1" stroke-dasharray="2 3" opacity=".4"/>' +
+              '<path d="M' + (mx - 3.5).toFixed(1) + ' 1 L' + (mx + 3.5).toFixed(1) + ' 1 L' + mx.toFixed(1) + ' 7 Z" fill="var(--orange)"/>';
+    });
 
     // 기준선 + 양끝/최댓값 날짜만 적는다. 24~90개 라벨을 다 적으면 읽을 수 없다.
     var maxAt = vals.indexOf(max);
@@ -3209,27 +3301,72 @@
     return rows.reduce(function(a, r){ return a + chartField(spec, r); }, 0);
   }
 
+  /** 뒤로 7일 이동평균. den을 주면 비율(합÷합, %) — 비율의 평균이 아니라 합의 비율이어야
+      한산한 날의 100%가 바쁜 날의 50%를 이기지 않는다. 처음 6일은 창이 안 차서 null. */
+  function statMa7(rows, numSpec, denSpec){
+    return rows.map(function(_, i){
+      if(i < 6) return null;
+      var num = 0, den = 0;
+      for(var j = i - 6; j <= i; j++){
+        num += chartField(numSpec, rows[j]);
+        if(denSpec) den += chartField(denSpec, rows[j]);
+      }
+      return denSpec ? (den ? (num / den) * 100 : null) : num / 7;
+    });
+  }
+  /** 점 2개 미만이면 선이 안 되므로 아예 안 넘긴다(7일 창에선 이동평균이 점 하나뿐이다). */
+  function maOrNull(ma){
+    return ma.filter(function(v){ return v !== null; }).length >= 2 ? ma : null;
+  }
+
   function renderStatCharts(rows){
+    var n = rows.length;
+
+    /* 광고 노출 밴드 — '광고 집행'은 메모가 아니라 impression_ad 데이터로 그린다(메모는
+       빠뜨리고 시작일을 하루 틀리게 적는다). 전 구간이 켜져 있거나 다 꺼져 있으면 구분
+       정보가 없으니 안 그린다. */
+    var adOn = rows.map(function(r){ return Number(r.impression_ad || 0) > 0; });
+    var adDays = adOn.filter(Boolean).length;
+    var band = (adDays > 0 && adDays < n) ? adOn : null;
+
+    /* 이벤트 마커 — 수기 메모 중 광고 얘기가 아닌 것(가격·쿠폰 등)만. 광고는 위 밴드가
+       담당한다 — 같은 사건을 마커와 밴드로 두 번 그리면 하루 어긋날 때 더 헷갈린다. */
+    var idxByDate = {};
+    rows.forEach(function(r, i){ idxByDate[r.stat_date] = i; });
+    var marks = (statsNotesCache || []).filter(function(nt){
+      return idxByDate[nt.stat_date] !== undefined && String(nt.note).indexOf('광고') === -1;
+    }).map(function(nt){
+      return { i: idxByDate[nt.stat_date], date: nt.stat_date, note: nt.note };
+    });
+
+    /* 깔때기 위쪽(도달·클릭)에만 판정 장치(이동평균·밴드·마커)를 단다. 아래쪽(매출·게스트)은
+       하루 1~3건이라 어떤 오버레이를 얹어도 노이즈에 인과를 그리게 된다 — 누적 관찰만 한다. */
     var charts = [
-      { key: 'impression_total', title: '도달', color: '#16130F', kind: 'line', fmt: fmtNum },
-      { key: 'click_total',      title: '클릭', color: '#E2531E', kind: 'line', fmt: fmtNum },
-      /* 전환율 넷 — 여기 오기 전엔 요약 카드·전환 분석에서 창 전체를 합친 숫자 하나였다.
-         분모가 0인 날은 pct()가 null을 돌려주고 statSvg가 그 지점에서 선을 끊는다(0%로
+      { key: 'impression_total', title: '도달', color: '#16130F', kind: 'line', fmt: fmtNum,
+        ma: maOrNull(statMa7(rows, 'impression_total')), band: band, marks: marks },
+      /* 클릭은 일반·기타/광고 누적 막대 — 광고가 총 클릭을 늘리는지, 일반 클릭만 갉아먹는지
+         (자기잠식)를 이 차트 하나로 본다. 광고 막대가 직접 보이니 밴드는 안 깐다. */
+      { title: '클릭', color: '#16130F', kind: 'stack2', fmt: fmtNum, key: 'click_total',
+        parts: [
+          { get: function(r){ return Number(r.click_normal || 0) + Number(r.click_etc || 0); }, color: '#16130F' },
+          { get: 'click_ad', color: '#E2531E' }
+        ],
+        ma: maOrNull(statMa7(rows, 'click_total')), marks: marks },
+      /* 분모가 0인 날은 pct()가 null을 돌려주고 statSvg가 그 지점에서 선을 끊는다(0%로
          잇지 않는다) — 즉시예약뿐인 날처럼 분모가 0인 날을 '전환 실패'로 읽으면 틀린다. */
       { title: '클릭률', color: '#16130F', kind: 'line', rate: true,
-        num: 'click_total', den: 'impression_total' },
+        num: 'click_total', den: 'impression_total',
+        ma: maOrNull(statMa7(rows, 'click_total', 'impression_total')), band: band, marks: marks },
       { title: '예약 전환율', color: '#16130F', kind: 'line', rate: true,
-        num: 'reservation_confirm_count', den: 'click_total' },
+        num: 'reservation_confirm_count', den: 'click_total', band: band, marks: marks },
       { key: 'reservation_amount', title: '확정 매출(순액)', color: '#E2531E', kind: 'bar', fmt: fmtWon },
-      { key: 'usedc_guest_count',  title: '이용 게스트', color: '#16130F', kind: 'bar', fmt: fmtNum },
-      { title: '예약 취소율', color: '#16130F', kind: 'line', rate: true,
-        num: 'reservation_cancel_count', den: 'reservation_total_count' },
-      { title: '응답률', color: '#16130F', kind: 'line', rate: true,
-        num: function(r){ return Number(r.qa_answer_complete_count || 0) + Number(r.review_answer_complete_count || 0); },
-        den: function(r){ return Number(r.qa_count || 0) + Number(r.review_count || 0); } }
+      { key: 'usedc_guest_count',  title: '이용 게스트', color: '#16130F', kind: 'bar', fmt: fmtNum }
+      /* 일별 취소율·응답률 차트는 뺐다 — 분모가 하루 0~3건이라 값이 0/50/100% 스파이크로만
+         찍힌다. 추세가 아니라 분모 노출이다. 기간 합계는 요약 카드가 이미 말한다. */
     ];
 
-    document.getElementById('statCharts').innerHTML = charts.map(function(c){
+    var html = charts.map(function(c){
+      var opts = { ma: c.ma || null, band: c.band || null, marks: c.marks || null, parts: c.parts || null };
       if(c.rate){
         var getter = function(r){ return pct(chartField(c.num, r), chartField(c.den, r)); };
         var periodPct = pct(sumField(rows, c.num), sumField(rows, c.den));
@@ -3237,16 +3374,34 @@
         var peak = presentVals.length ? Math.max.apply(null, presentVals) : null;
         return '<div class="st-chart">' +
           '<div class="t"><b>' + c.title + '</b><span>기간 ' + fmtPct(periodPct, 1) + ' · 최고 ' + fmtPct(peak, 1) + '</span></div>' +
-          statSvg(rows, getter, c.color, c.kind) +
+          statSvg(rows, getter, c.color, c.kind, opts) +
           '</div>';
       }
       var total = statSum(rows, c.key);
-      var peak2 = Math.max.apply(null, rows.map(function(r){ return Number(r[c.key] || 0); }).concat([0]));
+      var sub;
+      if(c.kind === 'stack2'){
+        var adClk = statSum(rows, 'click_ad');
+        sub = '합계 ' + c.fmt(total) + ' · <span style="color:#E2531E">■</span> 광고 ' + fmtPct(pct(adClk, total), 1) + ' · ■ 일반·기타';
+      } else {
+        var peak2 = Math.max.apply(null, rows.map(function(r){ return Number(r[c.key] || 0); }).concat([0]));
+        sub = '합계 ' + c.fmt(total) + ' · 최고 ' + c.fmt(peak2);
+      }
       return '<div class="st-chart">' +
-        '<div class="t"><b>' + c.title + '</b><span>합계 ' + c.fmt(total) + ' · 최고 ' + c.fmt(peak2) + '</span></div>' +
-        statSvg(rows, function(r){ return Number(r[c.key] || 0); }, c.color, c.kind) +
+        '<div class="t"><b>' + c.title + '</b><span>' + sub + '</span></div>' +
+        statSvg(rows, function(r){ return Number(r[c.key] || 0); }, c.color, c.kind, opts) +
         '</div>';
     }).join('');
+
+    /* 범례는 한 곳에 — 마커 내용·밴드·이동평균이 무슨 뜻인지 차트마다 반복하면 시끄럽다. */
+    var legend = [];
+    marks.forEach(function(m){
+      legend.push('<span class="sym">▾</span> ' + esc(shortDate(m.date)) + ' — ' + esc(m.note));
+    });
+    if(band) legend.push('주황 배경 = 광고 노출이 있던 날 — 메모가 아니라 impression_ad 데이터로 그립니다');
+    legend.push('굵은 선 = 7일 이동평균(그 날로 끝나는 7일) · 가는 선 = 일별 원값. 주 단위 출렁임을 걷어내고 수준 변화만 남깁니다');
+    html += '<div class="st-ev">' + legend.join('<br>') + '</div>';
+
+    document.getElementById('statCharts').innerHTML = html;
   }
 
   /**
@@ -3268,10 +3423,11 @@
     var clickBy = {};
     rows.forEach(function(r){ clickBy[r.stat_date] = Number(r.click_total || 0); });
 
-    var weight = {};
+    var weight = {}, daysBy = {};
     statsKwCache.forEach(function(k){
       if(k.stat_date < from || k.stat_date > to) return;
       if(k.keyword === '기타') return;          // 검색어가 아니라 스클이 묶은 덩어리다
+      daysBy[k.keyword] = (daysBy[k.keyword] || 0) + 1;  // 상위 5에 든 날 수 — 절삭(상위 5 컷)에 강건한 유일한 신호다
       var w = (Number(k.share_pct || 0) / 100) * (clickBy[k.stat_date] || 0);
       if(!w) return;
       weight[k.keyword] = (weight[k.keyword] || 0) + w;
@@ -3285,16 +3441,49 @@
       return;
     }
 
-    var top = list[0].v;
-    el.innerHTML = list.map(function(r){
+    /* 용도 카테고리 묶음 — 개별 키워드는 상위 5 절삭 탓에 오르내림을 읽을 수 없지만, 용도로
+       묶으면 표본이 커지고 절삭에 덜 민감해진다. 마침 이 공간의 세 판매 프레이밍(회의/촬영/
+       파티)과 같은 축이다. 사전은 거칠 수밖에 없으니 구성 검색어를 같이 보여줘 분류가 틀렸는지
+       눈으로 확인할 수 있게 한다. */
+    var KW_CATS = [
+      { n: '회의·스터디', re: /회의|미팅|세미나|스터디|워크|강의|컨퍼|수업|모각/ },
+      { n: '파티·모임', re: /파티|모임|생일|연말|송년|신년|피로연|브라이덜|와인/ },
+      { n: '촬영', re: /촬영|스튜디오|화보|프로필|유튜브|영상|룩북|스냅/ },
+      { n: '브랜드 지명', re: /타입|type/i }
+    ];
+    var catAgg = KW_CATS.map(function(c){ return { n: c.n, v: 0, kws: [] }; });
+    var etcAgg = { n: '그 외', v: 0, kws: [] };
+    Object.keys(weight).forEach(function(kw){
+      var hit = null;
+      for(var ci = 0; ci < KW_CATS.length; ci++){ if(KW_CATS[ci].re.test(kw)){ hit = catAgg[ci]; break; } }
+      if(!hit) hit = etcAgg;
+      hit.v += weight[kw]; hit.kws.push(kw);
+    });
+    var cats = catAgg.concat([etcAgg]).filter(function(c){ return c.v > 0; })
+      .sort(function(a, b){ return b.v - a.v; });
+    var catTotal = cats.reduce(function(a, c){ return a + c.v; }, 0);
+
+    var catHtml = cats.map(function(c){
+      c.kws.sort(function(a, b){ return (weight[b] || 0) - (weight[a] || 0); });
+      var chips = c.kws.slice(0, 3).join(' · ') + (c.kws.length > 3 ? ' 외 ' + (c.kws.length - 3) + '개' : '');
       return '<div class="st-kw-row">' +
-        '<div class="w">' + esc(r.w) + '</div>' +
+        '<div class="w"><strong>' + esc(c.n) + '</strong><span class="days">' + esc(chips) + '</span></div>' +
+        '<div>' + fmtPct(pct(c.v, catTotal), 0) + '</div>' +
+        '<div class="b"><i style="width:' + ((c.v / cats[0].v) * 100).toFixed(1) + '%"></i></div>' +
+        '</div>';
+    }).join('');
+
+    var top = list[0].v;
+    el.innerHTML = catHtml + '<div style="height:14px"></div>' + list.map(function(r){
+      return '<div class="st-kw-row">' +
+        '<div class="w">' + esc(r.w) + '<span class="days">' + (daysBy[r.w] || 0) + '일 노출</span></div>' +
         '<div>' + Math.round(r.v).toLocaleString('ko-KR') + '</div>' +
         '<div class="b"><i style="width:' + ((r.v / top) * 100).toFixed(1) + '%"></i></div>' +
         '</div>';
     }).join('') +
     '<div class="st-conv">그 날 클릭수로 가중한 <strong>근사 클릭수</strong>입니다 — 원본이 비율이라 그냥 더하면 ' +
-    '한산한 날이 과대평가됩니다. 매일 상위 5개만 오므로 그 아래는 애초에 잡히지 않습니다.</div>';
+    '한산한 날이 과대평가됩니다. 매일 상위 5개만 오므로 그 아래는 애초에 잡히지 않습니다. ' +
+    '위 용도 묶음은 검색어에 든 단어로 나눈 것이라 거칠 수 있습니다 — 구성 검색어를 같이 보세요.</div>';
   }
 
   /* ── 전환 분석 ─────────────────────────────────────────────────────────────
@@ -3355,7 +3544,20 @@
       { n: '확정 매출', v: fmtWon(cur.amount), d: deltaChip(cur.amount, pv && pv.amount, true) }
     ];
 
-    var html = '<div class="st-box">' +
+    // 최고 매출일 하이라이트 같은 자동 서사는 일부러 안 만든다. 하루 1~3건짜리 계열의
+    // 최댓값에 그날 메모를 붙이면 n=1에 인과를 자동 생성하는 장치가 된다. 소표본에서
+    // 정직한 자동 요약은 하이라이트 생성기가 아니라 표본 경고기다.
+    var confirmN = statSum(rows, 'reservation_confirm_count');
+    var zeroDays = rows.filter(function(r){ return !Number(r.reservation_confirm_count || 0); }).length;
+    var cancelAmt = statSum(rows, 'rsv_cancel_amount');
+    var html = '<div class="st-box"><div class="cap"><b>표본 크기</b> — 증감 칩을 읽기 전에</div>' +
+      '<div class="st-conv" style="margin-top:0">이 구간 확정 <strong>' + fmtNum(confirmN) + '건</strong> · ' +
+      '예약 없는 날 <strong>' + zeroDays + '/' + rows.length + '일</strong> · ' +
+      '이 구간에 취소 처리된 금액 ' + fmtWon(cancelAmt) + '<br>' +
+      '확정 표본이 이 정도면 예약·매출 쪽 증감은 대부분 우연 범위입니다 — ' +
+      '방향 판단은 표본이 수백인 도달·클릭 쪽으로 하세요.</div></div>';
+
+    html += '<div class="st-box">' +
       '<div class="cap">' + (prev
         ? '<b>직전 ' + prev.length + '일</b>(' + prev[0].stat_date + ' ~ ' + prev[prev.length - 1].stat_date + ') 대비'
         : '비교할 직전 구간이 아직 없어요 — 데이터가 더 쌓이면 증감이 표시됩니다') + '</div>' +
@@ -3376,17 +3578,41 @@
       { n: '기타', i: 'impression_etc', c: 'click_etc', rate: false }
     ];
 
+    /* 채널 CTR 증감의 비교 기준은 '직전 동일길이'가 아니라 **창 이전 전체 평균**이다.
+       40일 이력에서 30일 창의 '직전 30일'은 없지만 이전 10일 평균은 있다 — 클릭은
+       표본이 수백이라 평균 CTR 비교가 성립하는 유일한 지표다. 7일 미만이면 비교하지 않는다. */
+    var baseRows = (statsCache && statsDays && statsCache.length - rows.length >= 7)
+      ? statsCache.slice(0, statsCache.length - rows.length) : null;
+
     html += '<div class="st-box"><div class="cap"><b>유입 경로별</b></div>' +
       '<table class="st-tbl"><thead><tr><th>경로</th><th>도달</th><th>클릭</th><th>클릭률</th></tr></thead><tbody>' +
       channels.map(function(ch){
         var imp = statSum(rows, ch.i), clk = statSum(rows, ch.c);
-        var rate = ch.rate ? fmtPct(pct(clk, imp), 2) : '<span class="mute">—</span>';
+        var chip = (ch.rate && baseRows)
+          ? deltaChip(pct(clk, imp), pct(statSum(baseRows, ch.c), statSum(baseRows, ch.i)), true, true)
+          : '';
+        var rate = ch.rate ? fmtPct(pct(clk, imp), 2) + (chip ? ' ' + chip : '') : '<span class="mute">—</span>';
         return '<tr><td>' + ch.n + '</td><td>' + fmtNum(imp) + '</td><td>' + fmtNum(clk) + '</td>' +
                '<td class="' + (ch.rate ? '' : 'mute') + '">' + rate + '</td></tr>';
       }).join('') +
       '</tbody></table>' +
       '<div class="st-note">‘기타’는 찜·기획전·추천공간·리뷰처럼 검색결과 밖에서 온 유입입니다. ' +
-      '도달을 세는 기준이 클릭과 달라 <strong>클릭률이 성립하지 않아</strong> 비워 뒀습니다(계산하면 100%가 넘습니다).</div>' +
+      '도달을 세는 기준이 클릭과 달라 <strong>클릭률이 성립하지 않아</strong> 비워 뒀습니다(계산하면 100%가 넘습니다).' +
+      (baseRows ? ' 증감 칩은 이 구간 이전 <strong>' + baseRows.length + '일 평균</strong> 대비입니다.' : '') + '</div>' +
+      '</div>';
+
+    // ── 2.5 클릭 1건의 기대 매출 — 광고를 살지 말지의 상한선 ─────────────────
+    // 광고 집행 비용은 스클이 안 주지만, '클릭 하나가 평균 얼마를 버는가'는 지금 데이터로
+    // 나온다. 스클 광고는 CPC 과금이므로 이 값이 곧 입찰 상한선이 된다.
+    var evClick = cur.click ? cur.amount / cur.click : null;
+    html += '<div class="st-box"><div class="cap"><b>클릭 1건의 기대 매출</b> — 광고 입찰 상한선</div>' +
+      (evClick === null
+        ? '<div class="st-conv" style="margin-top:0">이 구간에 클릭이 없어 계산할 수 없어요.</div>'
+        : '<div style="font-size:19px;font-weight:600;">' + fmtWon(Math.round(evClick)) + '</div>' +
+          '<div class="st-note">순매출 ' + fmtWon(cur.amount) + ' ÷ 클릭 ' + fmtNum(cur.click) + '. ' +
+          '스클 광고 CPC가 이보다 비싸면 <strong>이 구간 성과 기준으로는 손해</strong>입니다. ' +
+          '단 ① 플랫폼 수수료를 빼기 전이고 ② 광고 클릭이 일반 클릭만큼 전환한다고 가정한 ' +
+          '<strong>상한선</strong>이며 ③ 구간(7·30·전체)을 바꾸면 다시 계산됩니다.</div>') +
       '</div>';
 
     // ── 3. 요일별 ───────────────────────────────────────────────────────────
@@ -3406,23 +3632,126 @@
     });
 
     html += '<div class="st-box"><div class="cap"><b>요일별</b></div>' +
-      '<table class="st-tbl"><thead><tr><th>요일</th><th>일수</th><th>도달</th><th>클릭</th><th>클릭률</th><th>확정</th></tr></thead><tbody>' +
+      '<table class="st-tbl"><thead><tr><th>요일</th><th>일수</th><th>도달</th><th>클릭</th><th>클릭률</th><th>확정</th><th>이용완료</th></tr></thead><tbody>' +
       buckets.map(function(b, wd){
-        if(!b.length) return '<tr><td>' + dowNames[wd] + '</td><td class="mute" colspan="5">—</td></tr>';
+        if(!b.length) return '<tr><td>' + dowNames[wd] + '</td><td class="mute" colspan="6">—</td></tr>';
         var imp = statSum(b, 'impression_total'), clk = statSum(b, 'click_total');
-        var cf = statSum(b, 'reservation_confirm_count');
+        var cf = statSum(b, 'reservation_confirm_count'), ud = statSum(b, 'reservation_usedc_count');
         var rate = pct(clk, imp);
         return '<tr><td>' + dowNames[wd] + '</td>' +
           '<td class="mute">' + b.length + '</td>' +
           '<td>' + fmtNum(imp) + '</td><td>' + fmtNum(clk) + '</td>' +
-          '<td>' + fmtPct(rate, 2) + '</td><td>' + fmtNum(cf) + '</td></tr>';
+          '<td>' + fmtPct(rate, 2) + '</td><td>' + fmtNum(cf) + '</td><td>' + fmtNum(ud) + '</td></tr>';
       }).join('') +
       '</tbody></table>' +
       '<div class="st-note">‘일수’가 그 요일의 표본입니다 — <strong>2~3일짜리 요일은 하루가 크게 흔듭니다.</strong> ' +
-      '몇 주 더 쌓인 뒤에 읽으세요.</div>' +
+      '몇 주 더 쌓인 뒤에 읽으세요. ‘확정’은 예약을 <strong>잡은 날</strong>, ‘이용완료’는 <strong>이용한 날</strong> 기준이라 ' +
+      '주말 장사 리듬은 이용완료 쪽으로 읽어야 맞습니다.</div>' +
       '</div>';
 
     document.getElementById('statConversion').innerHTML = html;
+  }
+
+  /* ── 이용 리듬 ─────────────────────────────────────────────────────────────
+     여기부터는 스클 집계가 아니라 **자체 예약 원장**(reservationsCache)이다. 스클이 구조적으로
+     못 주는 것 — 어느 요일 어느 시간이 실제로 차는지, 손님이 며칠 전에 예약하는지 — 를 본다.
+     개인정보는 집계 단계에서 버린다: 이름·연락처는 이 함수 어디에도 닿지 않는다. */
+  function renderStatUsage(rows){
+    var el = document.getElementById('statUsage');
+    var from = rows[0].stat_date, to = rows[rows.length - 1].stat_date;
+    var resv = (reservationsCache || []).filter(function(r){
+      return !r.cancelled && r.date >= from && r.date <= to && r.start && r.end;
+    });
+    if(!resv.length){
+      el.innerHTML = '<div class="st-conv">이 구간(' + from + ' ~ ' + to + ')에 자체 예약 원장 데이터가 없어요.</div>';
+      return;
+    }
+
+    // ── 요일 × 시간대 가동률 ──────────────────────────────────────────────
+    var dowNames = ['일','월','화','수','목','금','토'];
+    // 구간 안에 각 요일이 며칠 있었나 — 셀의 가동 횟수를 이걸로 나눠 가동률로 만든다.
+    var dowDays = [0,0,0,0,0,0,0];
+    rows.forEach(function(r){ dowDays[new Date(r.stat_date + 'T00:00:00Z').getUTCDay()]++; });
+
+    var slots = {};  // 'dow-hour' -> 그 요일 그 시간대가 찼던 횟수
+    var minH = 24, maxH = 0;
+    resv.forEach(function(r){
+      var wd = new Date(r.date + 'T00:00:00Z').getUTCDay();
+      var s = parseInt(r.start.slice(0, 2), 10), e = parseInt(r.end.slice(0, 2), 10);
+      if(isNaN(s) || isNaN(e)) return;
+      if(e < s) e += 24;                          // 자정 넘김(19:00~00:00) — windows.ts의 endTime과 같은 해석
+      if(parseInt(r.end.slice(3, 5), 10) > 0) e += 1;  // 14:30 종료면 14시대도 쓴 것
+      for(var h = s; h < e && h < 28; h++){
+        var key = wd + '-' + h;
+        slots[key] = (slots[key] || 0) + 1;
+      }
+      if(s < minH) minH = s;
+      if(e > maxH) maxH = e;
+    });
+
+    // 표시 범위 — 관측된 시간대 + 최소한 10~22시는 항상 보인다(빈 칸이 곧 '팔 수 있는 자리'라
+    // 데이터 있는 칸만 보여주면 이 표의 목적이 사라진다).
+    var dispMin = Math.max(0, Math.min(minH, 10)), dispMax = Math.min(28, Math.max(maxH, 22));
+
+    var hm = '<div class="st-hm" style="grid-template-columns:48px repeat(7,1fr);">';
+    hm += '<div></div>' + dowNames.map(function(d2){ return '<div class="col-lab">' + d2 + '</div>'; }).join('');
+    for(var hh = dispMin; hh < dispMax; hh++){
+      hm += '<div class="lab">' + (hh < 24 ? hh + '시' : '익일 ' + (hh - 24) + '시') + '</div>';
+      for(var wd2 = 0; wd2 < 7; wd2++){
+        var cnt = slots[wd2 + '-' + hh] || 0;
+        var denom = dowDays[wd2] || 0;
+        var rate2 = denom ? Math.min(1, cnt / denom) : 0;
+        hm += cnt
+          ? '<div class="cell" style="background:rgba(226,83,30,' + (0.10 + rate2 * 0.75).toFixed(2) + ')" title="' + dowNames[wd2] + ' ' + (hh % 24) + '시 · ' + cnt + '/' + denom + '일"></div>'
+          : '<div class="cell"' + (denom ? '' : ' style="opacity:.35"') + '></div>';
+      }
+    }
+    hm += '</div>';
+
+    // ── 예약 리드타임 — 며칠 전에 잡히나 ─────────────────────────────────
+    // 신청일(applied)은 선택 입력이라 채움률부터 확인한다 — 반쪽 표본으로 분포를 그리면
+    // '기록이 잘 되는 채널'의 습관만 보게 된다.
+    var withApplied = resv.filter(function(r){ return r.applied; });
+    var fillRate = withApplied.length / resv.length;
+    var leadHtml;
+    if(fillRate < 0.5){
+      leadHtml = '<div class="st-conv" style="margin-top:0">신청일이 기록된 예약이 ' + Math.round(fillRate * 100) + '%뿐이라 ' +
+        '리드타임을 읽기엔 부족해요. 채움률이 오르면 여기에 분포가 그려집니다.</div>';
+    } else {
+      var lb = [
+        { n: '당일', min: 0, max: 0, c: 0 },
+        { n: '1~2일 전', min: 1, max: 2, c: 0 },
+        { n: '3~6일 전', min: 3, max: 6, c: 0 },
+        { n: '1~2주 전', min: 7, max: 13, c: 0 },
+        { n: '2주 이상', min: 14, max: 9999, c: 0 }
+      ];
+      var leads = [];
+      withApplied.forEach(function(r){
+        var d3 = Math.round((new Date(r.date + 'T00:00:00Z') - new Date(String(r.applied).slice(0, 10) + 'T00:00:00Z')) / 86400000);
+        if(isNaN(d3) || d3 < 0) return;           // 이용일보다 늦은 신청일은 입력 오류다
+        leads.push(d3);
+        for(var li = 0; li < lb.length; li++){
+          if(d3 >= lb[li].min && d3 <= lb[li].max){ lb[li].c++; break; }
+        }
+      });
+      leads.sort(function(a, b){ return a - b; });
+      var med = leads.length ? leads[Math.floor(leads.length / 2)] : null;
+      var maxC = Math.max.apply(null, lb.map(function(b){ return b.c; }).concat([1]));
+      leadHtml = lb.map(function(b){
+        return '<div class="st-lead"><div>' + b.n + '</div>' +
+          '<div class="bar"><i style="width:' + ((b.c / maxC) * 100).toFixed(1) + '%"></i></div>' +
+          '<div>' + b.c + '건</div></div>';
+      }).join('') +
+      '<div class="st-note">중앙값 <strong>' + (med === null ? '—' : med === 0 ? '당일' : med + '일 전') + '</strong> · ' +
+      '표본 ' + leads.length + '건(신청일 있는 예약만). 특정 날짜를 채우려는 광고·쿠폰은 ' +
+      '<strong>이만큼 앞서</strong> 켜야 늦지 않습니다.</div>';
+    }
+
+    el.innerHTML =
+      '<div class="st-box"><div class="cap"><b>요일 × 시간대 가동률</b> — 자체 예약 원장 기준</div>' + hm +
+      '<div class="st-note">취소 제외 · <strong>이용일</strong> 기준 · 진할수록 그 요일의 그 시간이 자주 찼습니다. ' +
+      '비어 있는 칸이 오프피크 상품·할인을 걸 자리입니다.</div></div>' +
+      '<div class="st-box"><div class="cap"><b>예약 리드타임</b> — 손님은 며칠 전에 잡나</div>' + leadHtml + '</div>';
   }
 
   document.querySelectorAll('.st-range button').forEach(function(btn){
