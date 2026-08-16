@@ -359,26 +359,6 @@
   .st-kw-row .b{grid-column:1/-1;height:6px;background:var(--hair);border-radius:3px;overflow:hidden;margin-top:-4px;}
   .st-kw-row .b i{display:block;height:100%;background:var(--orange);border-radius:3px;}
 
-  /* Raw 표 — 컬럼이 35개라 절대 화면에 안 들어간다. 자기 안에서만 가로로 구른다
-     (페이지 본문이 가로로 밀리면 다른 화면까지 망가진다). */
-  .st-rawwrap{border:1px solid var(--hair);border-radius:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  /* 키워드는 하루 최대 5행이라 금방 길어진다(24일 = 89행). 세로도 자기 안에서 구른다. */
-  .st-rawtall{max-height:420px;overflow-y:auto;}
-  table.st-raw td.kw{text-align:left;white-space:nowrap;}
-  table.st-raw{border-collapse:collapse;font-size:12px;white-space:nowrap;}
-  table.st-raw th, table.st-raw td{padding:7px 10px;border-bottom:1px solid var(--hair);text-align:right;}
-  table.st-raw thead th{
-    position:sticky;top:0;background:var(--white);z-index:2;
-    font-weight:600;font-size:10px;letter-spacing:.04em;color:#6b665c;text-transform:uppercase;
-  }
-  table.st-raw thead th.grp{color:var(--orange);border-bottom:1px solid var(--hair);text-align:center;}
-  table.st-raw th.d, table.st-raw td.d{
-    position:sticky;left:0;background:var(--white);z-index:1;text-align:left;font-weight:600;
-    border-right:1px solid var(--hair);
-  }
-  table.st-raw thead th.d{z-index:3;}
-  table.st-raw tbody tr:last-child td{border-bottom:0;}
-  table.st-raw td.zero{color:#c9c4ba;}
 </style>
 </head>
 <body>
@@ -519,13 +499,8 @@
       <h2>유입 키워드</h2>
       <div class="st-kw" id="statKeywords"></div>
 
-      <h2>Raw 데이터 — 일별 지표</h2>
-      <div class="st-rawwrap"><table class="st-raw" id="statRaw"></table></div>
-      <button type="button" class="add-btn" onclick="copyStatsCsv()">CSV로 복사</button>
-
-      <h2>Raw 데이터 — 유입 키워드</h2>
-      <div class="st-rawwrap st-rawtall"><table class="st-raw" id="statRawKw"></table></div>
-      <button type="button" class="add-btn" onclick="copyKeywordsCsv()">키워드 CSV로 복사</button>
+      <h2>Raw 데이터</h2>
+      <a class="add-btn" href="stats-raw.html" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">Raw 데이터 전체화면으로 보기 →</a>
 
       <button type="button" class="add-btn" onclick="refreshStats()">새로고침</button>
 
@@ -2938,7 +2913,7 @@
     }).catch(function(err){
       /* 빈 화면에 0을 뿌리지 않는다. 조회가 실패했는데 '도달 0'이 뜨면 장사가 안 된 걸로
          읽힌다 — 신청 목록에서와 같은 실패 모드다. */
-      ['statFunnel','statKpis','statConversion','statCharts','statKeywords','statRaw','statRawKw'].forEach(function(id){
+      ['statFunnel','statKpis','statConversion','statCharts','statKeywords'].forEach(function(id){
         document.getElementById(id).innerHTML = '';
       });
       document.getElementById('statAsOf').textContent = '';
@@ -2989,8 +2964,6 @@
       document.getElementById('statConversion').innerHTML = '';
       document.getElementById('statCharts').innerHTML = '';
       document.getElementById('statKeywords').innerHTML = '';
-      document.getElementById('statRaw').innerHTML = '';
-      document.getElementById('statRawKw').innerHTML = '';
       statNotice('아직 쌓인 지표가 없어요. automation/run-stats-sync.mjs 를 한 번 돌리면 채워집니다.');
       return;
     }
@@ -3004,8 +2977,6 @@
     renderStatConversion(rows);
     renderStatCharts(rows);
     renderStatKeywords(rows);
-    renderStatRaw(rows);
-    renderStatRawKw(rows);
   }
 
   /** 도달 -> 클릭 -> 확정 -> 이용완료. 막대는 도달 기준 비율이라 뒤로 갈수록 짧아진다. */
@@ -3196,92 +3167,6 @@
     '한산한 날이 과대평가됩니다. 매일 상위 5개만 오므로 그 아래는 애초에 잡히지 않습니다.</div>';
   }
 
-  /* Raw 표 컬럼. 순서와 이름이 CSV와 공유된다 — 한 군데만 고치면 둘 다 바뀐다. */
-  var STAT_COLS = [
-    { g: '지표', c: [
-      ['usedc_guest_count', '게스트'],
-      ['reservation_confirm_count', '확정'],
-      ['reservation_amount', '확정액'],
-      ['reservation_usedc_count', '이용완료'],
-      ['reservation_total_count', '전체예약'],
-      ['reservation_cancel_count', '취소'],
-      ['reservation_guest_cancel_count', '취소(게)'],
-      ['reservation_host_cancel_count', '취소(호)'],
-      ['reservation_approve_count', '승인'],
-      ['re_reservation_count', '재예약*']
-    ]},
-    { g: '도달', c: [
-      ['impression_total', '전체'],
-      ['impression_normal', '일반'],
-      ['impression_ad', '광고'],
-      ['impression_etc', '기타']
-    ]},
-    { g: '클릭', c: [
-      ['click_total', '전체'],
-      ['click_normal', '일반'],
-      ['click_ad', '광고'],
-      ['click_etc', '기타']
-    ]},
-    { g: '예약(총액)', c: [
-      ['rsv_confirm_count', '확정'],
-      ['rsv_usedc_count', '이용'],
-      ['rsv_cancel_count', '취소'],
-      ['rsv_confirm_amount', '확정액'],
-      ['rsv_usedc_amount', '이용액'],
-      ['rsv_cancel_amount', '취소액']
-    ]},
-    { g: '반응', c: [
-      ['qa_count', 'QnA'],
-      ['qa_answer_complete_count', 'QnA답변'],
-      ['review_count', '후기'],
-      ['review_answer_complete_count', '후기답변'],
-      ['review_score_sum', '평점합'],
-      ['zzim_count', '찜']
-    ]},
-    { g: '전화', c: [
-      ['call_total', '전체'],
-      ['call_success', '성공'],
-      ['call_fail', '실패']
-    ]}
-  ];
-
-  function statFlatCols(){
-    return STAT_COLS.reduce(function(a, g){
-      return a.concat(g.c.map(function(c){ return { key: c[0], label: g.g + ' ' + c[1] }; }));
-    }, []);
-  }
-
-  function renderStatRaw(rows){
-    var groupRow = '<tr><th class="d grp" rowspan="2">날짜</th>' +
-      STAT_COLS.map(function(g){ return '<th class="grp" colspan="' + g.c.length + '">' + esc(g.g) + '</th>'; }).join('') +
-      '</tr>';
-    var headRow = '<tr>' + STAT_COLS.map(function(g){
-      return g.c.map(function(c){ return '<th>' + esc(c[1]) + '</th>'; }).join('');
-    }).join('') + '</tr>';
-
-    var flat = statFlatCols();
-
-    // 최신이 위. '오늘 기준 어떤가'로 읽는 표라 위에서부터 최근이어야 한다.
-    var body = rows.slice().reverse().map(function(r){
-      return '<tr><td class="d">' + esc(r.stat_date) + '</td>' +
-        flat.map(function(c){
-          var v = Number(r[c.key] || 0);
-          return '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmtNum(v) : '·') + '</td>';
-        }).join('') + '</tr>';
-    }).join('');
-
-    /* 합계행 — 단, 재예약은 비운다. 여기만 더하면 안 되는 값이라(구간에 의존) 숫자를 넣으면
-       그럴듯해 보여서 더 위험하다. */
-    var foot = '<tr><td class="d">합계</td>' + flat.map(function(c){
-      if(c.key === 're_reservation_count') return '<td class="zero">—</td>';
-      return '<td>' + fmtNum(statSum(rows, c.key)) + '</td>';
-    }).join('') + '</tr>';
-
-    document.getElementById('statRaw').innerHTML =
-      '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
-      '<tfoot style="font-weight:600">' + foot + '</tfoot>';
-  }
-
   /* ── 전환 분석 ─────────────────────────────────────────────────────────────
      퍼널이 '이번 구간이 어땠나'를 보여준다면, 여기는 **어디서 새는지**를 본다. */
 
@@ -3408,82 +3293,6 @@
       '</div>';
 
     document.getElementById('statConversion').innerHTML = html;
-  }
-
-  /** 구간 안의 키워드 원본 행. 최신 날짜가 위, 같은 날은 순위대로. */
-  function statKwRows(rows){
-    if(!statsKwCache || !rows.length) return [];
-    var from = rows[0].stat_date, to = rows[rows.length - 1].stat_date;
-    return statsKwCache.filter(function(k){
-      return k.stat_date >= from && k.stat_date <= to;
-    }).slice().sort(function(a, b){
-      if(a.stat_date !== b.stat_date) return a.stat_date < b.stat_date ? 1 : -1;
-      return Number(a.rank) - Number(b.rank);
-    });
-  }
-
-  /* 가공 없이 저장된 그대로 보여준다. 위의 '유입 키워드' 블록은 클릭수로 가중한 근사라,
-     원본이 무엇이었는지 대조할 자리가 하나는 있어야 한다. */
-  function renderStatRawKw(rows){
-    var kws = statKwRows(rows);
-    var el = document.getElementById('statRawKw');
-
-    if(!kws.length){
-      el.innerHTML = '<tbody><tr><td class="d">—</td><td>이 구간에 키워드가 없어요</td></tr></tbody>';
-      return;
-    }
-
-    var head = '<thead><tr><th class="d">날짜</th><th>순위</th><th style="text-align:left">키워드</th><th>비율</th></tr></thead>';
-    var body = kws.map(function(k){
-      return '<tr>' +
-        '<td class="d">' + esc(k.stat_date) + '</td>' +
-        '<td>' + esc(k.rank) + '</td>' +
-        '<td class="kw">' + esc(k.keyword) + '</td>' +
-        '<td>' + esc(k.share_pct) + '%</td>' +
-        '</tr>';
-    }).join('');
-
-    el.innerHTML = head + '<tbody>' + body + '</tbody>';
-  }
-
-  function copyKeywordsCsv(){
-    var kws = statKwRows(statRows());
-    if(!kws.length){ statNotice('복사할 키워드가 없어요.'); return; }
-
-    /* 검색어에 쉼표가 들어올 수 있다("합정, 회의실" 같은 입력). 큰따옴표로 감싸고 내부
-       따옴표는 두 번 써서 이스케이프한다 — 안 하면 열이 밀려 CSV가 통째로 어긋난다. */
-    var q = function(s){ return '"' + String(s).replace(/"/g, '""') + '"'; };
-    var lines = ['날짜,순위,키워드,비율(%)'];
-    kws.forEach(function(k){
-      lines.push([k.stat_date, k.rank, q(k.keyword), k.share_pct].join(','));
-    });
-    copyText(lines.join('\n'), kws.length + '행을 클립보드에 복사했어요 (키워드 CSV).');
-  }
-
-  /* navigator.clipboard는 https(또는 localhost)에서만 산다. 현장에서 IP로 열어보는 일이
-     있어서, 막히면 조용히 넘어가지 말고 사실대로 알린다. */
-  function copyText(text, okMsg){
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(function(){
-        statNotice(okMsg);
-      }).catch(function(){
-        statNotice('복사가 막혔어요. 표를 직접 끌어서 복사해 주세요.', true);
-      });
-    } else {
-      statNotice('이 브라우저에서는 자동 복사가 안 돼요. 표를 직접 끌어서 복사해 주세요.', true);
-    }
-  }
-
-  function copyStatsCsv(){
-    var rows = statRows();
-    if(!rows.length){ statNotice('복사할 데이터가 없어요.'); return; }
-
-    var flat = statFlatCols();
-    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).join(',')];
-    rows.forEach(function(r){
-      lines.push([r.stat_date].concat(flat.map(function(c){ return Number(r[c.key] || 0); })).join(','));
-    });
-    copyText(lines.join('\n'), rows.length + '일치를 클립보드에 복사했어요 (CSV).');
   }
 
   document.querySelectorAll('.st-range button').forEach(function(btn){

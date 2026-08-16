@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TYPE LOUNGE — 운영지표 Raw 데이터</title>
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<!-- 버전+무결성 해시 고정 이유는 admin.html 머리말 주석 참조. 업그레이드할 땐 admin.html과 같이 맞춘다. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3"
+        integrity="sha384-l8ah+VgaWtk1mvOe9VC+OirC6qHFF4yH7l7mKRidV9MSti3E9F463bMp6ZVN4kuC"
+        crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#16130F;
+    --white:#ffffff;
+    --orange:#E2531E;
+    --hair: rgba(22,19,15,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  button:active{opacity:.7;}
+  input:focus-visible, button:focus-visible, a:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  html, body{overflow-x:hidden;}
+  body{
+    font-family:'Paperlogy', sans-serif;
+    background:var(--white);
+    color:var(--ink);
+    line-height:1.6;
+  }
+
+  /* Gate — admin.html과 동일한 게이트. sessionStorage 키를 공유해서, admin.html에서
+     이미 열어본 탭에서 넘어오면 다시 묻지 않는다(같은 탭 내비게이션에 한해서다 —
+     새 탭으로 열면 sessionStorage가 안 따라와 다시 입력해야 한다). */
+  #gate{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:20px;padding:24px;text-align:center;
+  }
+  #gate .wordmark{font-weight:600;font-size:32px;letter-spacing:-.02em;}
+  .eIcon{display:inline-block;height:.70em;width:.56em;vertical-align:baseline;margin-left:.08em;}
+  #gate input{
+    font-family:inherit;font-size:16px;text-align:center;letter-spacing:.1em;
+    border:1px solid var(--ink);border-radius:8px;padding:14px 16px;width:200px;min-height:48px;
+  }
+  #gate button{
+    font-family:inherit;font-weight:600;font-size:15px;
+    background:var(--ink);color:var(--white);border:0;border-radius:8px;
+    padding:14px 24px;cursor:pointer;min-height:48px;
+  }
+  #gate .error{color:var(--orange);font-size:13px;height:16px;}
+
+  /* App shell — 사이드바 없이 화면 전체 폭을 쓴다(admin.html의 640px 본문 폭 제약을 없앤 것이 이 페이지의 요점이다). */
+  #app{display:none;padding:24px clamp(16px,4vw,48px) 80px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;flex-wrap:wrap;}
+  .topbar-left{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .back-link{
+    font-family:inherit;font-size:13px;color:#6b665c;text-decoration:none;
+    border:1px solid var(--hair);border-radius:8px;padding:10px 14px;min-height:44px;
+    display:inline-flex;align-items:center;
+  }
+  .page-title{font-weight:600;font-size:20px;letter-spacing:-.02em;}
+  .logout-btn{
+    font-family:inherit;font-size:13px;color:#6b665c;background:none;border:1px solid var(--hair);
+    border-radius:8px;padding:12px 14px;cursor:pointer;min-height:44px;
+  }
+
+  h2{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:32px 0 14px;}
+  h2:first-of-type{margin-top:0;}
+
+  .ctl-notice{border:1px solid var(--hair);border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px;color:#6b665c;line-height:1.6;}
+
+  .st-range{display:flex;gap:8px;margin-bottom:14px;max-width:360px;}
+  .st-range button{
+    font-family:inherit;font-weight:600;font-size:13px;flex:1;min-height:44px;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;cursor:pointer;
+  }
+  .st-range button.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .st-asof{font-size:12px;color:#8a8478;margin-bottom:14px;}
+
+  .add-btn{
+    font-family:inherit;font-weight:600;font-size:14px;
+    background:var(--white);color:var(--ink);border:1px solid var(--hair);border-radius:8px;
+    padding:14px;cursor:pointer;min-height:48px;margin-top:14px;
+  }
+
+  .warn{
+    margin-top:32px;padding:12px 14px;border:1px solid var(--hair);border-radius:8px;
+    font-size:12px;color:#6b665c;max-width:760px;
+  }
+
+  /* Raw 표 — 컬럼이 35개라 절대 화면에 안 들어간다. 자기 안에서만 가로로 구른다
+     (페이지 본문이 가로로 밀리면 다른 화면까지 망가진다). 화면 폭을 넓게 쓰는 이유가
+     바로 이 표다 — 640px 안에 있을 때보다 훨씬 많은 열이 스크롤 없이 보인다. */
+  .st-rawwrap{border:1px solid var(--hair);border-radius:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* 키워드는 하루 최대 5행이라 금방 길어진다(24일 = 89행). 세로도 자기 안에서 구른다. */
+  .st-rawtall{max-height:60vh;overflow-y:auto;}
+  table.st-raw td.kw{text-align:left;white-space:nowrap;}
+  table.st-raw{border-collapse:collapse;font-size:12px;white-space:nowrap;}
+  table.st-raw th, table.st-raw td{padding:7px 10px;border-bottom:1px solid var(--hair);text-align:right;}
+  table.st-raw thead th{
+    position:sticky;top:0;background:var(--white);z-index:2;
+    font-weight:600;font-size:10px;letter-spacing:.04em;color:#6b665c;text-transform:uppercase;
+  }
+  table.st-raw thead th.grp{color:var(--orange);border-bottom:1px solid var(--hair);text-align:center;}
+  table.st-raw th.d, table.st-raw td.d{
+    position:sticky;left:0;background:var(--white);z-index:1;text-align:left;font-weight:600;
+    border-right:1px solid var(--hair);
+  }
+  table.st-raw thead th.d{z-index:3;}
+  table.st-raw tbody tr:last-child td{border-bottom:0;}
+  table.st-raw td.zero{color:#c9c4ba;}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
+  <div>
+    <input type="password" id="pw" placeholder="비밀번호" maxlength="64">
+  </div>
+  <button onclick="tryUnlock()">입장</button>
+  <div class="error" id="pwError"></div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a class="back-link" href="admin.html">← 어드민</a>
+      <div class="page-title">운영지표 — Raw 데이터</div>
+    </div>
+    <button type="button" class="logout-btn" onclick="lock()">로그아웃</button>
+  </div>
+
+  <div id="statNotice" class="ctl-notice" style="display:none;"></div>
+
+  <div class="st-range">
+    <button type="button" data-days="7">최근 7일</button>
+    <button type="button" data-days="30" class="on">최근 30일</button>
+    <button type="button" data-days="0">전체</button>
+  </div>
+  <div class="st-asof" id="statAsOf"></div>
+
+  <h2>일별 지표</h2>
+  <div class="st-rawwrap"><table class="st-raw" id="statRaw"></table></div>
+  <button type="button" class="add-btn" onclick="copyStatsCsv()">CSV로 복사</button>
+
+  <h2>유입 키워드</h2>
+  <div class="st-rawwrap st-rawtall"><table class="st-raw" id="statRawKw"></table></div>
+  <button type="button" class="add-btn" onclick="copyKeywordsCsv()">키워드 CSV로 복사</button>
+
+  <button type="button" class="add-btn" onclick="refreshStats()">새로고침</button>
+
+  <div class="warn">
+    스페이스클라우드 파트너 통계를 하루 단위로 받아 쌓은 원장입니다. 수집은 자동이 아니라
+    <strong>사람이 돌립니다</strong> — 파트너 토큰이 24시간이면 죽고 네이버 재로그인이
+    유일한 갱신 수단이라서요(<code>automation/run-stats-sync.mjs</code>).
+    <br><br>
+    <strong>스클 집계는 D-1이 원칙이고 하루 더 늦어지는 날도 있습니다.</strong> 그래서 맨 끝
+    하루이틀이 비어 보이는 건 정상이고, 다음 수집 때 채워집니다.
+    <br><br>
+    읽을 때 주의할 것 셋 —
+    <strong>① 확정 매출은 취소분을 뺀 순액</strong>입니다(아래 표의 <em>확정액</em>).
+    총액은 <em>확정액(총)</em>이고 둘의 차이가 취소분인데, 확정된 날과 취소된 날이 달라서
+    <strong>하루 단위로는 순액을 계산할 수 없습니다</strong> — 기간 합으로만 맞습니다.
+    <strong>② 재예약률은 기간을 정해야 나오는 값</strong>이라 일별을 더하면 틀립니다 —
+    그래서 합계행을 비워 뒀습니다.
+    <strong>③ 유입 키워드는 건수가 아니라 비율</strong>이고 매일 상위 5개에서 잘립니다.
+  </div>
+</div>
+
+<script>
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var UNLOCK_KEY = "typelounge_admin_password";
+  var currentPassword = '';
+
+  var statsCache = null;       // sc_daily_stats 전체
+  var statsKwCache = null;     // sc_daily_keywords 전체
+  var statsDays = 30;          // 0 = 전체
+
+  function isAuthError(err){
+    var msg = (err && (err.message || err.error_description)) || '';
+    return msg.indexOf('invalid password') !== -1;
+  }
+  function isThrottleError(err){
+    var msg = (err && (err.message || err.error_description)) || '';
+    return msg.indexOf('too many attempts') !== -1;
+  }
+
+  function statNotice(msg, isError){
+    var el = document.getElementById('statNotice');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+    el.style.color = isError ? 'var(--orange)' : '#6b665c';
+  }
+
+  function fetchScDaily(password){
+    return sb.rpc('admin_list_sc_daily', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+  function fetchScKeywords(password){
+    return sb.rpc('admin_list_sc_keywords', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
+
+  function tryUnlock(){
+    var val = document.getElementById('pw').value;
+    document.getElementById('pwError').textContent = '확인 중...';
+    fetchScDaily(val).then(function(rows){
+      currentPassword = val;
+      statsCache = rows;
+      sessionStorage.setItem(UNLOCK_KEY, val);
+      document.getElementById('pwError').textContent = '';
+      showApp();
+      return fetchScKeywords(val).catch(function(){ return null; }).then(function(kw){
+        if(kw !== null) statsKwCache = kw;
+        renderRaw();
+      });
+    }).catch(function(err){
+      document.getElementById('pwError').textContent =
+        isThrottleError(err) ? '비밀번호 시도가 너무 많아요. 10분 뒤에 다시 시도해 주세요.'
+        : isAuthError(err)   ? '비밀번호가 맞지 않아요.'
+                             : '연결에 실패했어요. 잠시 후 다시 시도해 주세요.';
+    });
+  }
+  function lock(){
+    sessionStorage.removeItem(UNLOCK_KEY);
+    currentPassword = '';
+    statsCache = null;
+    statsKwCache = null;
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('pw').value = '';
+  }
+  function showApp(){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+
+  function refreshStats(){
+    return Promise.all([
+      fetchScDaily(currentPassword),
+      fetchScKeywords(currentPassword).catch(function(){ return null; })
+    ]).then(function(r){
+      statsCache = r[0];
+      if(r[1] !== null) statsKwCache = r[1];
+      statNotice('');
+      renderRaw();
+    }).catch(function(err){
+      document.getElementById('statRaw').innerHTML = '';
+      document.getElementById('statRawKw').innerHTML = '';
+      document.getElementById('statAsOf').textContent = '';
+      statNotice('운영지표를 불러오지 못했어요: ' + (err && err.message ? err.message : err), true);
+    });
+  }
+
+  /** 화면에 보이는 구간. statsDays가 0이면 전체. */
+  function statRows(){
+    if(!statsCache || !statsCache.length) return [];
+    if(!statsDays) return statsCache.slice();
+    return statsCache.slice(-statsDays);
+  }
+
+  function statSum(rows, key){
+    return rows.reduce(function(a, r){ return a + Number(r[key] || 0); }, 0);
+  }
+
+  function fmtNum(n){ return Number(n || 0).toLocaleString('ko-KR'); }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c];
+    });
+  }
+
+  /* Raw 표 컬럼. 순서와 이름이 CSV와 공유된다 — 한 군데만 고치면 둘 다 바뀐다. */
+  var STAT_COLS = [
+    { g: '지표', c: [
+      ['usedc_guest_count', '게스트'],
+      ['reservation_confirm_count', '확정'],
+      ['reservation_amount', '확정액'],
+      ['reservation_usedc_count', '이용완료'],
+      ['reservation_total_count', '전체예약'],
+      ['reservation_cancel_count', '취소'],
+      ['reservation_guest_cancel_count', '취소(게)'],
+      ['reservation_host_cancel_count', '취소(호)'],
+      ['reservation_approve_count', '승인'],
+      ['re_reservation_count', '재예약*']
+    ]},
+    { g: '도달', c: [
+      ['impression_total', '전체'],
+      ['impression_normal', '일반'],
+      ['impression_ad', '광고'],
+      ['impression_etc', '기타']
+    ]},
+    { g: '클릭', c: [
+      ['click_total', '전체'],
+      ['click_normal', '일반'],
+      ['click_ad', '광고'],
+      ['click_etc', '기타']
+    ]},
+    { g: '예약(총액)', c: [
+      ['rsv_confirm_count', '확정'],
+      ['rsv_usedc_count', '이용'],
+      ['rsv_cancel_count', '취소'],
+      ['rsv_confirm_amount', '확정액'],
+      ['rsv_usedc_amount', '이용액'],
+      ['rsv_cancel_amount', '취소액']
+    ]},
+    { g: '반응', c: [
+      ['qa_count', 'QnA'],
+      ['qa_answer_complete_count', 'QnA답변'],
+      ['review_count', '후기'],
+      ['review_answer_complete_count', '후기답변'],
+      ['review_score_sum', '평점합'],
+      ['zzim_count', '찜']
+    ]},
+    { g: '전화', c: [
+      ['call_total', '전체'],
+      ['call_success', '성공'],
+      ['call_fail', '실패']
+    ]}
+  ];
+
+  function statFlatCols(){
+    return STAT_COLS.reduce(function(a, g){
+      return a.concat(g.c.map(function(c){ return { key: c[0], label: g.g + ' ' + c[1] }; }));
+    }, []);
+  }
+
+  function renderStatRaw(rows){
+    var groupRow = '<tr><th class="d grp" rowspan="2">날짜</th>' +
+      STAT_COLS.map(function(g){ return '<th class="grp" colspan="' + g.c.length + '">' + esc(g.g) + '</th>'; }).join('') +
+      '</tr>';
+    var headRow = '<tr>' + STAT_COLS.map(function(g){
+      return g.c.map(function(c){ return '<th>' + esc(c[1]) + '</th>'; }).join('');
+    }).join('') + '</tr>';
+
+    var flat = statFlatCols();
+
+    // 최신이 위. '오늘 기준 어떤가'로 읽는 표라 위에서부터 최근이어야 한다.
+    var body = rows.slice().reverse().map(function(r){
+      return '<tr><td class="d">' + esc(r.stat_date) + '</td>' +
+        flat.map(function(c){
+          var v = Number(r[c.key] || 0);
+          return '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmtNum(v) : '·') + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+
+    /* 합계행 — 단, 재예약은 비운다. 여기만 더하면 안 되는 값이라(구간에 의존) 숫자를 넣으면
+       그럴듯해 보여서 더 위험하다. */
+    var foot = '<tr><td class="d">합계</td>' + flat.map(function(c){
+      if(c.key === 're_reservation_count') return '<td class="zero">—</td>';
+      return '<td>' + fmtNum(statSum(rows, c.key)) + '</td>';
+    }).join('') + '</tr>';
+
+    document.getElementById('statRaw').innerHTML =
+      '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
+      '<tfoot style="font-weight:600">' + foot + '</tfoot>';
+  }
+
+  /** 구간 안의 키워드 원본 행. 최신 날짜가 위, 같은 날은 순위대로. */
+  function statKwRows(rows){
+    if(!statsKwCache || !rows.length) return [];
+    var from = rows[0].stat_date, to = rows[rows.length - 1].stat_date;
+    return statsKwCache.filter(function(k){
+      return k.stat_date >= from && k.stat_date <= to;
+    }).slice().sort(function(a, b){
+      if(a.stat_date !== b.stat_date) return a.stat_date < b.stat_date ? 1 : -1;
+      return Number(a.rank) - Number(b.rank);
+    });
+  }
+
+  function renderStatRawKw(rows){
+    var kws = statKwRows(rows);
+    var el = document.getElementById('statRawKw');
+
+    if(!kws.length){
+      el.innerHTML = '<tbody><tr><td class="d">—</td><td>이 구간에 키워드가 없어요</td></tr></tbody>';
+      return;
+    }
+
+    var head = '<thead><tr><th class="d">날짜</th><th>순위</th><th style="text-align:left">키워드</th><th>비율</th></tr></thead>';
+    var body = kws.map(function(k){
+      return '<tr>' +
+        '<td class="d">' + esc(k.stat_date) + '</td>' +
+        '<td>' + esc(k.rank) + '</td>' +
+        '<td class="kw">' + esc(k.keyword) + '</td>' +
+        '<td>' + esc(k.share_pct) + '%</td>' +
+        '</tr>';
+    }).join('');
+
+    el.innerHTML = head + '<tbody>' + body + '</tbody>';
+  }
+
+  function renderRaw(){
+    var rows = statRows();
+
+    if(!rows.length){
+      document.getElementById('statAsOf').textContent = '';
+      document.getElementById('statRaw').innerHTML = '';
+      document.getElementById('statRawKw').innerHTML = '';
+      statNotice('아직 쌓인 지표가 없어요. automation/run-stats-sync.mjs 를 한 번 돌리면 채워집니다.');
+      return;
+    }
+
+    var first = rows[0].stat_date, last = rows[rows.length - 1].stat_date;
+    document.getElementById('statAsOf').textContent =
+      first + ' ~ ' + last + ' · ' + rows.length + '일치';
+
+    renderStatRaw(rows);
+    renderStatRawKw(rows);
+  }
+
+  /* navigator.clipboard는 https(또는 localhost)에서만 산다. 현장에서 IP로 열어보는 일이
+     있어서, 막히면 조용히 넘어가지 말고 사실대로 알린다. */
+  function copyText(text, okMsg){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        statNotice(okMsg);
+      }).catch(function(){
+        statNotice('복사가 막혔어요. 표를 직접 끌어서 복사해 주세요.', true);
+      });
+    } else {
+      statNotice('이 브라우저에서는 자동 복사가 안 돼요. 표를 직접 끌어서 복사해 주세요.', true);
+    }
+  }
+
+  function copyStatsCsv(){
+    var rows = statRows();
+    if(!rows.length){ statNotice('복사할 데이터가 없어요.'); return; }
+
+    var flat = statFlatCols();
+    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).join(',')];
+    rows.forEach(function(r){
+      lines.push([r.stat_date].concat(flat.map(function(c){ return Number(r[c.key] || 0); })).join(','));
+    });
+    copyText(lines.join('\n'), rows.length + '일치를 클립보드에 복사했어요 (CSV).');
+  }
+
+  function copyKeywordsCsv(){
+    var kws = statKwRows(statRows());
+    if(!kws.length){ statNotice('복사할 키워드가 없어요.'); return; }
+
+    /* 검색어에 쉼표가 들어올 수 있다("합정, 회의실" 같은 입력). 큰따옴표로 감싸고 내부
+       따옴표는 두 번 써서 이스케이프한다 — 안 하면 열이 밀려 CSV가 통째로 어긋난다. */
+    var q = function(s){ return '"' + String(s).replace(/"/g, '""') + '"'; };
+    var lines = ['날짜,순위,키워드,비율(%)'];
+    kws.forEach(function(k){
+      lines.push([k.stat_date, k.rank, q(k.keyword), k.share_pct].join(','));
+    });
+    copyText(lines.join('\n'), kws.length + '행을 클립보드에 복사했어요 (키워드 CSV).');
+  }
+
+  document.querySelectorAll('.st-range button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      statsDays = Number(btn.dataset.days);
+      document.querySelectorAll('.st-range button').forEach(function(b){ b.classList.toggle('on', b === btn); });
+      renderRaw();
+    });
+  });
+
+  (function(){
+    var savedPw = sessionStorage.getItem(UNLOCK_KEY);
+    if(savedPw){
+      fetchScDaily(savedPw).then(function(rows){
+        currentPassword = savedPw;
+        statsCache = rows;
+        showApp();
+        return fetchScKeywords(savedPw).catch(function(){ return null; }).then(function(kw){
+          if(kw !== null) statsKwCache = kw;
+          renderRaw();
+        });
+      }).catch(function(err){
+        // 비밀번호가 틀렸을 때만 저장 세션을 버린다 — admin.html과 같은 이유다.
+        if(isAuthError(err)) sessionStorage.removeItem(UNLOCK_KEY);
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
