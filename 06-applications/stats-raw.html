@@ -108,6 +108,20 @@
   table.st-raw thead th.d{z-index:3;}
   table.st-raw tbody tr:last-child td{border-bottom:0;}
   table.st-raw td.zero{color:#c9c4ba;}
+  /* 메모 — 오른쪽에 고정한다(날짜가 왼쪽에 고정된 것과 같은 이유: 35개 컬럼을 옆으로 넘기다 어느 위치에 있든
+     날짜와 메모 둘 다 놓치지 않아야 한다). */
+  table.st-raw th.n, table.st-raw td.n{
+    position:sticky;right:0;background:var(--white);z-index:1;text-align:left;
+    border-left:1px solid var(--hair);
+  }
+  table.st-raw thead th.n{z-index:3;}
+  .note-input{
+    font-family:inherit;font-size:12px;width:160px;color:var(--ink);
+    background:transparent;border:1px solid transparent;border-radius:4px;padding:4px 6px;
+  }
+  .note-input:hover{border-color:var(--hair);}
+  .note-input:focus{border-color:var(--ink);outline:none;}
+  .note-input.note-err{border-color:var(--orange);}
 </style>
 </head>
 <body>
@@ -164,6 +178,10 @@
     <strong>② 재예약률은 기간을 정해야 나오는 값</strong>이라 일별을 더하면 틀립니다 —
     그래서 합계행을 비워 뒀습니다.
     <strong>③ 유입 키워드는 건수가 아니라 비율</strong>이고 매일 상위 5개에서 잘립니다.
+    <br><br>
+    <strong>맨 오른쪽 메모 칸은 자동 수집과 무관합니다</strong> — 가격 변경·쿠폰 발행·광고
+    집행처럼 숫자만으론 안 보이는 사정을 직접 남기는 자리입니다. 재수집이 몇 번을 돌아도
+    지워지지 않습니다.
   </div>
 </div>
 
@@ -177,6 +195,7 @@
 
   var statsCache = null;       // sc_daily_stats 전체
   var statsKwCache = null;     // sc_daily_keywords 전체
+  var statsNotesCache = null;  // sc_daily_notes 전체 (날짜별 수기 메모)
   var statsDays = 30;          // 0 = 전체
 
   function isAuthError(err){
@@ -207,6 +226,12 @@
       return res.data || [];
     });
   }
+  function fetchScDailyNotes(password){
+    return sb.rpc('admin_list_sc_daily_notes', { p_password: password }).then(function(res){
+      if(res.error) throw res.error;
+      return res.data || [];
+    });
+  }
 
   function tryUnlock(){
     var val = document.getElementById('pw').value;
@@ -217,8 +242,12 @@
       sessionStorage.setItem(UNLOCK_KEY, val);
       document.getElementById('pwError').textContent = '';
       showApp();
-      return fetchScKeywords(val).catch(function(){ return null; }).then(function(kw){
-        if(kw !== null) statsKwCache = kw;
+      return Promise.all([
+        fetchScKeywords(val).catch(function(){ return null; }),
+        fetchScDailyNotes(val).catch(function(){ return null; })
+      ]).then(function(r){
+        if(r[0] !== null) statsKwCache = r[0];
+        if(r[1] !== null) statsNotesCache = r[1];
         renderRaw();
       });
     }).catch(function(err){
@@ -233,6 +262,7 @@
     currentPassword = '';
     statsCache = null;
     statsKwCache = null;
+    statsNotesCache = null;
     document.getElementById('app').style.display = 'none';
     document.getElementById('gate').style.display = 'flex';
     document.getElementById('pw').value = '';
@@ -245,10 +275,12 @@
   function refreshStats(){
     return Promise.all([
       fetchScDaily(currentPassword),
-      fetchScKeywords(currentPassword).catch(function(){ return null; })
+      fetchScKeywords(currentPassword).catch(function(){ return null; }),
+      fetchScDailyNotes(currentPassword).catch(function(){ return null; })
     ]).then(function(r){
       statsCache = r[0];
       if(r[1] !== null) statsKwCache = r[1];
+      if(r[2] !== null) statsNotesCache = r[2];
       statNotice('');
       renderRaw();
     }).catch(function(err){
@@ -333,8 +365,12 @@
   }
 
   function renderStatRaw(rows){
+    var notesByDate = {};
+    (statsNotesCache || []).forEach(function(n){ notesByDate[n.stat_date] = n.note; });
+
     var groupRow = '<tr><th class="d grp" rowspan="2">날짜</th>' +
       STAT_COLS.map(function(g){ return '<th class="grp" colspan="' + g.c.length + '">' + esc(g.g) + '</th>'; }).join('') +
+      '<th class="n grp" rowspan="2">메모</th>' +
       '</tr>';
     var headRow = '<tr>' + STAT_COLS.map(function(g){
       return g.c.map(function(c){ return '<th>' + esc(c[1]) + '</th>'; }).join('');
@@ -348,19 +384,55 @@
         flat.map(function(c){
           var v = Number(r[c.key] || 0);
           return '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmtNum(v) : '·') + '</td>';
-        }).join('') + '</tr>';
+        }).join('') +
+        '<td class="n"><input type="text" class="note-input" data-date="' + esc(r.stat_date) + '" ' +
+          'data-orig="' + esc(notesByDate[r.stat_date] || '') + '" ' +
+          'value="' + esc(notesByDate[r.stat_date] || '') + '" placeholder="메모" ' +
+          'onchange="saveNote(this)" ' +
+          'onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.value=this.dataset.orig;this.blur();}"></td>' +
+        '</tr>';
     }).join('');
 
     /* 합계행 — 단, 재예약은 비운다. 여기만 더하면 안 되는 값이라(구간에 의존) 숫자를 넣으면
-       그럴듯해 보여서 더 위험하다. */
+       그럴듯해 보여서 더 위험하다. 메모도 합쳐질 수 없는 값이라 비운다. */
     var foot = '<tr><td class="d">합계</td>' + flat.map(function(c){
       if(c.key === 're_reservation_count') return '<td class="zero">—</td>';
       return '<td>' + fmtNum(statSum(rows, c.key)) + '</td>';
-    }).join('') + '</tr>';
+    }).join('') + '<td class="n zero">—</td></tr>';
 
     document.getElementById('statRaw').innerHTML =
       '<thead>' + groupRow + headRow + '</thead><tbody>' + body + '</tbody>' +
       '<tfoot style="font-weight:600">' + foot + '</tfoot>';
+  }
+
+  /** 메모 입력칸이 blur될 때(onchange) 그 날짜 한 칸만 저장한다 — 표 전체를 다시 그리면
+     타이핑 중이던 다른 칸까지 잃는다. */
+  function saveNote(el){
+    var date = el.dataset.date;
+    var value = el.value;
+    el.disabled = true;
+    el.classList.remove('note-err');
+    sb.rpc('admin_upsert_sc_daily_note', { p_password: currentPassword, p_stat_date: date, p_note: value })
+      .then(function(res){
+        if(res.error) throw res.error;
+        statsNotesCache = (statsNotesCache || []).filter(function(n){ return n.stat_date !== date; });
+        if(value.trim()) statsNotesCache.push({ stat_date: date, note: value.trim() });
+        el.dataset.orig = value.trim();  // 저장 직후 Escape 기준점도 갱신 — 안 하면 두 번째 편집에서 Escape가 이번 세션 이전(=이전 저장값)으로 되돌리며 화면이 DB와 엇갈린다.
+        el.disabled = false;
+        statNotice(date + ' 메모를 저장했어요.');
+      })
+      .catch(function(err){
+        el.disabled = false;
+        el.classList.add('note-err');
+        // 저장 실패 이유를 구분한다 — 특히 로그인 만료/시도제한은 '메모가 아직 안 저장됐다'는
+        // 사실을 분명히 말해야 한다(입력값은 칸에 그대로 남지만, lock() 후 표를 다시 그리면
+        // 저장 안 된 메모는 사라진다 — 이 메시지가 그 전에 사용자가 알아챌 유일한 신호다).
+        var msg =
+          isThrottleError(err) ? '비밀번호 시도가 너무 많아요. 10분 뒤에 다시 로그인해 주세요 — 이 메모는 아직 저장되지 않았어요.'
+          : isAuthError(err)   ? '로그인이 만료된 것 같아요. 다시 로그인해 주세요 — 이 메모는 아직 저장되지 않았어요.'
+          : '메모 저장에 실패했어요: ' + (err && err.message ? err.message : err);
+        statNotice(msg, true);
+      });
   }
 
   /** 구간 안의 키워드 원본 행. 최신 날짜가 위, 같은 날은 순위대로. */
@@ -434,10 +506,19 @@
     var rows = statRows();
     if(!rows.length){ statNotice('복사할 데이터가 없어요.'); return; }
 
+    var notesByDate = {};
+    (statsNotesCache || []).forEach(function(n){ notesByDate[n.stat_date] = n.note; });
+    var q = function(s){ return '"' + String(s).replace(/"/g, '""') + '"'; };
+
     var flat = statFlatCols();
-    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).join(',')];
+    var lines = [['날짜'].concat(flat.map(function(c){ return c.label; })).concat(['메모']).join(',')];
     rows.forEach(function(r){
-      lines.push([r.stat_date].concat(flat.map(function(c){ return Number(r[c.key] || 0); })).join(','));
+      lines.push(
+        [r.stat_date]
+          .concat(flat.map(function(c){ return Number(r[c.key] || 0); }))
+          .concat([q(notesByDate[r.stat_date] || '')])
+          .join(',')
+      );
     });
     copyText(lines.join('\n'), rows.length + '일치를 클립보드에 복사했어요 (CSV).');
   }
@@ -471,8 +552,12 @@
         currentPassword = savedPw;
         statsCache = rows;
         showApp();
-        return fetchScKeywords(savedPw).catch(function(){ return null; }).then(function(kw){
-          if(kw !== null) statsKwCache = kw;
+        return Promise.all([
+          fetchScKeywords(savedPw).catch(function(){ return null; }),
+          fetchScDailyNotes(savedPw).catch(function(){ return null; })
+        ]).then(function(r){
+          if(r[0] !== null) statsKwCache = r[0];
+          if(r[1] !== null) statsNotesCache = r[1];
           renderRaw();
         });
       }).catch(function(err){
