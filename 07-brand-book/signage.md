@@ -1,8 +1,6 @@
 # TYPE LOUNGE — Signage (공간 사이니지)
 
 > 타입라운지 공간 사이니지 시스템. **설치 완료·확정본**(2026-08-06) 기준으로 기록한다.
-> 원본: `04-signage/signage-system.md` · `pictograms.md` · `notice-template.md` · `notice-copy.md`, `03-identity/design-tokens.md`.
-> 자매 문서: `brand.md`(아이덴티티) · `bx.md`(경험·보이스) · `product.md`(컴포넌트).
 
 **목차**: Principles · 사인 인벤토리 · 안내문 템플릿 · 픽토그램 · 재질·부착 · 문구 · 확장 절차
 
@@ -169,12 +167,7 @@ assets/picto/picto-extinguisher.svg | 소화기
 
 ### 형태 토큰
 
-| 토큰 | 값 |
-|---|---|
-| `radius/sm` | 2px — 기하, 거의 직각 |
-| `radius/md` | 8px — 카드 |
-| `space/*` | 4·8·16·24·40·64px (8px 베이스) |
-
+`radius/sm` 2px · `radius/md` 8px · `space/*` 4·8·16·24·40·64px(8px 베이스). 값의 정본은 `product.md`의 「03. 형태 토큰」이다.
 ---
 
 ## 06. 문구
