@@ -2,7 +2,6 @@
 
 > 타입라운지 비주얼 아이덴티티 시스템.
 > 최종 확정본 (2026-07-06). 폰트=Paperlogy 단일 · 웨이트 400/600 · 로고=레이어드 E 워드마크(심볼 없음).
-> 원본: `03-identity/logo-system.md` · `color-palette.md` · `typography.md`, `04-signage/pictograms.md`, `01-strategy/visual-principles.md`.
 
 **목차**: Logo · Color · Typography · Iconography · Imagery · Motion · Assets
 
