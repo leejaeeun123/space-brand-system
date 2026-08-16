@@ -40,14 +40,14 @@ test.after(async () => {
   else await fs.writeFile(CACHE_PATH, savedCache).catch(() => {});
 });
 
-test("타임아웃/네트워크 오류: OFF를 지어내지 않고 로그를 남긴다", async () => {
+test("타임아웃/네트워크 오류: power는 OFF를 지어내지 않고, online만 false로 내리고 로그를 남긴다", async () => {
   global.fetch = async () => {
     throw new Error("The operation was aborted due to timeout");
   };
 
   const state = await pollHttpState("test-light");
-  // 여기서 {online:false, power:'OFF'}를 돌려주면 '못 읽었다'가 '꺼졌다'로 둔갑한다.
-  assert.equal(state, null);
+  // power에 'OFF'를 지어내면 '못 읽었다'가 '꺼졌다'로 둔갑한다 — online만 내린다.
+  assert.deepEqual(state, { online: false, power: null });
 
   const sent = await sendHttpCommand("test-light", "POWER ON");
   assert.equal(sent.ok, false);
@@ -58,10 +58,10 @@ test("타임아웃/네트워크 오류: OFF를 지어내지 않고 로그를 남
   assert.ok(errors.every((e) => e.includes("test-light")));
 });
 
-test("비 2xx 응답도 실패로 다룬다 — 상태를 쓰지 않는다", async () => {
+test("비 2xx 응답도 실패로 다룬다 — power는 안 쓰고 online만 false", async () => {
   global.fetch = async () => ({ ok: false, status: 500, json: async () => ({ POWER: "OFF" }) });
 
-  assert.equal(await pollHttpState("test-light"), null);
+  assert.deepEqual(await pollHttpState("test-light"), { online: false, power: null });
   const sent = await sendHttpCommand("test-light", "POWER ON");
   assert.equal(sent.ok, false);
   // 본문에 OFF가 있어도 500이면 읽지 않는다. 실패한 응답의 본문은 근거가 아니다.
@@ -78,13 +78,15 @@ test("깨진 JSON도 실패로 다룬다", async () => {
     },
   });
 
-  assert.equal(await pollHttpState("test-light"), null);
+  assert.deepEqual(await pollHttpState("test-light"), { online: false, power: null });
   assert.equal(errors.length, 1);
 });
 
-test("전원값이 없는 응답은 '모름'이라 상태를 쓰지 않는다", async () => {
+test("전원값이 없는 응답은 '진짜 모름'이라 null을 돌려준다(online도 단정하지 않는다)", async () => {
   global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ StatusSTS: {} }) });
 
+  // 기기가 응답은 했다(요청 자체는 실패가 아니다) — 그래도 전원값이 없으면 online:false로도
+  // 단정하지 않는다. '응답 없음'과 '응답은 왔는데 못 읽음'은 다른 문제다.
   assert.equal(await pollHttpState("test-light"), null);
   assert.ok(errors.some((e) => e.includes("전원값이 없습니다")));
 });
@@ -101,6 +103,10 @@ test("IP를 모르면 요청 자체를 안 하고, 이유를 구분해서 돌려
   assert.equal(sent.ok, false);
   // 'IP 모름'과 'HTTP 실패'는 고칠 방법이 다르다 — 명령 실패 사유에 그대로 남는다.
   assert.equal(sent.reason, "IP 모름");
+
+  // 상태 조회 쪽도 같은 이유로 online:false — IP를 몰라 확인할 방법이 아예 없는 것도
+  // '지금 확인 안 됨'이라는 점에서 응답 없음과 같은 취급이다.
+  assert.deepEqual(await pollHttpState("아직-모르는-기기"), { online: false, power: null });
 });
 
 test("성공하면 기기가 답한 실제 전원값을 돌려준다", async () => {

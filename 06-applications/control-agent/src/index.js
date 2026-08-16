@@ -27,12 +27,13 @@ import { createClient } from "@supabase/supabase-js";
 import WebSocket from "ws";
 import { loadConfig } from "./config.js";
 import { DeviceRegistry } from "./devices.js";
-import { connectMqtt, queryInitialState } from "./mqtt.js";
+import { connectMqtt, isBridgeUp, queryInitialState } from "./mqtt.js";
 import { subscribeCommands } from "./commands.js";
 import { mergeState, parsePayload, parseTopic } from "./state.js";
 import { startCameraReporter } from "./cameras.js";
 import { noteDeviceReport } from "./delivery.js";
 import { loadDeviceIps, rememberDeviceIp } from "./device-ips.js";
+import { pollHttpState } from "./tasmota-http.js";
 
 const RELOAD_INTERVAL_MS = 5 * 60_000; // 기기 등록/해제 반영 주기
 
@@ -86,6 +87,31 @@ async function handleMessage(topic, payload) {
   if (device) console.log(`[state] ${device.name}(${parsed.address}) ← ${parsed.suffix}=${payload}`);
 }
 
+/**
+ * rpi-bridge 가 끊긴 동안 기기 상태를 HTTP 로 대신 읽는다.
+ *
+ * 그 동안엔 `stat`이 하나도 안 온다 — 이걸 안 하면 브릿지가 살아날 때까지 화면이
+ * 얼어붙는다(명령을 눌러야만 그 기기 하나가 갱신된다). 브릿지가 살아 있을 때는 안 부른다 —
+ * MQTT stat이 이미 실시간으로 오는데 같은 걸 HTTP로 또 물을 이유가 없다(평상시 부하 0).
+ *
+ * ⚠️ **`delivery.js`가 명령 배달 판정에서 브릿지 생사를 뺀 것과 다른 얘기다.** 그건
+ * "AWS로 나간 사본이 확인될 기회를 뺏지 않으려고" 뺀 것이고, 여기는 상태를 **어디서** 읽을지
+ * 고르는 문제라 브릿지 생사를 그대로 써도 된다 — 무관한 두 판단이다.
+ */
+async function pollBridgeDownState(addresses) {
+  await Promise.all(
+    addresses.map(async (address) => {
+      const delta = await pollHttpState(address);
+      if (!delta) return;
+      try {
+        await applyState(address, delta);
+      } catch (e) {
+        console.error(`[state] HTTP 재동기화 반영 실패 (${address}):`, e.message);
+      }
+    }),
+  );
+}
+
 async function main() {
   if (!(await registry.reload())) {
     console.error("[agent] 기기 목록을 못 읽어 시작할 수 없습니다. 키와 네트워크를 확인하세요.");
@@ -116,6 +142,14 @@ async function main() {
       // 새로 등록된 기기는 아직 상태를 받은 적이 없으니 한 번 물어봐 준다.
       if (ok && mqttClient.connected) queryInitialState(mqttClient, registry.addresses);
     });
+    // 브릿지가 끊긴 동안엔 위 MQTT 재질의가 의미가 없다(질의도 응답도 그 경로로 못 온다) —
+    // 대신 HTTP로 직접 읽는다. 같은 5분 주기에 얹은 이유: 별도 타이머를 만들 만큼 급한 값이
+    // 아니고, ESP8266이 동시 요청에 약해 폴링 빈도를 늘릴수록 부담만 커진다.
+    if (isBridgeUp() === false) {
+      pollBridgeDownState(registry.addresses).catch((e) =>
+        console.error("[state] HTTP 재동기화 실패:", e.message),
+      );
+    }
   }, RELOAD_INTERVAL_MS);
 
   const shutdown = () => {

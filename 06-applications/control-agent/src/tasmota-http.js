@@ -112,15 +112,19 @@ export async function sendHttpCommand(address, cmnd) {
 }
 
 /**
- * 상태를 HTTP로 읽는다. 델타 `{online, power}` 또는 **null(모름)**.
+ * 상태를 HTTP로 읽는다. 델타 `{online, power}` 또는 **null(응답은 왔는데 판독 불가 — 진짜 모름)**.
  *
- * 실패했을 때 `{online:false}`조차 쓰지 않는다 — '내가 못 읽었다'를 '기기가 죽었다'로
- * 바꿔 쓰면 둘을 구분할 방법이 사라진다. 아무것도 안 쓰면 화면이 마지막 보고 시각으로
- * '오래된 상태'라고 정직하게 말한다(cameras.js가 같은 이유로 같은 선택을 한다).
+ * 요청 자체가 실패하면(타임아웃·네트워크 오류·IP 모름·비2xx) `{online:false, power:null}`을
+ * 준다 — LWT가 retained라 브릿지가 끊긴 동안 거짓으로 '연결됨'을 유지하는 문제를 이 경로가
+ * 메운다. **power는 안 건드린다** — '모름을 꺼짐으로 합치지 않는다'는 원칙은 그대로다,
+ * 이번에 내리는 건 online 하나뿐이다.
+ *
+ * 응답은 왔는데(`ok`) 본문에 전원값이 없으면 그건 다른 종류의 모름이다 — 기기가 답했다는
+ * 사실 자체는 있으니 그걸로 online을 단정하지 않고 null(진짜 모름)을 그대로 돌려준다.
  */
 export async function pollHttpState(address) {
   const { ok, body } = await request(address, "Status 0", "상태 조회");
-  if (!ok) return null;
+  if (!ok) return { online: false, power: null };
   const power = extractPower(body);
   if (power === null) {
     console.error(`[http] ${address} 응답에 전원값이 없습니다 — 상태를 쓰지 않습니다`);
