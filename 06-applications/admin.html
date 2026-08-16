@@ -318,7 +318,7 @@
   .st-kpi .v{font-weight:600;font-size:19px;margin-top:4px;letter-spacing:-.02em;}
   .st-kpi .s{font-size:11px;color:#6b665c;margin-top:3px;}
   .st-kpi .s em{font-style:normal;color:var(--orange);font-weight:600;}
-  .st-kpi .spark{display:block;width:100%;height:30px;margin-top:8px;}
+  .st-kpi .spark{display:block;width:100%;height:32px;margin-top:8px;}
 
   /* 퍼널 — 도달에서 이용까지 한 줄로 읽힌다 */
   .st-funnel{border:1px solid var(--hair);border-radius:8px;padding:14px;}
@@ -3076,42 +3076,61 @@
 
   /**
    * 미니 스파크라인. 요약 카드 숫자 하나로 뭉개진 창(rows) 안의 날짜별 흐름을 옆에 붙인다.
-   * 선은 무채색으로 죽이고 마지막 점(오늘 기준)만 강조색을 준다 — 숫자가 이미 진하게
-   * 강조돼 있어 선까지 진하면 카드 여덟 개가 한꺼번에 시끄러워진다. 점 2개 미만이면
-   * 추세를 그릴 수 없으니 아예 안 그린다.
+   * 점 2개 미만이면 추세를 그릴 수 없으니 아예 안 그린다.
+   *
+   * 세 가지 교훈 값(직전 버전이 실제 겪은 버그):
+   * ① 반투명한 선 색(#c9c4ba)은 이 파일에서 '0값/빈칸'을 나타내는 색(.st-raw td.zero)이다 —
+   *   그걸 데이터 선에 쓰면 안 보인다. 실제 선은 #6b665c(이 파일의 보조 텍스트 색)로 그린다 —
+   *   그 옅은 색은 아래 gap 연결선에만 쓴다(의미적으로 맞는 자리).
+   * ② viewBox가 120x30이고 CSS는 width:100%(카드 폭 ≈ 300px)로 늘려서 preserveAspectRatio="none"가
+   *   가로만 수 배 더 늘리면 선이 번지고 점이 타원으로 일그러진다 — viewBox 폭을 실제 카드 폭에
+   *   가깝게(300) 잡아 스트레칭 비율을 거의 1:1로 만들고, 선은
+   *   vector-effect="non-scaling-stroke"로 굴곡과 무관하게 굵기를 고정한다.
+   * ③ max===min(값이 다 같은 날들)이면 span=1로 대체되어 모든 점이 바닥(y=H-P)에 붙는 버그가
+   *   있었다 — 값이 내내 100%여도 '0으로 죽은 선'으로 보였다. 값이 모두 같으면 중간높이에 그린다.
    */
   function statSparkline(rows, getter){
-    var W = 120, H = 30, P = 3;
+    var W = 300, H = 32, P = 4;
     var vals = rows.map(getter);
     var present = vals.filter(function(v){ return v !== null && v !== undefined; });
     if(present.length < 2) return '';
 
     var max = Math.max.apply(null, present), min = Math.min.apply(null, present);
-    var span = (max - min) || 1;
+    var flat = max === min;
+    var span = flat ? 1 : (max - min);
     var n = vals.length;
     var x = function(i){ return n === 1 ? W / 2 : (i / (n - 1)) * W; };
-    var y = function(v){ return P + (1 - (v - min) / span) * (H - P * 2); };
+    var y = function(v){ return flat ? H / 2 : P + (1 - (v - min) / span) * (H - P * 2); };
 
-    var segs = [], cur = '';
+    // 구간(segs)과 달리 다리(bridges)는 gap 양끝을 이은 점선이다 — 따로 그려야 '데이터가
+    // 없어서 끊어졌다'가 '조각난 도형이 따로 논다'가 아니라 '여기는 공백'으로 읽힌다.
+    var segs = [], bridges = [], cur = '', lastPt = null;
     vals.forEach(function(v, i){
-      if(v === null || v === undefined){ if(cur) segs.push(cur); cur = ''; return; }
-      cur += (cur ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1) + ' ';
+      if(v === null || v === undefined){ if(cur){ segs.push(cur); cur = ''; } return; }
+      var px = x(i), py = y(v);
+      if(lastPt && !cur) bridges.push('M' + lastPt.x.toFixed(1) + ' ' + lastPt.y.toFixed(1) + ' L' + px.toFixed(1) + ' ' + py.toFixed(1));
+      cur += (cur ? 'L' : 'M') + px.toFixed(1) + ' ' + py.toFixed(1) + ' ';
+      lastPt = { x: px, y: py };
     });
     if(cur) segs.push(cur);
 
     var lastIdx = -1;
     for(var i = n - 1; i >= 0; i--){ if(vals[i] !== null && vals[i] !== undefined){ lastIdx = i; break; } }
 
-    var paths = segs.map(function(seg){
-      return '<path d="' + seg.trim() + '" fill="none" stroke="#c9c4ba" stroke-width="1.5" ' +
-             'stroke-linejoin="round" stroke-linecap="round"/>';
+    var bridgePaths = bridges.map(function(b){
+      return '<path d="' + b + '" fill="none" stroke="#c9c4ba" stroke-width="1.5" stroke-dasharray="2 2" ' +
+             'vector-effect="non-scaling-stroke"/>';
+    }).join('');
+    var dataPaths = segs.map(function(seg){
+      return '<path d="' + seg.trim() + '" fill="none" stroke="#6b665c" stroke-width="2" ' +
+             'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
     }).join('');
     var dot = lastIdx >= 0
       ? '<circle cx="' + x(lastIdx).toFixed(1) + '" cy="' + y(vals[lastIdx]).toFixed(1) + '" r="2.5" fill="#E2531E"/>'
       : '';
 
     return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-hidden="true">' +
-      paths + dot + '</svg>';
+      bridgePaths + dataPaths + dot + '</svg>';
   }
 
   /**
@@ -3143,10 +3162,13 @@
                '" height="' + Math.max(bh, 1).toFixed(1) + '" fill="' + color + '" rx="1.5"/>';
       }).join('');
     } else {
-      var segs = [], cur = '';
+      var segs = [], bridges = [], cur = '', lastPt = null;
       vals.forEach(function(v, i){
-        if(v === null || v === undefined){ if(cur) segs.push(cur); cur = ''; return; }
-        cur += (cur ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1) + ' ';
+        if(v === null || v === undefined){ if(cur){ segs.push(cur); cur = ''; } return; }
+        var px = x(i), py = y(v);
+        if(lastPt && !cur) bridges.push('M' + lastPt.x.toFixed(1) + ' ' + lastPt.y.toFixed(1) + ' L' + px.toFixed(1) + ' ' + py.toFixed(1));
+        cur += (cur ? 'L' : 'M') + px.toFixed(1) + ' ' + py.toFixed(1) + ' ';
+        lastPt = { x: px, y: py };
       });
       if(cur) segs.push(cur);
 
@@ -3155,6 +3177,9 @@
         var area = d + ' L' + x(n - 1).toFixed(1) + ' ' + (H - PB) + ' L' + x(0).toFixed(1) + ' ' + (H - PB) + ' Z';
         body += '<path d="' + area + '" fill="' + color + '" opacity=".08"/>';
       }
+      body += bridges.map(function(b){
+        return '<path d="' + b + '" fill="none" stroke="#c9c4ba" stroke-width="1.5" stroke-dasharray="3 3"/>';
+      }).join('');
       body += segs.map(function(seg){
         return '<path d="' + seg.trim() + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
                'stroke-linejoin="round" stroke-linecap="round"/>';
