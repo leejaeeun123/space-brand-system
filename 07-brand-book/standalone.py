@@ -9,7 +9,7 @@ build_book.py 가 site/ 를 만든 뒤 호출한다. 단독 실행도 가능:
 - Paperlogy 400/600 → 실제 사용 글자만 subset 한 woff base64 @font-face
 - 외부 CDN·상대경로 의존 0 (Figma·메신저 첨부용)
 
-zip·md 같은 비-이미지 다운로드 링크는 인라인할 수 없으므로 절대 URL(BASE)로 돌린다.
+네 페이지를 한 문서에 담아 standalone/index.html 하나만 만든다 — 탭 전환은 .shell 교체로 한다.
 """
 import os, re, io, base64, sys
 
@@ -87,8 +87,11 @@ def build():
         faces.append("@font-face{font-family:'Paperlogy';font-style:normal;font-weight:%d;"
                      "font-display:swap;src:url(data:font/woff;base64,%s) format('woff');}" % (weight, b64))
 
-    cache = {}
+    cache, inlined = {}, {}
     for page, html in srcs.items():
+        # 0) 내장 SVG 페이로드 제거 — 단일 파일은 아래에서 전부 data URI 로 바뀌므로 중복이다
+        html = re.sub(r'<script id="tl-files".*?</script>\s*', "", html, flags=re.S)
+
         # 1) 이미지·아이콘 → data URI
         # 따옴표 안의 경로만 — MD view <pre> 안의 원본 마크다운은 건드리지 않는다
         refs = set(re.findall(r'"(assets/[^"\s]+\.(?:svg|png|jpe?g))"', html))
@@ -97,23 +100,83 @@ def build():
                 cache[rel] = data_uri(rel)
             html = html.replace('"%s"' % rel, '"%s"' % cache[rel])
 
-        # 2) 남은 상대 링크(zip·md·다른 탭) → 절대 URL
-        html = re.sub(r'(?:src|href)="(?!https?:|#|data:|mailto:)([^"]+)"',
-                      lambda m: m.group(0).replace('"%s"' % m.group(1), '"%s%s"' % (BASE, m.group(1))), html)
-
-        # 3) 폰트 인라인 + CDN 링크 제거
+        # 2) 폰트 인라인 + CDN 링크 제거
         if faces:
             html = re.sub(r'\s*<link[^>]*Paperlogy\.css[^>]*>\s*', "\n", html)
             html = html.replace("<style>", "<style>\n" + "\n".join(faces) + "\n", 1)
 
-        # 4) 자기 자신을 가리키는 다운로드 항목은 제거(단일 파일 안에서 의미 없음)
-        html = html.replace('<a href="%sstandalone/%s.html" download>' % (BASE, SLUG[page]),
-                            '<a href="%s%s">' % (BASE, page))
+        inlined[page] = html
 
-        dst = os.path.join(OUT, SLUG[page] + ".html")
-        open(dst, "w", encoding="utf-8").write(html)
-        kb = len(html.encode("utf-8")) // 1024
-        print("   standalone/%-14s %5d KB" % (SLUG[page] + ".html", kb))
+    write_combined(inlined)
+
+
+def split_shell(html):
+    """(헤더까지, .shell 블록, <script> 이후) — 탭을 갈아끼우는 단위가 .shell 이다."""
+    i = html.index('<div class="shell">')
+    j = html.index("<script>", i)
+    return html[:i], html[i:j], html[j:]
+
+
+def write_combined(inlined):
+    """네 페이지를 한 문서에 담은 standalone/index.html.
+
+    탭을 누르면 .shell 안만 갈아끼우고 TLpage() 를 다시 부른다 — id 가 겹치지 않게
+    보이는 페이지 하나만 DOM 에 두는 방식이다. 오프라인(file://)에서도 자산이 전부
+    data URI 라 SVG·MD 다운로드가 그대로 동작한다.
+    """
+    head, shell0, tail = split_shell(inlined["index.html"])
+
+    # 탭·로고 → 페이지 전환 트리거. 상대 링크는 단일 파일에서 갈 곳이 없다.
+    for page, slug in SLUG.items():
+        head = head.replace('href="%s"' % page, 'href="#%s" data-pg="%s"' % (slug, slug))
+    # 자기 자신을 받는 항목은 단일 파일 안에서 의미가 없다
+    head = re.sub(r'\s*<a href="standalone/index.html"[^>]*>.*?</a>', "", head, flags=re.S)
+
+    tpl = []
+    for page, slug in SLUG.items():
+        if page == "index.html":
+            continue
+        _, shell, _ = split_shell(inlined[page])
+        tpl.append('<script type="text/template" data-pg="%s">%s</script>' % (slug, shell))
+
+    switcher = """
+<script>
+(function(){
+  var host=document.getElementById('pghost'), cur='brand', tpl={};
+  [].forEach.call(document.querySelectorAll('script[type="text/template"][data-pg]'),
+                  function(s){tpl[s.getAttribute('data-pg')]=s.textContent});
+  var md=document.getElementById('dl-md');
+  function show(pg){
+    if(pg===cur||!tpl[pg])return;
+    tpl[cur]=host.innerHTML;                       // 돌아왔을 때 그대로 다시 쓴다
+    host.innerHTML=tpl[pg]; cur=pg;
+    [].forEach.call(document.querySelectorAll('.tabs a[data-pg]'),function(a){
+      a.classList.toggle('on',a.getAttribute('data-pg')===pg)});
+    if(md){md.setAttribute('href','md/'+pg+'.md'); md.setAttribute('download',pg+'.md');
+           md.querySelector('small').textContent=pg+'.md'}
+    window.scrollTo({top:0,behavior:'instant'});
+    TLpage();                                      // 갈아끼운 DOM 에 다시 건다
+  }
+  document.addEventListener('click',function(e){
+    var a=e.target.closest && e.target.closest('[data-pg]');
+    if(!a||a.tagName!=='A')return;
+    e.preventDefault(); show(a.getAttribute('data-pg'));
+  });
+})();
+</script>
+"""
+
+    html = head + '<div id="pghost">' + shell0 + "</div>\n" + "\n".join(tpl) + tail
+    html = html.replace("</body>", switcher + "</body>", 1)
+
+    # 남은 상대 링크(zip·md)는 단일 파일에서 갈 곳이 없다 → 절대 URL.
+    # md 는 그래도 페이지 안의 원본에서 저장되므로(다운로드 핸들러) 링크는 표시용이다.
+    html = re.sub(r'(?:src|href)="(?!https?:|#|data:|mailto:)([^"]+)"',
+                  lambda m: m.group(0).replace('"%s"' % m.group(1), '"%s%s"' % (BASE, m.group(1))), html)
+
+    dst = os.path.join(OUT, "index.html")
+    open(dst, "w", encoding="utf-8").write(html)
+    print("   standalone/index.html  %5d KB  (4개 탭 한 파일)" % (len(html.encode("utf-8")) // 1024))
 
 
 if __name__ == "__main__":

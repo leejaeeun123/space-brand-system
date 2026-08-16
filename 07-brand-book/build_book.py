@@ -9,7 +9,7 @@
 md 안의 ```tl-*``` 펜스가 시각 컴포넌트로 렌더된다(깃허브에서는 코드블록으로 조용히 표시).
 블록 문법은 README 대신 아래 RENDERERS 각 함수의 docstring이 정본이다.
 """
-import os, re, sys, glob, html, shutil, zipfile, io
+import os, re, sys, glob, html, json, shutil, zipfile, io
 
 import markdown
 
@@ -382,7 +382,8 @@ def build_page(slug, outname, kicker, desc, shell, tabs_html, others_html, kit_s
         "{{TABS}}": tabs_html,
         "{{OTHER}}": others_html,
         "{{SLUG}}": slug,
-        "{{STANDALONE}}": "standalone/%s.html" % slug,
+        # 단일 파일은 네 탭을 한 문서에 담은 한 개다 — 오프라인에서도 SVG·MD 가 전부 저장된다
+        "{{STANDALONE}}": "standalone/index.html",
         "{{KITSIZE}}": kit_size,
         "{{KICKER}}": kicker,
         "{{H1}}": esc(h1.split("—")[-1].strip()),
@@ -394,8 +395,34 @@ def build_page(slug, outname, kicker, desc, shell, tabs_html, others_html, kit_s
     }.items():
         page = page.replace(k, v)
 
+    # 파일명을 링크에 박아둔다 — 단일 파일에서는 href 가 data URI 라 경로에서 이름을 못 얻는다
+    page = re.sub(r'(<a[^>]+href="([^"]+\.(?:svg|png|jpe?g|zip|md))"[^>]*?)\bdownload(?!=)',
+                  lambda m: '%sdownload="%s"' % (m.group(1), os.path.basename(m.group(2))), page)
+
+    page = page.replace("{{FILES}}", inline_files(page))
+
     open(os.path.join(SITE, outname), "w", encoding="utf-8").write(page)
     return len(secs)
+
+
+def inline_files(page):
+    """이 페이지가 다운로드로 거는 SVG 를 본문에 실어둔다.
+
+    file:// 로 열면 브라우저가 download 속성을 무시하고(불투명 origin) fetch 도 막는다 —
+    zip·png 은 렌더러가 없어 저절로 저장되지만 SVG·MD 는 새 탭에 그려질 뿐이다.
+    md 는 이미 MD view 용 원본이 페이지에 있으므로 여기서는 SVG 만 싣는다.
+    """
+    rels = dict.fromkeys(re.findall(r'<a[^>]+href="(assets/[^"]+\.svg)"[^>]*\bdownload\b', page))
+    data = {}
+    for rel in rels:
+        fp = os.path.join(SITE, rel)
+        if os.path.exists(fp):
+            data[rel] = open(fp, encoding="utf-8").read()
+    if not data:
+        return ""
+    # </script> 로 스크립트가 조기 종료되지 않게 막는다
+    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    return '<script id="tl-files" type="application/json">%s</script>' % payload
 
 
 # ─────────────────────────────────────────────────────────── 실행
