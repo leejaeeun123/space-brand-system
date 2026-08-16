@@ -10,6 +10,9 @@ md 안의 ```tl-*``` 펜스가 시각 컴포넌트로 렌더된다(깃허브에�
 블록 문법은 README 대신 아래 RENDERERS 각 함수의 docstring이 정본이다.
 """
 import os, re, sys, glob, html, json, shutil, zipfile, io
+from datetime import date
+
+STAMP = date.today().strftime("%y%m%d")
 
 import markdown
 
@@ -385,6 +388,9 @@ def build_page(slug, outname, kicker, desc, shell, tabs_html, others_html, kit_s
         # 단일 파일은 네 탭을 한 문서에 담은 한 개다 — 오프라인에서도 SVG·MD 가 전부 저장된다
         "{{STANDALONE}}": "standalone/index.html",
         "{{KITSIZE}}": kit_size,
+        # 받아둔 파일이 언제 것인지 파일명에서 바로 보이게 한다
+        "{{HTMLNAME}}": "%s typelounge_brandbook_index.html" % STAMP,
+
         "{{KICKER}}": kicker,
         "{{H1}}": esc(h1.split("—")[-1].strip()),
         "{{LEDE}}": lede,

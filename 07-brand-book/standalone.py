@@ -11,12 +11,13 @@ build_book.py 가 site/ 를 만든 뒤 호출한다. 단독 실행도 가능:
 
 네 페이지를 한 문서에 담아 standalone/index.html 하나만 만든다 — 탭 전환은 .shell 교체로 한다.
 """
-import os, re, io, base64, sys
+import os, re, io, json, base64, sys
 
 BOOK = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(BOOK, "site")
 OUT = os.path.join(SITE, "standalone")
-BASE = "https://typelounge.vercel.app/brand/"
+# 단일 파일은 외부를 타지 않는다 — 자산·zip 을 전부 내장한다.
+# (typelounge.vercel.app/brand 는 배포돼 있지 않아 절대 URL 로 돌리면 404 다)
 
 PAGES = ["index.html", "bx.html", "signage.html", "product.html"]
 SLUG = {"index.html": "brand", "bx.html": "bx", "signage.html": "signage", "product.html": "product"}
@@ -64,7 +65,8 @@ def data_uri(rel):
         im.save(buf, "JPEG", quality=76, optimize=True)
         return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
     data = open(fp, "rb").read()
-    mime = {".svg": "image/svg+xml", ".ico": "image/x-icon"}.get(ext, "application/octet-stream")
+    mime = {".svg": "image/svg+xml", ".ico": "image/x-icon",
+            ".zip": "application/zip"}.get(ext, "application/octet-stream")
     return "data:%s;base64,%s" % (mime, base64.b64encode(data).decode())
 
 
@@ -126,9 +128,14 @@ def write_combined(inlined):
     """
     head, shell0, tail = split_shell(inlined["index.html"])
 
-    # 탭·로고 → 페이지 전환 트리거. 상대 링크는 단일 파일에서 갈 곳이 없다.
-    for page, slug in SLUG.items():
-        head = head.replace('href="%s"' % page, 'href="#%s" data-pg="%s"' % (slug, slug))
+    def to_tabs(html):
+        """페이지 링크 → 탭 전환 트리거. 헤더 탭뿐 아니라 사이드바의 'Brand book' 목록도 같다."""
+        for page, slug in SLUG.items():
+            html = html.replace('href="%s"' % page, 'href="#%s" data-pg="%s"' % (slug, slug))
+        return html
+
+    head = to_tabs(head)
+    shell0 = to_tabs(shell0)
     # 자기 자신을 받는 항목은 단일 파일 안에서 의미가 없다
     head = re.sub(r'\s*<a href="standalone/index.html"[^>]*>.*?</a>', "", head, flags=re.S)
 
@@ -137,7 +144,7 @@ def write_combined(inlined):
         if page == "index.html":
             continue
         _, shell, _ = split_shell(inlined[page])
-        tpl.append('<script type="text/template" data-pg="%s">%s</script>' % (slug, shell))
+        tpl.append('<script type="text/template" data-pg="%s">%s</script>' % (slug, to_tabs(shell)))
 
     switcher = """
 <script>
@@ -166,13 +173,18 @@ def write_combined(inlined):
 </script>
 """
 
-    html = head + '<div id="pghost">' + shell0 + "</div>\n" + "\n".join(tpl) + tail
-    html = html.replace("</body>", switcher + "</body>", 1)
+    html = head + '<div id="pghost">' + shell0 + "</div>\n" + "\n".join(tpl)
 
-    # 남은 상대 링크(zip·md)는 단일 파일에서 갈 곳이 없다 → 절대 URL.
-    # md 는 그래도 페이지 안의 원본에서 저장되므로(다운로드 핸들러) 링크는 표시용이다.
-    html = re.sub(r'(?:src|href)="(?!https?:|#|data:|mailto:)([^"]+)"',
-                  lambda m: m.group(0).replace('"%s"' % m.group(1), '"%s%s"' % (BASE, m.group(1))), html)
+    # zip 은 링크마다 base64 를 박으면 같은 파일이 페이지 수만큼 중복된다(3.3MB 짜리 파일이 됐었다).
+    # 페이로드에 한 번만 싣고, 다운로드 핸들러가 파일명으로 찾아 쓴다. 링크는 상대 경로 그대로 둔다.
+    # md 링크도 상대 그대로 — 핸들러가 페이지 안의 원본(#mdsrc)에서 저장한다.
+    # (절대 URL 로 돌리면 /brand 가 배포돼 있지 않아 오류 페이지가 뜬다)
+    zips = {rel: data_uri(rel) for rel in sorted(set(re.findall(r'"([\w.-]+\.zip)"', html)))}
+    if zips:
+        payload = json.dumps(zips, ensure_ascii=False).replace("</", "<\\/")
+        html += '\n<script id="tl-files" type="application/json">%s</script>' % payload
+
+    html = (html + tail).replace("</body>", switcher + "</body>", 1)
 
     dst = os.path.join(OUT, "index.html")
     open(dst, "w", encoding="utf-8").write(html)

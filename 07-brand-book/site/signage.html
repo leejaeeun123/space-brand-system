@@ -282,7 +282,7 @@
       <details class="dd" id="dd">
         <summary class="tbtn">Download <span class="caret">▼</span></summary>
         <div class="ddmenu">
-          <a href="standalone/index.html" download="type-lounge-brandbook.html" id="dl-html">HTML page <small>4개 탭 · 단일 파일</small></a>
+          <a href="standalone/index.html" download="260816 typelounge_brandbook_index.html" id="dl-html">HTML page <small>4개 탭 · 단일 파일</small></a>
           <a href="md/signage.md" download="signage.md" id="dl-md">MD source <small>signage.md</small></a>
           <a href="type-lounge-logos.zip" download="type-lounge-logos.zip">Logo (SVG) <small>워드마크 전체 zip</small></a>
           <hr>
@@ -857,11 +857,14 @@ assets/picto/picto-extinguisher.svg | 소화기
       if(src){e.preventDefault();save(new Blob([src.textContent],{type:'text/markdown;charset=utf-8'}),name);return;}
     }
 
-    // 2) 페이지에 내장된 텍스트 자산(SVG)
+    // 2) 페이지에 내장된 자산 — SVG 는 텍스트, zip 은 data URI 로 실려 있다
     var key=href.replace(/^.*?(assets\/)/,'$1');
     if(FILES[key]){
       e.preventDefault();
-      save(new Blob([FILES[key]],{type:'image/svg+xml;charset=utf-8'}),name);
+      var v=FILES[key];
+      if(v.slice(0,5)==='data:'){ fetch(v).then(function(r){return r.blob()})
+                                        .then(function(b){save(b,name)}); }
+      else save(new Blob([v],{type:'image/svg+xml;charset=utf-8'}),name);
       return;
     }
 
