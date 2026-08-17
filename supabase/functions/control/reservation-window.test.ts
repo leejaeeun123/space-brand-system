@@ -8,7 +8,7 @@
 
 import { assertEquals } from "jsr:@std/assert@1";
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
-import { kstParts, withinGuideWindow, withinReservationWindow } from "./reservation-window.ts";
+import { guideGate, kstParts, withinGuideWindow, withinReservationWindow } from "./reservation-window.ts";
 
 Deno.test("kstParts — UTC를 KST(UTC+9) 날짜·시각으로 바꾼다", () => {
   assertEquals(kstParts(new Date("2026-08-07T00:30:00Z")), { date: "2026-08-07", time: "09:30:00" });
@@ -172,4 +172,56 @@ Deno.test("안내 페이지 게이트도 조회 실패는 닫힘이다 — fail 
 Deno.test("예약이 없으면 닫혀 있다", async () => {
   const sb = fakeClient({ data: [], error: null });
   assertEquals(await withinGuideWindow(sb, new Date("2026-08-07T07:00:00Z")), false);
+});
+
+// ── 연속 예약의 비밀번호 지연(guideGate) — 리드타임 10분이 앞 손님의 마지막 10분인 날 ──
+
+Deno.test("연속 예약 리드타임 — 게이트는 열리되 비밀번호는 뺀다", async () => {
+  const prev = { date: "2026-08-07", start_time: "15:00:00", end_time: "18:00:00" };
+  const next = { date: "2026-08-07", start_time: "18:00:00", end_time: "21:00:00" };
+  // KST 17:55 = UTC 08:55 — 다음 예약의 리드타임이면서 앞 예약이 아직 이용 중.
+  const gate = await guideGate(rows(prev, next), new Date("2026-08-07T08:55:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: true, pinAvailableAtKst: "18:00" });
+});
+
+Deno.test("앞 예약이 끝나는 정각부터 비밀번호가 바로 열린다", async () => {
+  const prev = { date: "2026-08-07", start_time: "15:00:00", end_time: "18:00:00" };
+  const next = { date: "2026-08-07", start_time: "18:00:00", end_time: "21:00:00" };
+  // KST 18:00 정각 = UTC 09:00 — 앞 예약의 end_time은 배타적 상한이라 이 순간부터 겹침이 없다.
+  const gate = await guideGate(rows(prev, next), new Date("2026-08-07T09:00:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: false, pinAvailableAtKst: null });
+});
+
+Deno.test("앞 예약이 없는 날의 리드타임은 그대로 비밀번호를 준다 — 기존 동작 유지", async () => {
+  const r = { date: "2026-08-07", start_time: "18:00:00", end_time: "21:00:00" };
+  const gate = await guideGate(rows(r), new Date("2026-08-07T08:55:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: false, pinAvailableAtKst: null });
+});
+
+Deno.test("앞 예약이 리드타임 전에 끝났으면 지연하지 않는다 — 붙어 있지 않은 예약", async () => {
+  const prev = { date: "2026-08-07", start_time: "15:00:00", end_time: "17:50:00" };
+  const next = { date: "2026-08-07", start_time: "18:00:00", end_time: "21:00:00" };
+  // KST 17:55 — 공간은 이미 비어 있다.
+  const gate = await guideGate(rows(prev, next), new Date("2026-08-07T08:55:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: false, pinAvailableAtKst: null });
+});
+
+Deno.test("예약 진행 중(리드타임 아님)에는 지연하지 않는다 — 이용 중인 손님의 화면", async () => {
+  const r = { date: "2026-08-07", start_time: "15:00:00", end_time: "18:00:00" };
+  const gate = await guideGate(rows(r), new Date("2026-08-07T07:00:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: false, pinAvailableAtKst: null });
+});
+
+Deno.test("자정을 걸친 연속 예약도 지연한다 — 앞 예약이 어제 날짜인 경우", async () => {
+  const prev = { date: "2026-08-11", start_time: "19:00:00", end_time: "00:00:00" };
+  const next = { date: "2026-08-12", start_time: "00:00:00", end_time: "04:00:00" };
+  // KST 8/11 23:55 = UTC 14:55 — 다음 예약(내일 날짜) 리드타임 + 앞 예약(오늘 날짜) 이용 중.
+  const gate = await guideGate(rows(prev, next), new Date("2026-08-11T14:55:00Z"));
+  assertEquals(gate, { open: true, pinWithheld: true, pinAvailableAtKst: "00:00" });
+});
+
+Deno.test("guideGate도 조회 실패는 닫힘이다 — fail closed", async () => {
+  const sb = fakeClient({ data: null, error: new Error("DB 다운") });
+  const gate = await guideGate(sb, new Date("2026-08-07T08:55:00Z"));
+  assertEquals(gate, { open: false, pinWithheld: false, pinAvailableAtKst: null });
 });

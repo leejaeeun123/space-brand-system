@@ -8,7 +8,7 @@
  */
 
 import { assertEquals } from "jsr:@std/assert@1";
-import { plan, type ScheduleWindow } from "./schedule.ts";
+import { plan, precedingEndHm, type ScheduleWindow } from "./schedule.ts";
 
 const RES: ScheduleWindow = { date: "2026-08-10", start_time: "14:00:00", end_time: "18:00:00" };
 
@@ -112,4 +112,35 @@ Deno.test("자정을 넘겨 다음 날 새벽에 끝나는 예약", () => {
   assertEquals(plan(overnight, at("2026-08-23T23:00:00")).fire, []);
   assertEquals(plan(overnight, at("2026-08-24T01:45:00")).fire, ["checkout_soon"]);
   assertEquals(plan(overnight, at("2026-08-24T02:00:00")).fire.includes("checkout"), true);
+});
+
+// ── 앞 예약 겹침 판정(precedingEndHm) — 입실 문자의 "앞 타임 이용 중" 문구 재료 ──
+
+Deno.test("연속 예약 — 앞 예약이 리드타임과 겹치게 끝나면 그 종료 시각을 준다", () => {
+  const prev: ScheduleWindow = { date: "2026-08-10", start_time: "10:00:00", end_time: "14:00:00" };
+  assertEquals(precedingEndHm([prev, RES], RES), "14:00");
+});
+
+Deno.test("앞 예약이 리드타임 전에 끝났으면 null — 붙어 있지 않은 예약", () => {
+  // RES 시작 14:00, 문자 시각 13:50. 13:50에 끝나는 예약은 겹치지 않는다(배타 경계).
+  const prev: ScheduleWindow = { date: "2026-08-10", start_time: "10:00:00", end_time: "13:50:00" };
+  assertEquals(precedingEndHm([prev, RES], RES), null);
+});
+
+Deno.test("자기 자신과 뒤 예약은 앞 예약이 아니다", () => {
+  const later: ScheduleWindow = { date: "2026-08-10", start_time: "18:00:00", end_time: "20:00:00" };
+  assertEquals(precedingEndHm([RES, later], RES), null);
+});
+
+Deno.test("자정을 넘겨 새벽에 끝나는 전날 예약도 앞 예약이다", () => {
+  // 전날 22:00~02:00 예약이 있고, 오늘 02:00 시작 예약의 문자는 01:50에 나간다.
+  const prev: ScheduleWindow = { date: "2026-08-09", start_time: "22:00:00", end_time: "02:00:00" };
+  const r: ScheduleWindow = { date: "2026-08-10", start_time: "02:00:00", end_time: "06:00:00" };
+  assertEquals(precedingEndHm([prev, r], r), "02:00");
+});
+
+Deno.test("겹치는 앞 예약이 여럿이면 가장 늦게 끝나는 시각 — 실제로 공간이 비는 시각", () => {
+  const a: ScheduleWindow = { date: "2026-08-10", start_time: "10:00:00", end_time: "13:55:00" };
+  const b: ScheduleWindow = { date: "2026-08-10", start_time: "11:00:00", end_time: "14:00:00" };
+  assertEquals(precedingEndHm([a, b, RES], RES), "14:00");
 });

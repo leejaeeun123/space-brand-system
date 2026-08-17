@@ -32,6 +32,14 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 손님을 가르는 것은 비밀번호가 아니라 **예약 시간 창**이다. 지금은 `password`를 안 보낸 요청이
 곧 guest이고, guest가 부를 수 있는 action·command는 그대로 서버가 잘라낸다.
 
+**예약이 연달아 붙은 날은 현관 비밀번호만 정각까지 지연된다** (2026-08-18, 형운 결정).
+`guide` 게이트는 입실 안내 문자와 같은 시각(입실 10분 전)에 열리는데, 붙은 예약에서는 그
+10분이 앞 손님의 마지막 10분이다 — 그때 비밀번호를 내려주면 다음 손님이 앞 손님 이용 중에
+문을 연다. 판정(`reservation-window.ts`의 `guideGate`)은 그 겹침 동안 `door_pin`을 null로
+내리고 열리는 시각(`door_pin_available_at`)을 대신 준다. 입실 안내 문자도 같은 날에만
+"앞 타임 이용 중" 한 줄을 싣는다(`sms/schedule.ts`의 `precedingEndHm`). 기기 준비가 앞
+예약에 밀리는 것(`prepDueState`)과 같은 이유·같은 모양의 장치다.
+
 admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의 `admin_*` RPC — 예약자 이름·
 전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이 같은 값을 양쪽에 쓴다). 그래서 admin 판정은
 여전히 비밀번호가 정확히 일치해야 하고, 틀린 값(빈 값 아님)은 guest로 낮추지 않고 401로 막는다 —

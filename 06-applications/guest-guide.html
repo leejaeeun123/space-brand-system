@@ -390,28 +390,42 @@
     if (el) el.textContent = value == null ? '' : String(value);
   }
 
-  fetch(SUPABASE_URL + '/functions/v1/control', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'guide' })
-  }).then(function(res){
-    return res.json().then(function(body){ return { ok: res.ok, body: body }; });
-  }).then(function(r){
-    if (r.ok) {
-      fill('doorPin', r.body.door_pin);
-      fill('wifiSsid', r.body.wifi_ssid);
-      fill('wifiPw', r.body.wifi_password);
-      /* 값을 채운 뒤에 연다 — 순서를 뒤집으면 '···'가 한 프레임 보인다. */
-      setState('open');
-      return;
-    }
-    /* "예약 시간이 아님"과 그 밖의 실패를 갈라서 말한다. 전부 같은 문구로 뭉개면 와이파이가
-       잠깐 끊긴 것도 "아직 안 열렸어요"로 보이고, 손님은 시간을 잘못 안 줄 알고 기다린다.
-       코드로 판정하는 이유는 문구가 바뀌면 문자열 비교가 조용히 깨지기 때문이다. */
-    setState(r.body && r.body.code === 'outside_reservation_window' ? 'closed' : 'error');
-  }).catch(function(){
-    setState('error');
-  });
+  function load(){
+    fetch(SUPABASE_URL + '/functions/v1/control', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'guide' })
+    }).then(function(res){
+      return res.json().then(function(body){ return { ok: res.ok, body: body }; });
+    }).then(function(r){
+      if (r.ok) {
+        if (r.body.door_pin == null) {
+          /* 예약이 연달아 붙은 날의 입실 전 10분 — 앞 손님이 아직 이용 중이라 서버가
+             비밀번호를 아직 안 내려준다(handlers/guide.ts). 시각과 함께 안내하고,
+             앞 이용이 끝나면 저절로 채워지도록 잠시 뒤 다시 묻는다 — 손님이 문 앞에서
+             새로고침할 줄 알아야 열리는 화면을 만들지 않는다. */
+          fill('doorPin', '앞 타임 이용이 ' + (r.body.door_pin_available_at || '입실 시간') + '까지 있어요. 끝나는 대로 여기에 표시돼요.');
+          setTimeout(load, 30000);
+        } else {
+          fill('doorPin', r.body.door_pin);
+        }
+        fill('wifiSsid', r.body.wifi_ssid);
+        fill('wifiPw', r.body.wifi_password);
+        /* 값을 채운 뒤에 연다 — 순서를 뒤집으면 '···'가 한 프레임 보인다. */
+        setState('open');
+        return;
+      }
+      /* "예약 시간이 아님"과 그 밖의 실패를 갈라서 말한다. 전부 같은 문구로 뭉개면 와이파이가
+         잠깐 끊긴 것도 "아직 안 열렸어요"로 보이고, 손님은 시간을 잘못 안 줄 알고 기다린다.
+         코드로 판정하는 이유는 문구가 바뀌면 문자열 비교가 조용히 깨지기 때문이다. */
+      setState(r.body && r.body.code === 'outside_reservation_window' ? 'closed' : 'error');
+    }).catch(function(){
+      /* 재조회 중의 일시 오류로 이미 열린 화면을 '연결 실패'로 되돌리지 않는다 —
+         첫 로드 실패만 error 화면이 된다. */
+      if (root.getAttribute('data-guide') !== 'open') setState('error');
+    });
+  }
+  load();
 })();
 </script>
 </body>

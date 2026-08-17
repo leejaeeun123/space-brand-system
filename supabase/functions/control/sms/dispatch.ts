@@ -11,8 +11,44 @@
 
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { loadConfig, normalizePhone, send } from "./solapi.ts";
-import { formatSlot, render, type SmsKind } from "./templates.ts";
+import { formatSlot, render, type RenderExtra, type SmsKind } from "./templates.ts";
+import { precedingEndHm, type ScheduleWindow } from "./schedule.ts";
 import { notifyExpired, notifyFailed, notifySent, notifyUnknown } from "./notify.ts";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 문구의 조건부 재료를 조회한다 — 지금은 checkin의 "앞 타임 이용 중" 한 줄뿐이다.
+ *
+ * **render를 부르는 모든 곳이 이걸 거쳐야 한다**(발송·no_phone 장부·수동 기록·어드민 미리보기).
+ * 한 곳이라도 빼면 미리보기와 실발송의 문구가 갈라진다 — templates.ts 머리의 원칙 그대로다.
+ *
+ * 조회가 실패해도 문자를 막지 않는다 — 줄 하나가 빠질 뿐이고, 입실 안내가 아예 안 나가는 것보다
+ * 낫다. 다만 조용히 삼키지는 않는다(console.error) — 반복되면 조회 경로가 죽은 것이다.
+ * 앞 예약은 같은 날 행이 대부분이지만 자정을 넘겨 오늘 새벽에 끝나는 전날 행일 수도 있어
+ * 이틀을 읽는다(reservation-window.ts의 fetchWindows와 같은 이유).
+ */
+export async function renderExtra(
+  sb: SupabaseClient,
+  r: Pick<SmsReservation, "date" | "start_time" | "end_time">,
+  kind: SmsKind,
+): Promise<RenderExtra> {
+  if (kind !== "checkin") return {};
+
+  const prevDay = new Date(Date.parse(`${r.date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+  const { data, error } = await sb
+    .from("reservations")
+    .select("date,start_time,end_time")
+    .in("date", [prevDay, r.date])
+    .eq("cancelled", false);
+
+  if (error) {
+    console.error("앞 예약 조회 실패 — 입실 문자가 '앞 타임' 문구 없이 나간다", error);
+    return {};
+  }
+
+  return { prevEndHm: precedingEndHm((data ?? []) as ScheduleWindow[], r) };
+}
 
 /** 문자를 보내는 데 필요한 예약 필드. 예약 행 전체를 알 필요가 없다. */
 export interface SmsReservation {
@@ -69,7 +105,7 @@ export async function dispatch(
   const phone = normalizePhone(r.phone);
   if (!phone) return { status: "no_phone" };
 
-  const body = render(kind, r);
+  const body = render(kind, r, await renderExtra(sb, r, kind));
 
   // 선점. 유니크 인덱스가 겹친 호출 중 하나만 통과시킨다.
   const { data: claimed, error: claimError } = await sb
@@ -154,7 +190,12 @@ export async function markNoPhone(
 ): Promise<boolean> {
   const { error } = await sb
     .from("reservation_sms")
-    .insert({ reservation_id: r.id, kind, status: "no_phone", body: render(kind, r) });
+    .insert({
+      reservation_id: r.id,
+      kind,
+      status: "no_phone",
+      body: render(kind, r, await renderExtra(sb, r, kind)),
+    });
 
   if (error) {
     if (error.code === UNIQUE_VIOLATION) return false;
@@ -185,7 +226,7 @@ export async function markManual(
     kind,
     status: "manual",
     to_phone: normalizePhone(r.phone),
-    body: render(kind, r),
+    body: render(kind, r, await renderExtra(sb, r, kind)),
     sent_at: new Date().toISOString(),
   });
 

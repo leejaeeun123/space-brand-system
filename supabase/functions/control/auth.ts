@@ -48,8 +48,9 @@ export type Role = "admin" | "guest" | "cleaner";
  *  (형운 결정, 2026-08-07). */
 /*
  *  `guide`는 이용 안내 페이지(사이트 루트)가 현관 비밀번호·와이파이를 받아 가는 action이다.
- *  손님 전용이라기보다 **손님에게 열려 있어야 하는** action이고, 시간 게이트가 제어보다 15분
- *  이르다(index.ts에서 `withinGuideWindow`로 분기). 값 자체는 handlers/guide.ts에 있다.
+ *  손님 전용이라기보다 **손님에게 열려 있어야 하는** action이고, 시간 게이트가 제어보다 10분
+ *  이르다 — 입실 안내 문자 시각과 같다(index.ts에서 `guideGate`로 분기). 값 자체는
+ *  handlers/guide.ts에 있다.
  */
 const GUEST_ACTIONS = new Set(["list", "command", "automate", "guide"]);
 

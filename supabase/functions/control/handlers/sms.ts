@@ -10,7 +10,14 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { HandlerError } from "./shared.ts";
 import { targetTime } from "../automation/windows.ts";
-import { dispatch, markExpired, markManual, type SmsReservation, supersede } from "../sms/dispatch.ts";
+import {
+  dispatch,
+  markExpired,
+  markManual,
+  renderExtra,
+  type SmsReservation,
+  supersede,
+} from "../sms/dispatch.ts";
 import { KIND_LABEL, kindsFor, render, SMS_KINDS, type SmsKind } from "../sms/templates.ts";
 import { loadConfig } from "../sms/solapi.ts";
 
@@ -60,12 +67,15 @@ function assertSendable(r: ReservationRow, kind: SmsKind): void {
   }
 }
 
-/** 복사용 문구. 번호가 없어도 부를 수 있어야 한다 — 그게 이 action의 존재 이유다. */
+/**
+ * 복사용 문구. 번호가 없어도 부를 수 있어야 한다 — 그게 이 action의 존재 이유다.
+ * `renderExtra`를 반드시 거친다 — 미리보기가 실발송과 다른 문구를 보여주면 안 된다.
+ */
 export async function preview(sb: SupabaseClient, body: Record<string, unknown>) {
   const kind = parseKind(body);
   const r = await fetchReservation(sb, parseId(body));
   assertSendable(r, kind);
-  return { kind, label: KIND_LABEL[kind], text: render(kind, r) };
+  return { kind, label: KIND_LABEL[kind], text: render(kind, r, await renderExtra(sb, r, kind)) };
 }
 
 /**

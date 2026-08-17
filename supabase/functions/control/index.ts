@@ -16,7 +16,7 @@
 
 import { dbClient } from "./devices.ts";
 import { assertAllowed, resolveRole, scrubDevices, type Role } from "./auth.ts";
-import { withinGuideWindow, withinReservationWindow } from "./reservation-window.ts";
+import { type GuideGate, guideGate, withinReservationWindow } from "./reservation-window.ts";
 import { HandlerError } from "./handlers/shared.ts";
 import { guide } from "./handlers/guide.ts";
 import { list } from "./handlers/list.ts";
@@ -43,10 +43,10 @@ Deno.serve(async (req) => {
   // 응답 헤더는 요청마다 달라진다(오리진 화이트리스트). 그래서 핸들러 안에서 묶는다 —
   // 모듈 수준 상수로 두면 동시 요청이 서로의 오리진을 물려받는다.
   const cors = corsHeaders(req);
-  const json = (body: unknown, status = 200): Response =>
+  const json = (body: unknown, status = 200, extra: Record<string, string> = {}): Response =>
     new Response(JSON.stringify(body), {
       status,
-      headers: { ...cors, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json", ...extra },
     });
 
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -106,15 +106,21 @@ Deno.serve(async (req) => {
     // 여기서 여는 것이 안전한 이유는 auth.ts에 이미 적혀 있다: 대상 예약을 호출자가 고르지
     // 못하고 서버가 지금 시각으로 직접 계산한다(형운 결정, 2026-08-07).
     //
-    // **`guide`만 게이트가 15분 이르다.** 이용 안내 페이지는 손님이 문 앞에서 현관 비밀번호를
-    // 읽는 화면이라 입실 전에 열려야 하고, 그 리드타임은 자동화가 냉난방·조명을 준비하는 시각과
-    // 같은 함수(`isOccupied`)에서 나온다 — reservation-window.ts 참고. 기기 제어는 그대로
-    // 시작 정각부터다: 준비 15분은 앞 손님의 마지막 15분일 수 있어, 그때 제어를 열면 다음
-    // 손님이 앞 손님 방의 조명을 만질 수 있다. 안내 값(비밀번호·와이파이)에는 그 문제가 없다.
+    // **`guide`만 게이트가 10분 이르다.** 이용 안내 페이지는 손님이 문 앞에서 현관 비밀번호를
+    // 읽는 화면이라 입실 전에 열려야 하고, 그 리드타임은 입실 안내 문자 시각(`checkinNoticeAt`)
+    // 에서 나온다 — reservation-window.ts 참고. 기기 제어는 그대로 시작 정각부터다: 리드타임은
+    // 앞 손님의 마지막 10분일 수 있어, 그때 제어를 열면 다음 손님이 앞 손님 방의 조명을 만질 수
+    // 있다. 같은 이유로 **현관 비밀번호도 그 겹침 동안은 응답에서 빠진다** — 판정(`GuideGate`)을
+    // 여기서 받아 handlers/guide.ts에 넘긴다. 어드민 호출은 게이트를 안 거치므로 항상 전부 받는다.
+    let gate: GuideGate | null = null;
     if (role === "guest" && action !== "automate") {
-      const open = action === "guide"
-        ? await withinGuideWindow(sb)
-        : await withinReservationWindow(sb);
+      let open: boolean;
+      if (action === "guide") {
+        gate = await guideGate(sb);
+        open = gate.open;
+      } else {
+        open = await withinReservationWindow(sb);
+      }
       if (!open) {
         return json({ error: "지금은 예약 시간이 아니에요", code: "outside_reservation_window" }, 403);
       }
@@ -140,9 +146,11 @@ Deno.serve(async (req) => {
       case "automate":
         return json(await automate(sb));
 
-      // ── 이용 안내 페이지. 게이트를 통과했다는 것 자체가 응답이다(handlers/guide.ts) ──
+      // ── 이용 안내 페이지. 게이트를 통과했다는 것 자체가 응답이다(handlers/guide.ts).
+      //    비밀번호가 실리는 응답이라 중간 캐시에 남지 않게 no-store를 명시한다 —
+      //    POST라 실제로 캐시될 가능성은 낮지만, 값의 성격상 기본값에 기대지 않는다. ──
       case "guide":
-        return json(guide());
+        return json(guide(gate), 200, { "Cache-Control": "no-store" });
 
       // ── 손님 안내 문자. 전부 admin 전용이다(GUEST_ACTIONS에 없다).
       //    미리보기까지 막는 이유는 문구에 예약 일시가 들어가서다 — 그건 곧 언제 이 공간이

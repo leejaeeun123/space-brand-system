@@ -74,6 +74,33 @@ export function checkinNoticeAt(r: ScheduleWindow): Date {
   return dueAt(r, checkin);
 }
 
+/**
+ * `r`의 리드타임(입실 문자 시각~시작)과 **겹치게 끝나는 앞 예약**의 종료 시각. 없으면 null.
+ *
+ * 입실 안내 문자는 입실 10분 전에 나가는데, 예약이 연달아 붙은 날은 그 10분이 앞 손님의
+ * 마지막 10분이다. 그때 도착한 손님이 바로 문을 열지 않도록, 문자에 "앞 타임 이용 중" 한 줄을
+ * 조건부로 싣는다(형운 결정, 2026-08-18) — 안내 페이지가 같은 겹침 동안 현관 비밀번호를
+ * 지연하는 것(`reservation-window.ts`의 `guideGate`)과 같은 판정의 문자 쪽 짝이다.
+ *
+ * 반환은 KST "HH:MM" — 문구와 `guideGate.pinAvailableAtKst`가 같은 시각을 말해야 한다.
+ * 겹침이 비정상적으로 여럿이면 가장 늦게 끝나는 쪽 — 실제로 공간이 비는 시각이다.
+ */
+export function precedingEndHm(rows: ScheduleWindow[], r: ScheduleWindow): string | null {
+  const start = targetTime(r.date, r.start_time);
+  const noticeAt = checkinNoticeAt(r);
+
+  const ends = rows
+    .filter((p) => targetTime(p.date, p.start_time) < start)
+    .map((p) => endTime(p))
+    .filter((end) => end > noticeAt);
+
+  if (ends.length === 0) return null;
+
+  const latest = new Date(Math.max(...ends.map((e) => e.getTime())));
+  // KST(UTC+9, DST 없음) 벽시계 "HH:MM".
+  return new Date(latest.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(11, 16);
+}
+
 export type SmsDueState = "wait" | "fire" | "expired";
 
 export function stateOf(r: ScheduleWindow, timing: Timing, now: Date): SmsDueState {

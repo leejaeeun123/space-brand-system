@@ -86,7 +86,31 @@ export async function withinReservationWindow(sb: SupabaseClient, now = new Date
 }
 
 /**
- * 이용 안내 페이지(`guest-guide.html`)의 게이트 — **입실 안내 문자와 같은 시각에** 열린다.
+ * 이용 안내 페이지(`guest-guide.html`)의 게이트 판정 결과.
+ *
+ * `open` 하나로는 부족해서 갈랐다. 게이트는 입실 10분 전에 열리는데, 예약이 연달아 붙은 날은
+ * 그 10분이 **앞 손님의 마지막 10분**이다. 페이지가 열리는 것 자체는 문제가 없지만(오시는 길·
+ * 이용법·와이파이는 미리 봐야 쓸모가 있다), 현관 비밀번호는 물리적 입장 권한이라 그 겹침 동안
+ * 내려주면 다음 손님이 앞 손님 이용 중에 문을 열 수 있다(형운 결정, 2026-08-18). 그래서
+ * **비밀번호만** 앞 이용이 끝날 때까지 따로 지연한다 — 기기 준비가 앞 예약에 밀리는 것
+ * (`prepDueState`)과 같은 이유, 같은 모양이다.
+ *
+ * 값이 고정 비밀번호라 지연이 막는 것은 '결심한 조기 입장'이 아니라 **악의 없는 조기 입장**
+ * (문자를 받고 바로 와서 열어보는 손님)이다 — 과거에 예약했던 사람은 이미 값을 안다. 그 한계를
+ * 알고 두는 장치다.
+ */
+export interface GuideGate {
+  open: boolean;
+  /** 현관 비밀번호를 이번 응답에서 뺄 것인가 — 앞 예약이 아직 이용 중인 리드타임에만 true. */
+  pinWithheld: boolean;
+  /** 비밀번호가 열리는 시각(KST "HH:MM"). pinWithheld일 때만 값이 있다. */
+  pinAvailableAtKst: string | null;
+}
+
+const GATE_CLOSED: GuideGate = { open: false, pinWithheld: false, pinAvailableAtKst: null };
+
+/**
+ * 이용 안내 페이지의 게이트 — **입실 안내 문자와 같은 시각에** 열린다.
  *
  * 안내 페이지는 손님이 문 앞에서 현관 비밀번호를 읽는 화면이라, 제어와 달리 입실 **전에**
  * 열려 있어야 쓸모가 있다. 입실 정각에 열리면 그 순간 문 앞에서 못 들어간다.
@@ -100,16 +124,35 @@ export async function withinReservationWindow(sb: SupabaseClient, now = new Date
  * 게이트는 정확히 예정 시각에 열리고 문자는 그 이후에 도착하므로, **문자가 게이트를 앞지르는
  * 경우가 없다.**
  *
- * ⚠️ 기기 준비 시각(`prepTime`, 입실 15분 전)과 **일부러 다르다.** 준비는 앞 예약이 붙어
- * 있으면 앞 손님 퇴실까지 미뤄지는데(`prepDueState`), 안내 값은 앞 손님과 충돌할 게 없어
- * 같이 밀 이유가 없다. 묶으면 앞 예약이 있는 날 손님이 문 앞에서 비밀번호를 못 본다.
+ * 비밀번호 지연 판정은 시각만 본다: 지금이 어떤 예약의 리드타임(문자 시각~시작 전)이고 **동시에**
+ * 다른 예약의 이용 구간([시작, 종료))이 진행 중이면 뺀다. 호출자가 앞 손님인지 다음 손님인지는
+ * 서버가 알 수 없지만 상관없다 — 앞 손님은 이미 그 비밀번호로 들어와 있고, 겹침이 끝나는 순간
+ * (앞 예약 종료 = 대개 다음 예약 시작) 값이 바로 열린다.
  *
  * 실패 시 닫는 태도는 제어와 같다. 다만 닫힘의 대가가 크므로(문 앞에서 비밀번호를 못 본다)
  * 페이지는 이 게이트와 무관하게 **문의 연락처를 항상 보여준다** — 그게 손님의 마지막 경로다.
  */
-export async function withinGuideWindow(sb: SupabaseClient, now = new Date()): Promise<boolean> {
+export async function guideGate(sb: SupabaseClient, now = new Date()): Promise<GuideGate> {
   const rs = await fetchWindows(sb, now);
-  if (!rs) return false;
+  if (!rs) return GATE_CLOSED;
 
-  return rs.some((r) => checkinNoticeAt(r) <= now && now < endTime(r));
+  const open = rs.some((r) => checkinNoticeAt(r) <= now && now < endTime(r));
+  if (!open) return GATE_CLOSED;
+
+  // 지금이 어떤 예약의 리드타임인가(아직 시작 전) + 다른 예약이 이용 중인가.
+  const leadPending = rs.some((r) => checkinNoticeAt(r) <= now && now < targetTime(r.date, r.start_time));
+  const occupying = rs.filter((r) => targetTime(r.date, r.start_time) <= now && now < endTime(r));
+
+  if (!leadPending || occupying.length === 0) {
+    return { open: true, pinWithheld: false, pinAvailableAtKst: null };
+  }
+
+  // 이용 중인 예약이 여럿(데이터 이상)이면 가장 늦게 끝나는 쪽 — 실제로 사람이 나가는 시각이다.
+  const until = new Date(Math.max(...occupying.map((r) => endTime(r).getTime())));
+  return { open: true, pinWithheld: true, pinAvailableAtKst: kstParts(until).time.slice(0, 5) };
+}
+
+/** 게이트의 열림 여부만 필요한 곳을 위한 축약. 판정은 `guideGate` 한 곳이다. */
+export async function withinGuideWindow(sb: SupabaseClient, now = new Date()): Promise<boolean> {
+  return (await guideGate(sb, now)).open;
 }

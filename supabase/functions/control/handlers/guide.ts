@@ -12,8 +12,9 @@
  * 손님이 빈 칸을 본다. 시크릿으로 다루는 것은 ThinQ PAT·service_role 키·웹훅 URL이다.
  *
  * 그래서 여기 있는 값의 성격은 "비밀"이 아니라 **"예약한 사람에게만, 예약 시간에만 준다"**다.
- * 게이트는 `reservation-window.ts`의 `withinGuideWindow`가 하고(입실 15분 전~퇴실),
- * 이 파일은 통과한 요청에 값을 돌려주는 일만 한다.
+ * 게이트는 `reservation-window.ts`의 `guideGate`가 하고(입실 10분 전~퇴실), 이 파일은
+ * 통과한 요청에 값을 돌려주는 일만 한다. 예외 하나 — 예약이 연달아 붙은 날의 리드타임에는
+ * 현관 비밀번호만 판정 결과에 따라 뺀다(아래 `guide()` 참고).
  *
  * ⚠️ **현관 비밀번호를 바꾸면 여기와 실제 도어락 두 곳을 함께 바꾼다.** 한쪽만 바꾸면
  * 손님이 문 앞에서 못 들어오고, 그 사실은 손님이 전화할 때까지 아무 로그에도 안 남는다.
@@ -34,7 +35,10 @@ const WIFI_SSID = "TYPE LOUNGE";
 const WIFI_PASSWORD = "075C62183A";
 
 export interface GuideSecrets {
-  door_pin: string;
+  /** 앞 예약이 아직 이용 중인 리드타임에는 null — 그때 `door_pin_available_at`이 대신 온다. */
+  door_pin: string | null;
+  /** 비밀번호가 열리는 시각(KST "HH:MM"). door_pin이 null일 때만 값이 있다. */
+  door_pin_available_at: string | null;
   wifi_ssid: string;
   wifi_password: string;
 }
@@ -44,7 +48,19 @@ export interface GuideSecrets {
  *
  * DB를 보지 않는다 — 값이 예약마다 다르지 않기 때문이다. 예약별로 달라지는 것(이름·시각)은
  * 손님 화면에 필요 없고, 그건 `admin_*` RPC 뒤에 있어야 하는 개인정보다.
+ *
+ * **현관 비밀번호만 게이트 판정에 따라 뺀다.** 예약이 연달아 붙은 날의 리드타임(입실 10분 전~
+ * 시작)은 앞 손님의 마지막 10분이라, 그때 비밀번호를 내려주면 다음 손님이 앞 손님 이용 중에
+ * 문을 열 수 있다(형운 결정, 2026-08-18 — 근거는 `reservation-window.ts`의 `GuideGate`).
+ * 와이파이는 그대로 둔다 — 입장 권한이 아니고, 문 앞에서 미리 붙어 있어야 편하다.
+ * `gate`가 없으면(어드민 호출) 전부 내려준다.
  */
-export function guide(): GuideSecrets {
-  return { door_pin: DOOR_PIN, wifi_ssid: WIFI_SSID, wifi_password: WIFI_PASSWORD };
+export function guide(gate?: { pinWithheld: boolean; pinAvailableAtKst: string | null } | null): GuideSecrets {
+  const withheld = gate?.pinWithheld ?? false;
+  return {
+    door_pin: withheld ? null : DOOR_PIN,
+    door_pin_available_at: withheld ? (gate?.pinAvailableAtKst ?? null) : null,
+    wifi_ssid: WIFI_SSID,
+    wifi_password: WIFI_PASSWORD,
+  };
 }

@@ -99,11 +99,23 @@ function confirmMessage(r: ReservationForSms): string {
   ].join("\n");
 }
 
-function checkinMessage(): string {
+/**
+ * `prevEndHm`은 앞 예약이 리드타임과 겹치게 끝나는 날에만 온다(`sms/schedule.ts`의
+ * `precedingEndHm`). 그때만 "앞 타임 이용 중" 한 줄을 넣는다 — 앞 예약이 없는 날에
+ * 넣으면 사실이 아니고, 항상 빼면 문자를 받고 바로 온 손님이 앞 손님 이용 중에 문을 연다
+ * (형운 결정, 2026-08-18). 안내 페이지도 같은 겹침 동안 현관 비밀번호를 지연한다.
+ */
+function checkinMessage(prevEndHm: string | null): string {
   return [
     "[타입라운지] 안녕하세요, 곧 입실 시간이네요 :)",
     "",
     "10분 후 입실 가능하십니다. 오시는 길에 헤매지 않으시도록 다시 한 번 안내드려요.",
+    ...(prevEndHm
+      ? [
+        "",
+        `앞 타임에 이용 중인 분이 계셔서, 현관 비밀번호는 ${prevEndHm}부터 안내 페이지에 표시돼요. 입실 시간에 맞춰 들어와 주시면 감사하겠습니다 :)`,
+      ]
+      : []),
     "",
     `주소: ${ADDRESS}`,
     "",
@@ -174,15 +186,25 @@ export function kindsFor(r: ReservationForSms): SmsKind[] {
   return SMS_KINDS.filter((k) => k !== "deposit" || r.deposit_required);
 }
 
+/**
+ * 종류별 조건부 재료. 순수 함수 원칙을 지키려고 조회는 호출부(`dispatch.ts`의 `renderExtra`)가
+ * 하고, 여기는 받은 값으로 문구만 만든다. **모든 render 호출부가 같은 재료를 넘겨야 한다** —
+ * 한 곳이라도 빼먹으면 미리보기·장부·실발송의 문구가 갈라진다.
+ */
+export interface RenderExtra {
+  /** checkin 전용 — 리드타임과 겹치게 끝나는 앞 예약의 종료 시각(KST "HH:MM"). */
+  prevEndHm?: string | null;
+}
+
 /** 종류 + 예약 → 실제로 보낼 본문. */
-export function render(kind: SmsKind, r: ReservationForSms): string {
+export function render(kind: SmsKind, r: ReservationForSms, extra: RenderExtra = {}): string {
   switch (kind) {
     case "deposit":
       return depositMessage();
     case "confirm":
       return confirmMessage(r);
     case "checkin":
-      return checkinMessage();
+      return checkinMessage(extra.prevEndHm ?? null);
     case "checkout_soon":
       return checkoutSoonMessage();
     case "checkout":

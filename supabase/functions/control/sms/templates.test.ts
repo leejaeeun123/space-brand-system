@@ -120,3 +120,13 @@ Deno.test("퇴실 시간 안내 — 확인하지 않은 것을 확인했다고 �
   assertStringIncludes(render("checkout", reservation({ deposit_required: true })), condition);
   assertStringIncludes(render("deposit", reservation({ deposit_required: true })), condition);
 });
+
+Deno.test("입실 안내 — 앞 예약이 붙은 날에만 '앞 타임 이용 중' 문구가 들어간다 (형운 결정 2026-08-18)", () => {
+  const withPrev = render("checkin", reservation(), { prevEndHm: "14:00" });
+  assertStringIncludes(withPrev, "앞 타임에 이용 중인 분이 계셔서");
+  assertStringIncludes(withPrev, "현관 비밀번호는 14:00부터 안내 페이지에 표시돼요");
+
+  // 앞 예약이 없는 날에는 사실이 아닌 문장을 넣지 않는다.
+  const without = render("checkin", reservation());
+  assertEquals(without.includes("앞 타임"), false);
+});
