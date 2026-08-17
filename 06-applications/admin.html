@@ -379,7 +379,11 @@
 <div id="gate">
   <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
   <div>
-    <!-- 회전 후 비밀번호는 숫자 PIN이 아니다(admin_set_password 최소 16자) — inputmode=numeric과 maxlength=12가 입력 자체를 막는다. -->
+    <!-- 길이·문자 종류를 여기서 제한하지 않는다. inputmode=numeric과 maxlength=12였던 시절엔
+         숫자 PIN을 전제했고, 회전 후 값이 길어지면서 그 두 속성이 입력 자체를 막았다(#83).
+         최소 길이 바닥도 이제 없으므로(20260817000000) 짧은 값·긴 값·숫자·영문이 다 들어와야
+         한다 — 판정은 서버(admin_check)가 하고, 화면은 받아 넘기는 일만 한다. -->
+
     <input type="password" id="pw" placeholder="비밀번호" maxlength="64">
   </div>
   <button onclick="tryUnlock()">입장</button>
