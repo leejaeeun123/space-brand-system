@@ -6,6 +6,7 @@
 
 import mqtt from "mqtt";
 import { UPSTREAM_PREFIXES } from "./state.js";
+import { noteBridgeState, noteBridgeUnknown } from "./bridge-health.js";
 
 // AWS IoT는 QoS 2를 지원하지 않아 Space는 QoS 1로 고정했다. 여기 브로커는 mosquitto라
 // QoS 2도 되지만, 굳이 다르게 갈 이유가 없어 1로 맞춘다(중복 수신은 멱등 upsert가 흡수).
@@ -20,23 +21,8 @@ const QOS = 1;
  */
 const BRIDGE_STATE_TOPIC = "$SYS/broker/connection/rpi-bridge/state";
 
-/** true=붙음, false=끊김, **null=모름**(브릿지 없는 브로커거나 아직 안 받음). */
-let bridgeUp = null;
-
-/**
- * ⚠️ **이 값은 배달 경로 판정에 쓰지 않는다 — 관측용이다.**
- *
- * 예전에는 `decideDelivery`가 이걸 보고 "브릿지가 죽었으면 기다리지 말고 바로 HTTP"로
- * 갈랐다. 지금은 mosquitto가 같은 `cmnd/#`를 AWS IoT Core로도 항상 병렬로 내보내므로
- * (mosquitto.conf의 aws-iot-cmnd-bridge) 이 브릿지가 죽었다는 게 유실 확정이 아니고,
- * 그 상태에서 HTTP로 직행하면 AWS로 나간 사본이 확인될 기회를 뺏는다.
- *
- * **다시 `decideDelivery`에 연결하지 말 것.** 그러면 병렬 경로를 만든 이유가 사라진다.
- * 남겨둔 이유는 아래 상태 전이 로그다 — "조명이 왜 느리지"를 추적할 때 첫 단서가 된다.
- */
-export function isBridgeUp() {
-  return bridgeUp;
-}
+// 브릿지 생사의 보관·판정은 bridge-health.js가 한다 — 여기는 관측을 넣는 쪽이다.
+// "명령 배달 판정에 쓰지 말 것" 경고도 그 파일로 옮겨 갔다(decideDelivery 이력 포함).
 
 export function connectMqtt(cfg, { onMessage, onConnect }) {
   const client = mqtt.connect(cfg.mqttUrl, {
@@ -62,9 +48,10 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
 
   client.on("message", (topic, payload) => {
     if (topic === BRIDGE_STATE_TOPIC) {
-      bridgeUp = payload.toString().trim() === "1";
+      const up = payload.toString().trim() === "1";
+      noteBridgeState(up);
       console.log(
-        `[mqtt] rpi-bridge ${bridgeUp ? "연결됨" : "끊김 — 명령은 AWS 경로로 갑니다(확인 없으면 HTTP 우회)"}`,
+        `[mqtt] rpi-bridge ${up ? "연결됨" : "끊김 — 명령은 AWS 경로로 갑니다(확인 없으면 HTTP 우회)"}`,
       );
       return;
     }
@@ -80,9 +67,8 @@ export function connectMqtt(cfg, { onMessage, onConnect }) {
   client.on("reconnect", () => console.log("[mqtt] 재접속 시도..."));
   client.on("close", () => {
     console.log("[mqtt] 연결 끊김");
-    // 끊긴 동안 브릿지가 어떻게 됐는지 알 길이 없다. 마지막 값을 붙들고 있으면
-    // 재접속 직후 낡은 정보로 판단하게 되므로 '모름'으로 되돌린다(retained라 곧 다시 온다).
-    bridgeUp = null;
+    // 끊긴 동안 브릿지가 어떻게 됐는지 알 길이 없다 — '모름'으로 되돌린다(bridge-health.js).
+    noteBridgeUnknown();
   });
 
   return client;

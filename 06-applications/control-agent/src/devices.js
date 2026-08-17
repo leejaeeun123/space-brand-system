@@ -46,17 +46,23 @@ export class DeviceRegistry {
   /**
    * 상태 캐시 갱신. reported_at은 **기기가 보고한 시각**이라 여기서 채운다 —
    * 이 값이 있어야 화면이 '언제 적 상태인지'를 정직하게 말할 수 있다.
+   *
+   * 그래서 `reported: false`(기기 보고가 아닌 갱신 — 지금은 HTTP 폴링 실패로 online만
+   * 내리는 경우뿐)면 reported_at을 **빼고** upsert한다. 넣으면 무응답 기간이 화면에서
+   * 방금 본 것처럼 신선해진다. 빼면 기존 행은 그 컬럼이 유지되고(PostgREST upsert는 보낸
+   * 컬럼만 갱신한다), 첫 행이면 null(보고받은 적 없음)로 남는다 — 둘 다 정직한 값이다.
    */
-  async saveState(deviceId, { online, power }) {
+  async saveState(deviceId, { online, power }, { reported = true } = {}) {
     const now = new Date().toISOString();
-    const { error } = await this.sb.from("device_state").upsert({
+    const row = {
       device_id: deviceId,
       online,
       power,
       attrs: {},
-      reported_at: now,
       updated_at: now,
-    });
+    };
+    if (reported) row.reported_at = now;
+    const { error } = await this.sb.from("device_state").upsert(row);
     if (error) console.error("[devices] 상태 저장 실패:", error.message);
   }
 

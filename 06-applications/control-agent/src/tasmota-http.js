@@ -119,12 +119,17 @@ export async function sendHttpCommand(address, cmnd) {
  * 메운다. **power는 안 건드린다** — '모름을 꺼짐으로 합치지 않는다'는 원칙은 그대로다,
  * 이번에 내리는 건 online 하나뿐이다.
  *
+ * 실패 델타에는 `reported: false`를 얹는다 — 이건 기기의 보고가 아니라 **우리의 실패 관측**이라
+ * `reported_at`("기기가 보고한 시각", devices.js)을 갱신하면 안 되기 때문이다. 갱신하면 기기가
+ * 몇 시간째 무응답인데도 화면의 '언제 적 상태인지'가 방금처럼 보인다. 성공 델타에는 이 축이
+ * 없다(없음 = 기기 보고) — 다른 델타 생산자(state.js parsePayload)를 전부 고치지 않기 위해서다.
+ *
  * 응답은 왔는데(`ok`) 본문에 전원값이 없으면 그건 다른 종류의 모름이다 — 기기가 답했다는
  * 사실 자체는 있으니 그걸로 online을 단정하지 않고 null(진짜 모름)을 그대로 돌려준다.
  */
 export async function pollHttpState(address) {
   const { ok, body } = await request(address, "Status 0", "상태 조회");
-  if (!ok) return { online: false, power: null };
+  if (!ok) return { online: false, power: null, reported: false };
   const power = extractPower(body);
   if (power === null) {
     console.error(`[http] ${address} 응답에 전원값이 없습니다 — 상태를 쓰지 않습니다`);

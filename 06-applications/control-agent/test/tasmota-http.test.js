@@ -47,7 +47,9 @@ test("타임아웃/네트워크 오류: power는 OFF를 지어내지 않고, onl
 
   const state = await pollHttpState("test-light");
   // power에 'OFF'를 지어내면 '못 읽었다'가 '꺼졌다'로 둔갑한다 — online만 내린다.
-  assert.deepEqual(state, { online: false, power: null });
+  // reported:false는 "기기 보고가 아니다"의 표식 — 이게 없으면 실패 관측이 reported_at을
+  // 갱신해, 무응답 기기의 상태가 화면에서 방금 것처럼 보인다.
+  assert.deepEqual(state, { online: false, power: null, reported: false });
 
   const sent = await sendHttpCommand("test-light", "POWER ON");
   assert.equal(sent.ok, false);
@@ -61,7 +63,11 @@ test("타임아웃/네트워크 오류: power는 OFF를 지어내지 않고, onl
 test("비 2xx 응답도 실패로 다룬다 — power는 안 쓰고 online만 false", async () => {
   global.fetch = async () => ({ ok: false, status: 500, json: async () => ({ POWER: "OFF" }) });
 
-  assert.deepEqual(await pollHttpState("test-light"), { online: false, power: null });
+  assert.deepEqual(await pollHttpState("test-light"), {
+    online: false,
+    power: null,
+    reported: false,
+  });
   const sent = await sendHttpCommand("test-light", "POWER ON");
   assert.equal(sent.ok, false);
   // 본문에 OFF가 있어도 500이면 읽지 않는다. 실패한 응답의 본문은 근거가 아니다.
@@ -78,7 +84,11 @@ test("깨진 JSON도 실패로 다룬다", async () => {
     },
   });
 
-  assert.deepEqual(await pollHttpState("test-light"), { online: false, power: null });
+  assert.deepEqual(await pollHttpState("test-light"), {
+    online: false,
+    power: null,
+    reported: false,
+  });
   assert.equal(errors.length, 1);
 });
 
@@ -106,7 +116,11 @@ test("IP를 모르면 요청 자체를 안 하고, 이유를 구분해서 돌려
 
   // 상태 조회 쪽도 같은 이유로 online:false — IP를 몰라 확인할 방법이 아예 없는 것도
   // '지금 확인 안 됨'이라는 점에서 응답 없음과 같은 취급이다.
-  assert.deepEqual(await pollHttpState("아직-모르는-기기"), { online: false, power: null });
+  assert.deepEqual(await pollHttpState("아직-모르는-기기"), {
+    online: false,
+    power: null,
+    reported: false,
+  });
 });
 
 test("성공하면 기기가 답한 실제 전원값을 돌려준다", async () => {

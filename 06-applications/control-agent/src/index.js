@@ -27,7 +27,8 @@ import { createClient } from "@supabase/supabase-js";
 import WebSocket from "ws";
 import { loadConfig } from "./config.js";
 import { DeviceRegistry } from "./devices.js";
-import { connectMqtt, isBridgeUp, queryInitialState } from "./mqtt.js";
+import { connectMqtt, queryInitialState } from "./mqtt.js";
+import { needsHttpResync } from "./bridge-health.js";
 import { subscribeCommands } from "./commands.js";
 import { mergeState, parsePayload, parseTopic } from "./state.js";
 import { startCameraReporter } from "./cameras.js";
@@ -58,7 +59,11 @@ async function applyState(address, delta) {
     return;
   }
   const current = await registry.currentState(device.id);
-  await registry.saveState(device.id, mergeState(current, delta));
+  // `reported: false`는 기기 보고가 아닌 델타(HTTP 폴링 실패)의 표식이다 — reported_at을
+  // 갱신하지 않게 saveState에 그대로 전한다. 축이 없으면 기기 보고다(tasmota-http.js 주석).
+  await registry.saveState(device.id, mergeState(current, delta), {
+    reported: delta.reported !== false,
+  });
   return device;
 }
 
@@ -145,7 +150,11 @@ async function main() {
     // 브릿지가 끊긴 동안엔 위 MQTT 재질의가 의미가 없다(질의도 응답도 그 경로로 못 온다) —
     // 대신 HTTP로 직접 읽는다. 같은 5분 주기에 얹은 이유: 별도 타이머를 만들 만큼 급한 값이
     // 아니고, ESP8266이 동시 요청에 약해 폴링 빈도를 늘릴수록 부담만 커진다.
-    if (isBridgeUp() === false) {
+    //
+    // 판정은 bridge-health.js가 한다 — '끊김 확정'뿐 아니라 **브로커 자체가 안 붙어 생사를
+    // 모르는 상태**(예전 `=== false`의 사각지대)도 유예를 넘기면 여기로 온다. 그 동안도
+    // stat은 안 오므로, 안 읽으면 픽스가 메우려던 화면 얼어붙음이 그 경로로 그대로 남는다.
+    if (needsHttpResync()) {
       pollBridgeDownState(registry.addresses).catch((e) =>
         console.error("[state] HTTP 재동기화 실패:", e.message),
       );
