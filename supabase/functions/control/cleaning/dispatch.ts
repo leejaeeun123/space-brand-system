@@ -102,6 +102,18 @@ async function claim(
 }
 
 /**
+ * 발송·알림 의존성. **테스트가 smsOnly 경계를 3중으로 재기 위해서만 존재한다** —
+ * 장부(insert payload)에 비밀번호가 없고, 문자(send text)에는 있고, 실패 알림(error)에는
+ * 없다는 것을 진짜 벤더·채널 없이 assert하려면 이 두 함수를 갈아끼울 자리가 필요하다.
+ * 프로덕션 호출부는 이 인자를 쓰지 않는다(기본값이 실제 구현).
+ */
+export interface DispatchDeps {
+  send: typeof send;
+  notifySent: typeof notifySent;
+  notifyFailed: typeof notifyFailed;
+}
+
+/**
  * 한 통 보낸다.
  *
  * 실패해도 예외를 던지지 않는다 — 스윕이 여기서 넘어지면 그 뒤 흐름이 통째로 멈춘다.
@@ -113,13 +125,14 @@ export async function dispatch(
   cfg: SolapiConfig,
   phone: string,
   out: Outgoing,
+  deps: DispatchDeps = { send, notifySent, notifyFailed },
 ): Promise<DispatchStatus> {
   const id = await claim(sb, out, "sending", phone);
   if (id === null) return "already";
 
   // 비밀번호 블록은 **여기서만** 붙는다. claim(장부)과 notify(채널)는 위아래로 `out.body`를
   // 그대로 보므로, 이 한 줄이 "문자에만 간다"의 전부다.
-  const result = await send(cfg, phone, out.smsOnly ? `${out.body}\n\n${out.smsOnly}` : out.body);
+  const result = await deps.send(cfg, phone, out.smsOnly ? `${out.body}\n\n${out.smsOnly}` : out.body);
 
   if (result.ok) {
     // 여기서 함수가 죽으면 행이 'sending'에 남아 다음 시도를 막는다 — **안전한 쪽으로 죽는다.**
@@ -128,14 +141,14 @@ export async function dispatch(
       .from("cleaning_sms")
       .update({ status: "sent", sent_at: new Date().toISOString(), group_id: result.groupId })
       .eq("id", id);
-    await notifySent(out.kind, out.body, Boolean(out.smsOnly));
+    await deps.notifySent(out.kind, out.body, Boolean(out.smsOnly));
     return "sent";
   }
 
   await sb.from("cleaning_sms").update({ status: "failed", error: result.error }).eq("id", id);
   // 실패 알림에도 비밀번호는 안 싣는다. 형운이 손으로 보낼 때 필요한 값이지만, 형운은 그 값을
   // 이미 알고 있고 — 채널에 남기는 대가가 그 편의보다 크다.
-  await notifyFailed(out.kind, out.body, result.error, Boolean(out.smsOnly));
+  await deps.notifyFailed(out.kind, out.body, result.error, Boolean(out.smsOnly));
   return "failed";
 }
 

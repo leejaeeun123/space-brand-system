@@ -8,7 +8,7 @@
  */
 
 import { assertEquals } from "jsr:@std/assert@1";
-import { isoDate, normalizePhone, sign } from "./solapi.ts";
+import { describeRejected, isoDate, normalizePhone, sign } from "./solapi.ts";
 
 Deno.test("sign — RFC 알려진 벡터와 일치한다", async () => {
   // HMAC-SHA256(key="key", msg="The quick brown fox jumps over the lazy dog")
@@ -42,6 +42,37 @@ Deno.test("normalizePhone — 사람이 적는 형태를 전부 받는다", () =
   for (const [raw, expected] of cases) {
     assertEquals(normalizePhone(raw), expected, `입력: ${raw}`);
   }
+});
+
+Deno.test("describeRejected — 아는 필드(statusCode·statusMessage·to)만 싣는다", () => {
+  assertEquals(
+    describeRejected({ statusCode: "1061", statusMessage: "잔액 부족", to: "01048109142" }),
+    "1061: 잔액 부족 (to: 01048109142)",
+  );
+});
+
+Deno.test("describeRejected — 필드가 없어도 항목을 stringify로 덮지 않는다", () => {
+  assertEquals(describeRejected({}), "거절: 사유 미기재");
+  assertEquals(describeRejected(undefined), "거절: 사유 미기재");
+});
+
+/**
+ * **이 테스트가 지키는 경계**: 벤더가 실패 항목에 요청 원문(`text`)을 에코하는 응답 형태여도
+ * 그 원문이 error에 실리면 안 된다. error는 `cleaning_sms.error`(장부)와 Mattermost 채널로
+ * 그대로 흐르는데, 아침 청소 문자의 원문에는 `smsOnly`로 장부·채널에서 떼어낸 현관·어드민
+ * 비밀번호가 붙어 있다 — 에코가 통과하면 그 분리가 실패 한 번에 무너진다.
+ */
+Deno.test("describeRejected — 벤더가 요청 원문을 에코해도 error에 실리지 않는다", () => {
+  const echoed = {
+    statusCode: "3049",
+    to: "01048109142",
+    text: "[타입라운지] 청소 안내\n\n■ 출입\n현관 비밀번호 7204863",
+    customFields: { raw: "현관 비밀번호 7204863" },
+  };
+  const error = describeRejected(echoed);
+  assertEquals(error.includes("7204863"), false);
+  assertEquals(error.includes("현관"), false);
+  assertEquals(error, "3049: 사유 미기재 (to: 01048109142)");
 });
 
 Deno.test("normalizePhone — 문자를 못 받는 번호는 전부 null", () => {

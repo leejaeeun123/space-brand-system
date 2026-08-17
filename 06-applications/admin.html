@@ -382,9 +382,13 @@
     <!-- 길이·문자 종류를 여기서 제한하지 않는다. inputmode=numeric과 maxlength=12였던 시절엔
          숫자 PIN을 전제했고, 회전 후 값이 길어지면서 그 두 속성이 입력 자체를 막았다(#83).
          최소 길이 바닥도 이제 없으므로(20260817000000) 짧은 값·긴 값·숫자·영문이 다 들어와야
-         한다 — 판정은 서버(admin_check)가 하고, 화면은 받아 넘기는 일만 한다. -->
+         한다 — 판정은 서버(admin_check)가 하고, 화면은 받아 넘기는 일만 한다.
+         maxlength=72인 이유: 서버는 상한이 없지만 bcrypt는 72바이트까지만 본다 — 그보다 긴
+         값을 심으면 73번째 글자부터는 있으나 없으나 통과라, 화면이 72에서 자르는 것이
+         '심은 값과 입력한 값이 다른데 로그인이 된다'는 혼란보다 낫다. 64였던 시절에는
+         65자 이상을 심으면 화면이 입력을 잘라 #83과 같은 함정이 상한만 옮겨져 남아 있었다. -->
 
-    <input type="password" id="pw" placeholder="비밀번호" maxlength="64">
+    <input type="password" id="pw" placeholder="비밀번호" maxlength="72">
   </div>
   <button onclick="tryUnlock()">입장</button>
   <div class="error" id="pwError"></div>

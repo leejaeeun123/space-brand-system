@@ -135,6 +135,26 @@ export function classifyHttpFailure(status: number): SendFailure {
 }
 
 /**
+ * HTTP 200 안의 건별 거절에서 사람이 읽을 사유를 뽑는다 — 순수 함수(테스트가 여기 붙는다).
+ *
+ * **아는 필드만 골라 싣는다.** 예전에는 `statusMessage`가 없으면 실패 항목 전체를
+ * `JSON.stringify`로 폴백했는데, 벤더가 항목에 요청 원문(`text`)을 에코하는 응답 형태면
+ * 발송 전문이 error에 통째로 실린다. 이 error는 `cleaning_sms.error`(장부)와 Mattermost
+ * 채널로 그대로 흐르므로(cleaning/dispatch.ts), `smsOnly`로 장부·채널에서 떼어낸 비밀번호가
+ * 실패 한 번에 두 곳으로 되돌아오는 경로였다 — 여기서 끊는다.
+ */
+export function describeRejected(first: Record<string, unknown> | undefined): string {
+  const code = typeof first?.statusCode === "string" || typeof first?.statusCode === "number"
+    ? String(first.statusCode)
+    : "거절";
+  const message = typeof first?.statusMessage === "string" && first.statusMessage !== ""
+    ? first.statusMessage
+    : "사유 미기재";
+  const to = typeof first?.to === "string" && first.to !== "" ? ` (to: ${first.to})` : "";
+  return `${code}: ${message}${to}`;
+}
+
+/**
  * 한 통 보낸다. **어떤 예외도 밖으로 던지지 않는다.**
  *
  * `type`을 명시하는 이유: 자동 판별에 맡기면 문구를 조금 줄였을 때 조용히 SMS로 떨어져
@@ -167,12 +187,11 @@ export async function send(cfg: SolapiConfig, to: string, text: string): Promise
   const body = payload as Record<string, unknown> | null;
   const failed = body?.failedMessageList;
   if (Array.isArray(failed) && failed.length > 0) {
-    const first = failed[0] as Record<string, unknown>;
     return {
       ok: false,
       // 벤더가 HTTP 200으로 받았지만 이 건을 확정 거절했다 — 재시도해도 같다.
       failure: "rejected",
-      error: `${first?.statusCode ?? "거절"}: ${first?.statusMessage ?? JSON.stringify(first)}`,
+      error: describeRejected(failed[0] as Record<string, unknown>),
     };
   }
 

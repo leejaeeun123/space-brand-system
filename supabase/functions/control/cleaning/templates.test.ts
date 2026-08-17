@@ -144,24 +144,33 @@ Deno.test("변경 안내 — 추가·취소·변경과 재계산된 청소 창",
   ]);
 });
 
-Deno.test("빽빽한 하루도 LMS 상한(2000바이트) 안에 들어간다", () => {
+Deno.test("빽빽한 하루도 LMS 상한(2000바이트) 안에 들어간다 — 실발송 문자열로 잰다", () => {
   // SOLAPI LMS는 2000바이트다. 넘으면 벤더가 거절하는데 그 실패는 발송 시점에야 보인다.
   // 손님 문구와 달리 여기는 **길이가 그날 예약 수에 비례**해서 자라므로 상한을 재둔다.
   // 30분 간격으로 붙인 12건 — 전용 52.49㎡ 단일 공간에서 현실적으로 가능한 최대치를 넘는다.
+  //
+  // **다이제스트만 재면 실발송과 다른 것을 잰다.** 아침 문자는 dispatch.ts가 발송 직전에
+  // `body + "\n\n" + accessBlock(...)`(smsOnly)을 합쳐 보낸다 — 상한을 넘는 날 가장 먼저
+  // 거절되는 것이 하필 비밀번호가 실린 그 한 통이므로, 합산 문자열로 잰다.
   const packed = Array.from({ length: 12 }, (_, i) => {
     const h = String(8 + i).padStart(2, "0");
     return res(`r${i}`, `${h}:00`, `${h}:20`, { name: "홍길동", guests: 8, purpose: "촬영 스튜디오" });
   });
-  const bytes = new TextEncoder().encode(digest(packed, kst("07:00"))).length;
+  // 픽스처 값은 실값과 무관하게 자릿수만 맞춘다 — 어드민은 상한 없는 값의 현실적 최대치로 16자.
+  const smsText = `${digest(packed, kst("07:00"))}\n\n${accessBlock("0000000", "X".repeat(16))}`;
+  const bytes = new TextEncoder().encode(smsText).length;
   assertEquals(bytes < 2000, true, `${bytes}바이트`);
 });
 
 // ── 출입·어드민 안내 블록 ──
 
+// 픽스처 값은 실값과 무관하게 짓는다. 특히 어드민 픽스처를 현관 값의 재배열로 짓지 않는다 —
+// 20260817000000 주석이 경고하는 바로 그 패턴("재배열이면 탐색 공간이 순열 수로 준다")을
+// 테스트가 예시로 보여주면, 예시가 관행이 된다.
 Deno.test("접근 안내 — 현관과 어드민이 한 블록에 담긴다", () => {
-  const b = accessBlock("1010123", "1231010");
-  assertStringIncludes(b, "현관 비밀번호 1010123");
-  assertStringIncludes(b, "비밀번호 1231010");
+  const b = accessBlock("7204863", "TL-adm-2468");
+  assertStringIncludes(b, "현관 비밀번호 7204863");
+  assertStringIncludes(b, "비밀번호 TL-adm-2468");
   assertStringIncludes(b, "/admin");
   assertStringIncludes(b, "외부에 공유하지 말아 주세요");
 });
@@ -172,8 +181,8 @@ Deno.test("접근 안내 — 현관과 어드민이 한 블록에 담긴다", ()
  * 값이 지워진 줄 알고 연락하게 된다.
  */
 Deno.test("어드민 비밀번호가 없으면 그 블록만 빠진다 — 현관은 남는다", () => {
-  const b = accessBlock("1010123", null);
-  assertStringIncludes(b, "현관 비밀번호 1010123");
+  const b = accessBlock("7204863", null);
+  assertStringIncludes(b, "현관 비밀번호 7204863");
   assertEquals(b.includes("어드민"), false);
   assertEquals(b.includes("비밀번호 null"), false);
   assertEquals(/비밀번호 $/m.test(b), false);
@@ -186,8 +195,9 @@ Deno.test("어드민 비밀번호가 없으면 그 블록만 빠진다 — 현�
  */
 Deno.test("비밀번호는 다이제스트 본문에 없다 — 문자 발송 경로에서만 붙는다", () => {
   const body = digest([res("a", "09:00", "12:00")], kst("07:00"));
-  assertEquals(body.includes("1010123"), false);
-  assertEquals(body.includes("1231010"), false);
+  // 값이 아니라 **블록의 표식**으로 잰다 — 값 문자열 검사는 픽스처가 바뀌면 헛것을 재고,
+  // 진짜 값을 여기 적으면 테스트가 평문 보관처가 된다.
   assertEquals(body.includes("현관"), false);
   assertEquals(body.includes("어드민"), false);
+  assertEquals(body.includes("비밀번호"), false);
 });
