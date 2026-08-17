@@ -742,11 +742,28 @@ CCTV 자격증명 · 기기 전원을 **전부** 여는 단일 열쇠다. 그런
 supabase db push          # 20260813100000(시도 제한) · 110000(admin_secret + admin_check) 등
 ```
 
-**2) 새 비밀번호를 심는다** — SQL 편집기에서 한 번만. **값은 레포에 적지 않는다.**
+**2) 새 비밀번호를 심는다** — **값은 레포에 적지 않는다.**
+
+SQL 편집기에서:
 
 ```sql
 select public.admin_set_password('<새 비밀번호>');
 ```
+
+**CLI만으로도 된다**(2026-08-17 실측). 대시보드를 안 열어도 되므로 자주 회전할 때 이 경로가 빠르다 —
+`supabase login`이 돼 있으면 service_role 키를 받아 PostgREST RPC로 같은 함수를 부른다. 성공은 `204`다.
+
+```bash
+SR=$(supabase projects api-keys --project-ref sewqusncgznypjigmfde \
+  | awk '/service_role/ {print $3}')
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  "https://sewqusncgznypjigmfde.supabase.co/rest/v1/rpc/admin_set_password" \
+  -H "apikey: $SR" -H "Authorization: Bearer $SR" -H "Content-Type: application/json" \
+  -d '{"p_password":"<새 비밀번호>"}'
+```
+
+> ⚠️ **service_role 키를 화면에 띄우지 않는다.** 위처럼 변수로 받아 쓰고, 셸 히스토리에 비밀번호가
+> 남는 것도 이 호출의 성질이다(SQL 편집기 기록과 같은 조건) — 심은 뒤 히스토리를 지운다.
 
 **빈 값만 거부한다** — 최소 길이 제한은 없다(`20260817000000`, 형운 결정 2026-08-17).
 처음엔 16자 바닥이 있었지만, 값을 자주 바꾸는 운영으로 가면서 없앴다: 16자를 매번 새로 만들어
