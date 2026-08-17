@@ -11,7 +11,7 @@
 import { assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { buildSnapshot } from "./diff.ts";
 import { compare } from "./diff.ts";
-import { digestMessage, updateMessage } from "./templates.ts";
+import { accessBlock, digestMessage, updateMessage } from "./templates.ts";
 import { type CleaningReservation, planCleaning, remaining } from "./windows.ts";
 
 const DAY = "2026-08-09"; // 일요일
@@ -154,4 +154,40 @@ Deno.test("빽빽한 하루도 LMS 상한(2000바이트) 안에 들어간다", (
   });
   const bytes = new TextEncoder().encode(digest(packed, kst("07:00"))).length;
   assertEquals(bytes < 2000, true, `${bytes}바이트`);
+});
+
+// ── 출입·어드민 안내 블록 ──
+
+Deno.test("접근 안내 — 현관과 어드민이 한 블록에 담긴다", () => {
+  const b = accessBlock("1010123", "1231010");
+  assertStringIncludes(b, "현관 비밀번호 1010123");
+  assertStringIncludes(b, "비밀번호 1231010");
+  assertStringIncludes(b, "/admin");
+  assertStringIncludes(b, "외부에 공유하지 말아 주세요");
+});
+
+/**
+ * 어드민 비밀번호가 없는 상태(시크릿 미설정)에서도 현관 안내는 나가야 한다 — 담당자가 문을
+ * 못 여는 것이 조명을 못 켜는 것보다 먼저 막힌다. 빈 줄로 '비밀번호 ' 만 나가면 담당자가
+ * 값이 지워진 줄 알고 연락하게 된다.
+ */
+Deno.test("어드민 비밀번호가 없으면 그 블록만 빠진다 — 현관은 남는다", () => {
+  const b = accessBlock("1010123", null);
+  assertStringIncludes(b, "현관 비밀번호 1010123");
+  assertEquals(b.includes("어드민"), false);
+  assertEquals(b.includes("비밀번호 null"), false);
+  assertEquals(/비밀번호 $/m.test(b), false);
+});
+
+/**
+ * **이 블록은 다이제스트 본문에 들어가면 안 된다.** 본문(`body`)은 문자·DB 장부·Mattermost
+ * 세 곳으로 가므로, 여기 섞이면 비밀번호가 장부에 영구히 남고 채널에도 평문으로 올라간다.
+ * 문자에 붙이는 일은 `dispatch.ts`가 발송 직전에만 한다(`Outgoing.smsOnly`).
+ */
+Deno.test("비밀번호는 다이제스트 본문에 없다 — 문자 발송 경로에서만 붙는다", () => {
+  const body = digest([res("a", "09:00", "12:00")], kst("07:00"));
+  assertEquals(body.includes("1010123"), false);
+  assertEquals(body.includes("1231010"), false);
+  assertEquals(body.includes("현관"), false);
+  assertEquals(body.includes("어드민"), false);
 });

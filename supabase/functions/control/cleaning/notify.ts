@@ -8,6 +8,11 @@
  * 본문을 코드 블록으로 감싼다 — `+ 추가` 같은 줄이 마크다운 불릿으로 렌더되면 담당자가
  * 실제로 받은 문자와 채널에 보이는 것이 달라진다.
  *
+ * ⚠️ **딱 하나 예외가 있다 — 비밀번호 블록은 채널에 안 올린다**(2026-08-17). 아침 문자에는
+ * 현관·어드민 비밀번호가 붙는데(`cleaning/templates.ts`의 `accessBlock`), 그 값이 채널에
+ * 남으면 검색되고 전달되고 비밀번호를 바꿔도 히스토리에 계속 남는다. 그래서 채널에는
+ * '포함해 보냈다'는 사실만 적는다. 즉 담당자가 받은 문자와 채널 본문이 그 블록만큼 다르다.
+ *
  * 빌려온 규율 하나: **어떤 예외도 밖으로 던지지 않는다.** 알림이 실패했다고 이미 나간
  * 문자가 장부에 안 적히면 안 된다.
  */
@@ -52,15 +57,33 @@ async function post(text: string): Promise<void> {
   }
 }
 
-export function notifySent(kind: CleaningKind, body: string): Promise<void> {
-  return post(`**청소 담당자 · ${KIND_LABEL[kind]}** · 문자 발송 완료\n${quote(body)}`);
+/**
+ * `withAccess`는 **값이 아니라 사실만** 전한다 — 현관·어드민 비밀번호를 실어 보냈다는 표시다.
+ *
+ * 값을 여기 싣지 않는 이유는 채널의 성질이다. 채널 글은 검색되고 전달되고 잠금화면에 뜨며,
+ * 비밀번호를 바꿔도 옛 값이 히스토리에 남는다. 형운은 그 값을 이미 알고 있으니 채널에서
+ * 확인할 필요가 없고, 확인이 필요한 것은 '담당자에게 갔는가'다.
+ */
+export function notifySent(
+  kind: CleaningKind,
+  body: string,
+  withAccess = false,
+): Promise<void> {
+  const head = `**청소 담당자 · ${KIND_LABEL[kind]}** · 문자 발송 완료` +
+    (withAccess ? " (현관·어드민 안내 포함 — 값은 채널에 남기지 않습니다)" : "");
+  return post(`${head}\n${quote(body)}`);
 }
 
 /**
  * 실패에는 **본문을 반드시 싣는다.** 형운이 그 자리에서 복사해 직접 보낼 수 있어야 하고,
  * 그게 이 기능에서 재시도를 열지 않은 근거이기도 하다.
  */
-export function notifyFailed(kind: CleaningKind, body: string, error: string): Promise<void> {
+export function notifyFailed(
+  kind: CleaningKind,
+  body: string,
+  error: string,
+  withAccess = false,
+): Promise<void> {
   return post(
     [
       `**⚠️ 청소 안내 문자 실패 · ${KIND_LABEL[kind]}**`,
@@ -68,6 +91,10 @@ export function notifyFailed(kind: CleaningKind, body: string, error: string): P
       "",
       "손으로 보내야 합니다 — 아래 본문을 그대로 복사하세요.",
       quote(body),
+      ...(withAccess
+        // 값을 여기 싣지 않으므로, 손으로 보낼 때 무엇이 빠졌는지는 말해줘야 한다.
+        ? ["", "⚠️ 원래 문자에는 현관·어드민 비밀번호 안내가 붙습니다 — 손으로 보낼 때 함께 적어 주세요."]
+        : []),
     ].join("\n"),
   );
 }

@@ -795,6 +795,12 @@ supabase secrets set ADMIN_PASSWORD='<같은 값>'
 Apps Script는 명령이 없다. https://script.google.com → `SpaceCloud Gmail Sync` 프로젝트 →
 좌측 톱니바퀴(프로젝트 설정) → **스크립트 속성** → `ADMIN_PASSWORD`를 같은 값으로 고친다.
 
+> **청소 담당자에게는 따로 알리지 않아도 된다**(2026-08-17부터). 아침 청소 안내 문자가
+> 현관·어드민 비밀번호를 함께 싣고(`cleaning/templates.ts`의 `accessBlock`) Edge 시크릿에서
+> 값을 읽으므로, 위 3)단계를 마치면 **다음 아침 문자부터 새 값이 나간다.** 현관 비밀번호를
+> 바꿀 때도 같다 — `handlers/guide.ts` 한 곳만 고치면 문자가 따라온다.
+> 그 값은 **문자에만** 들어가고 DB 장부·Mattermost 채널에는 안 남는다.
+
 > **2026-08-14에 이 세 번째 자리를 빠뜨려 실제로 사고가 났다.** 회전 직후 어드민도 기기 제어도
 > 정상이라 아무도 몰랐고, 그날 저녁 예약 2건(취소 1·신규 1)이 `invalid password`로 반려된 뒤에야
 > Mattermost 알림으로 드러났다. 고친 뒤에는 **`reprocessMessages()`를 반드시 실행한다** — 3회

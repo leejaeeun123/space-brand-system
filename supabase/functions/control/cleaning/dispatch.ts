@@ -26,6 +26,19 @@ export interface Outgoing {
   snapshot: ScheduleSnapshot;
   /** update만 쓴다. digest는 날짜로 이미 갈린다. */
   fingerprint: string | null;
+  /**
+   * 문자에만 덧붙일 블록 — 현관·어드민 비밀번호(`cleaning/templates.ts`의 `accessBlock`).
+   *
+   * **`body`와 나눠 놓은 것이 이 필드의 존재 이유다.** `body`는 세 곳으로 간다:
+   * 문자, `cleaning_sms.body` 컬럼, Mattermost 채널. 비밀번호를 `body`에 넣으면
+   * 장부에 영구히 남고(비밀번호를 바꿔도 옛 값이 계속 남는다) 채널에도 평문으로 올라간다 —
+   * 채널 글은 검색되고 전달되고 잠금화면에 뜬다. 이 레포가 주민번호·계좌번호를 알림에
+   * 싣지 않는 것과 같은 이유다.
+   *
+   * 그래서 이 값은 `send()`에만 들어간다. 장부에도 채널에도 흔적이 남지 않고, 채널에는
+   * '접근 안내를 포함해 보냈다'는 사실만 표시된다(`notify.ts`).
+   */
+  smsOnly?: string;
 }
 
 /** 그 날짜에 대해 마지막으로 '말한' 스케줄. 다음 변경을 재는 기준선이다.
@@ -104,7 +117,9 @@ export async function dispatch(
   const id = await claim(sb, out, "sending", phone);
   if (id === null) return "already";
 
-  const result = await send(cfg, phone, out.body);
+  // 비밀번호 블록은 **여기서만** 붙는다. claim(장부)과 notify(채널)는 위아래로 `out.body`를
+  // 그대로 보므로, 이 한 줄이 "문자에만 간다"의 전부다.
+  const result = await send(cfg, phone, out.smsOnly ? `${out.body}\n\n${out.smsOnly}` : out.body);
 
   if (result.ok) {
     // 여기서 함수가 죽으면 행이 'sending'에 남아 다음 시도를 막는다 — **안전한 쪽으로 죽는다.**
@@ -113,12 +128,14 @@ export async function dispatch(
       .from("cleaning_sms")
       .update({ status: "sent", sent_at: new Date().toISOString(), group_id: result.groupId })
       .eq("id", id);
-    await notifySent(out.kind, out.body);
+    await notifySent(out.kind, out.body, Boolean(out.smsOnly));
     return "sent";
   }
 
   await sb.from("cleaning_sms").update({ status: "failed", error: result.error }).eq("id", id);
-  await notifyFailed(out.kind, out.body, result.error);
+  // 실패 알림에도 비밀번호는 안 싣는다. 형운이 손으로 보낼 때 필요한 값이지만, 형운은 그 값을
+  // 이미 알고 있고 — 채널에 남기는 대가가 그 편의보다 크다.
+  await notifyFailed(out.kind, out.body, result.error, Boolean(out.smsOnly));
   return "failed";
 }
 

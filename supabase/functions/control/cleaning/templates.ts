@@ -17,6 +17,7 @@ import { type CleaningPlan, type CleaningWindow, isNextDay, type TightGap } from
 
 const KST_SHIFT_MS = 9 * 60 * 60 * 1000;
 const BRAND = "[타입라운지]";
+const ADMIN_URL = "https://typelounge.vercel.app/admin";
 
 /** KST 벽시계 'HH:MM'. **`toLocaleTimeString`을 쓰지 않는다** — 로케일에 따라 24:00이 나온다. */
 function hhmm(at: Date): string {
@@ -100,6 +101,38 @@ export function digestMessage(
     "",
     ...cleaningBlock(plan, now, "■ 청소 가능"),
   ].join("\n");
+}
+
+/**
+ * 출입·어드민 안내 — **문자에만 붙는 블록이다.**
+ *
+ * 담당자도 문을 열고 들어와야 하는데, 이용 안내 페이지가 예약 시간에만 열려(2026-08-17)
+ * 청소 시간에는 닫혀 있다. 그래서 현관 비밀번호를 스스로 확인할 경로가 없어졌고, 이 블록이
+ * 그 자리를 메운다. 비밀번호를 바꾸면 다음 아침 문자부터 새 값이 나가므로 따로 알릴 일이 없다.
+ *
+ * **어드민 비밀번호도 싣는다**(형운 결정, 2026-08-17). 담당자는 조명·냉난방을 켜야 하고
+ * 예약 현황·CCTV도 봐야 하는 **내부 인력**이라는 판단이다 — 이 파일 헤더가 이미 같은 근거로
+ * 예약자 이름·인원·용도를 싣고 있다(§28 취급자). **외주로 바꾸면 이 판단을 다시 본다.**
+ *
+ * ⚠️ 그 값은 조명뿐 아니라 예약자 연락처·CCTV·페이백 신청자 **주민번호 복호화**까지 여는
+ * 단일 열쇠다. 부분만 주는 방법이 없어 전부 열린다는 것을 알고 넣었다.
+ *
+ * ⚠️ **이 블록은 `Outgoing.body`에 넣지 않는다.** `dispatch.ts`가 body를 문자·DB 장부·
+ * Mattermost 세 곳에 쓴다 — 넣으면 비밀번호가 장부에 영구히 남고 채널에도 평문으로 올라간다
+ * (채널 글은 검색되고 전달되고 잠금화면에 뜬다). 문자 발송 직전에만 덧붙인다.
+ */
+export function accessBlock(doorPin: string, adminPassword: string | null): string {
+  const lines = ["■ 출입", `현관 비밀번호 ${doorPin}`];
+  if (adminPassword) {
+    lines.push(
+      "",
+      "■ 어드민 (조명·냉난방·예약·CCTV)",
+      `${ADMIN_URL}`,
+      `비밀번호 ${adminPassword}`,
+    );
+  }
+  lines.push("", "위 값은 외부에 공유하지 말아 주세요.");
+  return lines.join("\n");
 }
 
 /**

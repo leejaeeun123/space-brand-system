@@ -14,7 +14,8 @@ import { loadConfig, normalizePhone } from "../sms/solapi.ts";
 import { buildSnapshot, compare, fingerprint, isEmpty } from "./diff.ts";
 import { digestSent, dispatch, latestSnapshot, markQuiet, type Outgoing } from "./dispatch.ts";
 import { digestState, updateAllowed } from "./schedule.ts";
-import { digestMessage, updateMessage } from "./templates.ts";
+import { accessBlock, digestMessage, updateMessage } from "./templates.ts";
+import { DOOR_PIN } from "../handlers/guide.ts";
 import { type CleaningReservation, nextDayFirstPrep, planCleaning, remaining, todayReservations } from "./windows.ts";
 
 export interface CleaningSweepResult {
@@ -76,6 +77,9 @@ export async function sweepCleaning(
       body: digestMessage(snapshot.entries, plan, now),
       snapshot,
       fingerprint: null,
+      // 아침 한 통에만 붙인다. 변경 안내는 하루에 여러 번 갈 수 있어, 같은 비밀번호를
+      // 반복해 뿌리면 노출 면만 넓어지고 담당자가 새로 알게 되는 것은 없다.
+      smsOnly: accessBlock(DOOR_PIN, Deno.env.get("ADMIN_PASSWORD") ?? null),
     };
     if (state === "fire") {
       const sent = await dispatch(sb, cfg, phone, out);
