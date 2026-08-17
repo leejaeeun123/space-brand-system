@@ -159,12 +159,17 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/<그 plist>
 |---|---|---|
 | 게스트 가이드 | `typelounge.vercel.app/` | 공개 |
 | 손님 제어 | `typelounge.vercel.app/control` | `GUEST_PASSWORD`. 공간 QR·이용 안내 CRM에서 들어온다 |
-| 예약 관리 어드민 | `typelounge.vercel.app/admin` | **`1231001010`** |
+| 예약 관리 어드민 | `typelounge.vercel.app/admin` | 어드민 비밀번호 — 현행 값·회전 절차는 `control-setup.md` M절 |
 
-> 어드민 비밀번호는 이미 `supabase/migrations/20260803000000_add_cancelled_status.sql`에 평문으로
-> 들어가 있고 이 레포는 public이다. 그래서 여기에도 적어둔다 — **숨겨져 있다고 착각하지 않기 위해서다.**
-> 이 값은 기기 제어뿐 아니라 `admin_*` RPC를 통해 **예약자 이름·연락처**를 연다. 바꾸려면 커밋 히스토리에
-> 남은 값도 같이 죽는 게 아니므로, 비밀번호 자체를 교체(시크릿 + RPC + 어드민)해야 실제로 닫힌다.
+> 어드민 비밀번호를 여기에 적지 않는다. 이 값은 기기 제어뿐 아니라 `admin_*` RPC를 통해
+> **예약자 이름·연락처**를 연다. 옛 값이 커밋 히스토리(`20260803000000_add_cancelled_status.sql` 등)에
+> 남아 있으므로, 히스토리를 지우는 게 아니라 **비밀번호 자체를 교체(세 자리 동기: DB 해시 + Edge 시크릿 +
+> Apps Script)해야 실제로 닫힌다** — 그 절차가 `control-setup.md` M절이다.
+>
+> 2026-08-18: 이전에는 "이 레포는 public이라 숨겨져 있다고 착각하지 않기 위해" 값을 여기 평문으로
+> 적었으나 둘 다 정정 — 레포는 PRIVATE로 확인됐고(gh repo view), 적혀 있던 값은 08-14 회전으로
+> 이미 현행이 아니었다(admin_check로 확인). 낡은 값을 절차 문서가 안내하면 다음 인수자가
+> 로그인 실패를 세-자리 동기화 사고로 오진한다.
 
 ### 아직 아무것도 안 된 것
 

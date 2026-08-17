@@ -2911,6 +2911,10 @@
   var statsNotesCache = null;  // sc_daily_notes 전체 — 이벤트 마커용. 못 받으면 null 그대로(차트는 마커 없이 뜬다).
   var statsManualCache = null; // sc_daily_manual 전체 — 실측 CPC(광고비÷광고클릭) 계산용. 못 받으면 상한선만 보인다.
 
+  /* ⚠️ admin_list_sc_daily에는 space_id 필터가 없다 — 쓰기(admin_upsert_sc_daily)는 한 번에
+     한 공간을 강제하지만 읽기는 전 공간을 돌려준다. 지금은 공간이 하나(80401)라 무해한데,
+     두 번째 공간이 생기는 순간 아래 statSum을 지나는 모든 KPI·퍼널·CSV가 두 공간을 조용히
+     합산한다. 공간을 추가하는 날 여기부터 고친다. */
   function fetchScDaily(password){
     return sb.rpc('admin_list_sc_daily', { p_password: password }).then(function(res){
       if(res.error) throw res.error;

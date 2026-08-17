@@ -72,10 +72,9 @@ assets/photo/label-restroom.jpg | I-2 · 실내 | 문 라벨 · 화장실 | 같�
 
 아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.
 
-#### 세로 A5 5종 · 자석 안내판
+#### 세로 A5 5종 · 자석 안내판 (와이파이는 아래 사유로 제외)
 
 ```tl-sheets zip=type-lounge-notices.zip
-assets/notice/notice-wifi.svg | 와이파이
 assets/notice/notice-aircon.svg | 냉난방기
 assets/notice/notice-bluetooth.svg | 블루투스 스피커
 assets/notice/notice-tv.svg | TV
@@ -95,7 +94,13 @@ assets/notice/notice-urinal.svg | 소변기 사용 금지
 - 원본 SVG: `04-signage/out/notice-*.svg` (브랜드북 사본 `07-brand-book/assets/notice/`)
 - **가로형은 세로형을 눕힌 게 아니라 자체 판형이다** — 요소 순서(픽토 → 제목 → 본문 → 워드마크)는 같지만 제목 14px, 본문 상단 `y 254`, 로고 `y 367`.
 - **소변기 안내문은 경고문 변형** — 본문 없이 제목만 24px 2줄(행간 28), 픽토 `no` 53×53에 세로중심 `y 86.5`. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 쓴다.
-- 와이파이 QR 페이로드: `WIFI:T:WPA;S:TYPE LOUNGE;P:075C62183A;H:false;;` (`04-signage/wifi-qr.png`)
+- 와이파이 QR 페이로드: `WIFI:T:WPA;S:TYPE LOUNGE;P:<와이파이 비밀번호>;H:false;;` (`04-signage/wifi-qr.png`)
+- **와이파이 안내문 시트는 이 페이지에 싣지 않는다.** 본문 글자와 QR 둘 다 실제 비밀번호를
+  담고 있는데, 이 브랜드북은 공개 배포된다(`/brand`) — 여기 실으면 이용 안내 페이지의 시간
+  게이트(입실 10분 전에만 값을 내려준다)를 소스 보기 한 번으로 우회하는 뒷문이 된다.
+  원본은 `04-signage/out/notice-wifi.svg`(레포 내부, 인쇄용)에 그대로 있다.
+  2026-08-18: 이전에는 8종 전부를 실었으나 와이파이만 제외 — 공개 사이트에서 비밀번호가
+  읽히던 경로를 닫았다.
 
 | 요소 | 사양 |
 |---|---|
