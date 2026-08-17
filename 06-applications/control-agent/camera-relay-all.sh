@@ -44,6 +44,19 @@ watch_one() {
 # Node는 카메라 IP에 EHOSTUNREACH가 난다(2026-08-18 실측 — 터미널에서는 같은 코드가 200).
 # 이 스크립트는 권한을 이미 통과한 `.app` 아래에서 도므로 자식도 그 권한을 물려받는다.
 # 재발행과 한 지붕에 두는 것이 어색해 보이지만, 둘의 공통점이 정확히 그 권한 경계다.
+# node의 **절대경로**를 찾는다.
+#
+# launchd가 물려주는 PATH에는 `/usr/local/bin`이 없어서 `node`를 이름으로 부르면
+# `command not found`가 난다(2026-08-18에 실제로 이렇게 죽었다). 같은 이유로
+# `camera-republish.sh`도 `/usr/local/bin/ffmpeg`를 절대경로로 부른다.
+find_node() {
+  local c
+  for c in "${NODE_BIN:-}" /usr/local/bin/node /opt/homebrew/bin/node "$(command -v node 2>/dev/null)"; do
+    [ -n "$c" ] && [ -x "$c" ] && echo "$c" && return 0
+  done
+  return 1
+}
+
 watch_motion() {
   local args=()
   for cam in "${CAMERAS[@]}"; do
@@ -59,8 +72,17 @@ watch_motion() {
     echo "[$(date '+%F %T')] .env가 없어 움직임 감시를 건너뛴다" >> "$LOGDIR/relay.log"
     return
   fi
+
+  # **여기서 한 번만 찾고, 없으면 루프에 들어가지 않는다.** 루프 안에서 실패하게 두면
+  # 5초마다 재시도하며 로그만 쌓인다 — 고쳐지지 않는 실패에 재시도는 소음일 뿐이다.
+  local node_bin
+  if ! node_bin=$(find_node); then
+    echo "[$(date '+%F %T')] node를 못 찾아 움직임 감시를 건너뛴다 (NODE_BIN으로 지정 가능)" >> "$LOGDIR/relay.log"
+    return
+  fi
+
   while true; do
-    node --env-file="$HERE/.env" "$HERE/src/motion-watch.js" "${args[@]}" >> "$LOGDIR/motion.log" 2>&1
+    "$node_bin" --env-file="$HERE/.env" "$HERE/src/motion-watch.js" "${args[@]}" >> "$LOGDIR/motion.log" 2>&1
     echo "[$(date '+%F %T')] 움직임 감시가 멈춰 5초 뒤 다시 시작한다" >> "$LOGDIR/relay.log"
     sleep 5
   done

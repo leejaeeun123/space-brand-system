@@ -525,6 +525,7 @@ ffmpeg가 막힌 것과 **같은 벽**이다(아래 "왜 이렇게까지 하는�
 | ONVIF 구독이 10분마다 실패 버스트 | `InitialTerminationTime`(PT10M) 만료다. 실패를 기다렸다 재구독하지 말고 **4분마다 `Renew`를 선제 발행**한다 |
 | **에이전트에서만** 카메라에 못 붙는다 (터미널에선 됨) | macOS 26 로컬 네트워크 통제다. launchd가 띄운 Node는 `EHOSTUNREACH`가 난다 — 아래 "macOS 26 TCC" 절과 같은 벽이다. `.app` 번들이 권한 주체가 돼야 한다 |
 | Tapo 제어 API가 `Invalid authentication data` | 카메라 계정(RTSP용)으로는 제어 API가 안 열린다. `admin` + **Tapo 클라우드 비번**이 필요하다. RTSP가 되는지로 자격증명 자체의 유효성을 가른다 |
+| `motion.log`에 `node: command not found` | **launchd의 PATH에는 `/usr/local/bin`이 없다.** 스크립트가 절대경로를 찾아 쓰게 돼 있는데(`find_node`), 그래도 못 찾으면 `NODE_BIN=/경로/node`로 지정한다. `camera-republish.sh`가 `/usr/local/bin/ffmpeg`를 절대경로로 부르는 것과 같은 이유다 |
 
 ### 어드민이 끊김에서 돌아오는 방식 (2026-08-10)
 
