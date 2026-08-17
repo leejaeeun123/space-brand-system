@@ -22,6 +22,7 @@ export type EventKind =
   | "device_recovered" // 조명·냉난방 연결 복구 (관측)
   | "camera_offline" // CCTV 연결 끊김 (관측)
   | "camera_recovered" // CCTV 연결 복구 (관측)
+  | "checkout_overdue" // 퇴실 후 라운지에 움직임이 남아 있음 (관측 — 아무것도 끄지 않는다)
   | "system_error"; // automate 서브시스템 실패 (관측)
 
 /**

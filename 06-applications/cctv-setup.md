@@ -431,6 +431,76 @@ Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다�
 
 ---
 
+## C-10. 퇴실 독려 움직임 감시 (2026-08-18)
+
+퇴실 시각이 지났는데 라운지에 사람이 남아 있으면 운영자에게 Mattermost로 알린다.
+**영상은 이 경로를 지나지 않는다** — 카메라에서 ONVIF로 "움직임이 있었다"는 시각 하나만 받아
+`camera_motion`에 적고, 판정은 서버(`automation/occupancy.ts`)가 한다.
+
+C-9까지 끝나 있어야 한다. 카메라가 `cameras` 테이블에 등록돼 있지 않으면 감시가 건너뛴다.
+
+### 1. DB · 함수 배포
+
+```bash
+cd ~/Dev/space-brand-system
+supabase db push                        # camera_motion 테이블 + checkout_overdue kind
+supabase functions deploy control       # occupancy.ts 판정 배선
+```
+
+### 2. 감시자 기동
+
+감시자는 **`control-agent`가 아니라 카메라 relay `.app` 아래에서 돈다.** 이유는 아래
+"왜 relay 아래인가". `camera-relay-all.sh`가 이미 띄우므로 relay를 다시 깔면 같이 올라온다.
+
+```bash
+cd ~/Dev/space-brand-system/06-applications/control-agent
+./install-camera-relay.sh               # 멱등 — 다시 돌려도 안전하다
+tail -f ~/Library/Logs/typelounge/motion.log
+```
+
+`[motion] 카메라 2대 감시 시작 (lounge_left, lounge_right)` 가 떠야 한다.
+
+> ⚠️ 재설치하면 **영상이 20~30초 끊긴다**(재발행이 같이 재기동된다). 손님이 없을 때 한다.
+
+### 3. 확인 — 사람이 직접 움직여서
+
+로직만으로는 끝나지 않는다. **라운지 카메라 앞에서 손을 흔든다.**
+
+```bash
+tail -f ~/Library/Logs/typelounge/motion.log     # [motion] lounge_left 움직임 ...
+```
+
+- [ ] 움직이면 `motion.log`에 `움직임` 줄이 뜬다
+- [ ] 가만히 있으면 30초마다 조용히 하트비트만 돈다(로그에 안 남는다 — 정상)
+- [ ] `camera_motion` 행 2개의 `observed_at`이 계속 갱신된다
+
+### 왜 relay 아래인가 — control-agent에 넣으면 조용히 죽는다
+
+**macOS 26은 로컬 네트워크 접근을 바이너리 단위로 통제한다.** launchd가 띄운 Node는 카메라
+IP에 `EHOSTUNREACH`가 나는데, **같은 코드를 터미널에서 돌리면 200이다**(2026-08-18 실측).
+
+| 실행 경로 | 결과 |
+|---|---|
+| 터미널 + Node | `HTTP 200` |
+| launchd + Node | `EHOSTUNREACH 192.168.200.x:2020` |
+| launchd + `curl`(Apple 서명) | `HTTP 200` — Apple 서명 도구는 통과한다. 우리 문제를 안 풀어준다 |
+
+ffmpeg가 막힌 것과 **같은 벽**이다(아래 "왜 이렇게까지 하는가"). `control-agent`는 launchd
+직속 Node라 여기에 감시자를 넣으면 **에러 없이 아무것도 못 본다** — 그게 제일 나쁜 실패다.
+`TypeLoungeCameraRelay.app`은 이미 이 권한을 통과한 주체라, 그 자식으로 띄우면 물려받는다.
+
+### 감시 대상을 늘리려면
+
+`camera-relay-all.sh`의 `MOTION_PATHS`에 path를 더한다. 지금은 라운지 2대만이다 —
+`office`는 현관 방향이라 '나가는 중'과 '남아 있음'이 섞여 판정의 뜻이 흐려진다(형운 결정).
+
+### 되돌리려면
+
+`MOTION_PATHS`를 비우고 relay를 재설치한다. 감시자가 안 뜨고 `camera_motion`이 낡으면
+서버는 '모름'으로 보고 **알리지 않는다** — 조용히 꺼지는 것이 아니라 판단을 멈춘다.
+
+---
+
 ## 막혔을 때
 
 | 증상 | 확인 |
@@ -450,6 +520,11 @@ Tasmota Topic 등록과 같은 계약이라 같은 함정을 갖는다 — 다�
 | **손님 유무와 상관없이 자꾸 끊긴다** | 아래 "터널이 태평양을 두 번 건너는 문제"를 먼저 읽는다. 2.4GHz 혼잡(윗줄)과 증상이 같지만 **사람 없을 때도 끊기면** 이쪽이다 |
 | 한 번 끊기면 새로고침 전까지 검은 화면 | **2026-08-10에 고쳤다.** 아래 "어드민이 끊김에서 돌아오는 방식" 참조 |
 | 카드에 `연결 실패 — 15초마다 다시 시도해요` | 빠른 백오프 6회를 다 썼다는 뜻이다. **포기가 아니라 느린 재시도로 내려간 것**이라, 네트워크가 돌아오면 15초 안에 저절로 붙는다. 안 붙으면 터널·MediaMTX부터 본다 |
+| ONVIF `PullMessages`가 11초에 `RemoteDisconnected` | **`Timeout`을 `PT10S` 이상으로 줬다.** `PT9S` 이하로 내린다(2026-08-18 실측). 이 카메라는 롱폴링을 안 하므로 값을 키워도 얻는 게 없다 |
+| ONVIF가 `Authority failure` | WS-Security(UsernameToken PasswordDigest) 헤더가 빠졌다. 구독 URL에도 매 요청 붙여야 한다 |
+| ONVIF 구독이 10분마다 실패 버스트 | `InitialTerminationTime`(PT10M) 만료다. 실패를 기다렸다 재구독하지 말고 **4분마다 `Renew`를 선제 발행**한다 |
+| **에이전트에서만** 카메라에 못 붙는다 (터미널에선 됨) | macOS 26 로컬 네트워크 통제다. launchd가 띄운 Node는 `EHOSTUNREACH`가 난다 — 아래 "macOS 26 TCC" 절과 같은 벽이다. `.app` 번들이 권한 주체가 돼야 한다 |
+| Tapo 제어 API가 `Invalid authentication data` | 카메라 계정(RTSP용)으로는 제어 API가 안 열린다. `admin` + **Tapo 클라우드 비번**이 필요하다. RTSP가 되는지로 자격증명 자체의 유효성을 가른다 |
 
 ### 어드민이 끊김에서 돌아오는 방식 (2026-08-10)
 

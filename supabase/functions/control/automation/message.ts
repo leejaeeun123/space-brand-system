@@ -29,6 +29,7 @@ const TITLE: Record<EventKind, string> = {
   device_recovered: "기기 연결 복구",
   camera_offline: "⚠️ CCTV 연결 끊김",
   camera_recovered: "CCTV 연결 복구",
+  checkout_overdue: "⚠️ 퇴실 후 라운지에 움직임",
   system_error: "⚠️ 자동화 시스템 오류",
 };
 
@@ -46,6 +47,7 @@ const OBSERVED_KINDS = new Set<EventKind>([
   "device_recovered",
   "camera_offline",
   "camera_recovered",
+  "checkout_overdue",
   "system_error",
 ]);
 

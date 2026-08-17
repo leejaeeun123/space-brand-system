@@ -13,6 +13,7 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { list } from "./list.ts";
 import { alertIdleDevices, enforceTempFloor, sweepIdleDevices } from "../automation/enforce.ts";
 import { checkConnectivity } from "../automation/connectivity.ts";
+import { checkCheckoutOverdue } from "../automation/occupancy.ts";
 import { flush } from "../automation/notify.ts";
 import { recordHeartbeat, syncWatchdogWebhook } from "../automation/heartbeat.ts";
 import { detectOnsite } from "../automation/observe.ts";
@@ -266,6 +267,21 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
     await recordSystemError(sb, "connectivity_failed", e instanceof Error ? e.message : String(e), now);
   }
 
+  // 퇴실 독려. **연결 점검과 같은 이유로 항상 돈다** — 창 판정(스윕/온도/유휴) 택일 안에 넣으면
+  // 안 된다. 퇴실 직후는 `isSweeping` 가지인데, 그 가지 안에 두면 스윕과 실행 조건이 얽혀
+  // 한쪽을 고칠 때 다른 쪽이 조용히 따라 바뀐다. 창 판정은 `checkCheckoutOverdue` 자신이 한다.
+  //
+  // `prepFired`/`shutdownFired` 스킵에도 걸지 않는다 — 그 스킵은 **기기 상태 캐시**가 아직
+  // 안 따라왔다는 뜻인데, 여기가 보는 것은 카메라 관측이라 무관하다. 하필 퇴실 종료가 도는
+  // 틱이 창의 첫 틱이라, 걸어두면 매번 1분을 잃는다(문자 스윕이 같은 이유로 밖에 있다).
+  let overdue = 0;
+  try {
+    overdue = await checkCheckoutOverdue(sb, reservations, now);
+  } catch (e) {
+    console.error("퇴실 독려 판정 실패 — 앞의 결과는 유지한다", e);
+    await recordSystemError(sb, "overdue_check_failed", e instanceof Error ? e.message : String(e), now);
+  }
+
   // 손님 안내 문자. **기기 제어와 완전히 분리한다** — 여기서 예외가 새면 아래 알림이 안 가고,
   // 반대로 기기 자동화가 실패한 틱에도 문자는 나가야 한다(입실 준비가 실패했다고 손님에게
   // 길 안내를 안 보낼 이유가 없다). 위의 `prepFired` 스킵 조건에도 걸지 않는다 —
@@ -327,6 +343,7 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
     idle,
     device_offline: deviceOffline,
     camera_offline: cameraOffline,
+    checkout_overdue: overdue,
     notified,
     sms: smsResult,
     cleaning: cleaningResult,

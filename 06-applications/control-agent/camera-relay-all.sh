@@ -25,6 +25,11 @@ CAMERAS=(
   "lounge_right:192.168.200.134"
 )
 
+# 퇴실 독려 판정에 쓰는 카메라 — **라운지만 본다**(형운 결정, 2026-08-17).
+# `office`는 현관 방향이라 '나가는 중'과 '남아 있음'이 섞여 판정의 뜻이 흐려진다.
+# 여기서 뺀 카메라는 감시되지 않는다 — 늘리려면 이 줄에 path를 더한다.
+MOTION_PATHS="lounge_left lounge_right"
+
 watch_one() {
   local name="${1%%:*}" ip="${1#*:}"
   while true; do
@@ -34,13 +39,47 @@ watch_one() {
   done
 }
 
+# 움직임 감시(퇴실 독려용). **여기서 띄우는 이유는 권한이다.**
+# macOS 26이 로컬 네트워크 접근을 바이너리 단위로 통제해, launchd 직속인 control-agent의
+# Node는 카메라 IP에 EHOSTUNREACH가 난다(2026-08-18 실측 — 터미널에서는 같은 코드가 200).
+# 이 스크립트는 권한을 이미 통과한 `.app` 아래에서 도므로 자식도 그 권한을 물려받는다.
+# 재발행과 한 지붕에 두는 것이 어색해 보이지만, 둘의 공통점이 정확히 그 권한 경계다.
+watch_motion() {
+  local args=()
+  for cam in "${CAMERAS[@]}"; do
+    for want in $MOTION_PATHS; do
+      [ "${cam%%:*}" = "$want" ] && args+=("$cam")
+    done
+  done
+  if [ ${#args[@]} -eq 0 ]; then
+    echo "[$(date '+%F %T')] MOTION_PATHS가 CAMERAS와 하나도 안 맞는다 — 움직임 감시를 건너뛴다" >> "$LOGDIR/relay.log"
+    return
+  fi
+  if [ ! -f "$HERE/.env" ]; then
+    echo "[$(date '+%F %T')] .env가 없어 움직임 감시를 건너뛴다" >> "$LOGDIR/relay.log"
+    return
+  fi
+  while true; do
+    node --env-file="$HERE/.env" "$HERE/src/motion-watch.js" "${args[@]}" >> "$LOGDIR/motion.log" 2>&1
+    echo "[$(date '+%F %T')] 움직임 감시가 멈춰 5초 뒤 다시 시작한다" >> "$LOGDIR/relay.log"
+    sleep 5
+  done
+}
+
 # 두 번 띄우면 같은 path에 두 publisher가 붙어 서로를 밀어낸다. 먼저 정리한다.
+# 감시자도 같이 정리한다 — 두 프로세스가 같은 카메라를 구독하면 알림이 둘로 갈려
+# 각자 절반씩만 보게 된다(구독은 큐를 나눠 갖는다).
 pkill -f "camera-republish.sh" 2>/dev/null
 pkill -f "rtsp://127.0.0.1:8554/" 2>/dev/null
+pkill -f "motion-watch.js" 2>/dev/null
 sleep 2
 
 echo "[$(date '+%F %T')] relay 시작 (카메라 ${#CAMERAS[@]}대)" >> "$LOGDIR/relay.log"
 for cam in "${CAMERAS[@]}"; do
   watch_one "$cam" &
 done
+
+# 감시가 죽어도 영상은 계속 흘러야 한다 — 별도 백그라운드로 띄우고 `wait`는 전부를 기다린다.
+watch_motion &
+
 wait
