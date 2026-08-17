@@ -16,8 +16,9 @@
 <link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
 <!--
   손님용 공간 제어. admin.html의 '공간 제어' 탭에서 기기 등록·해제와 CCTV를 뺀 것이다.
-  비밀번호 게이트가 없다 — 이 페이지가 지키던 현관 비밀번호는 사이트 루트(guest-guide.html)에
-  이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 그래도 손님이 부를 수 있는 action·command는
+  비밀번호 게이트가 없다 — 손님을 가르는 것은 비밀번호가 아니라 예약 시간 창이다. (처음 근거는
+  이 페이지가 지키던 현관 비밀번호가 사이트 루트에 평문 공개라는 것이었는데, 그 값도 2026-08-17부터
+  예약 시간에만 내려간다. 결론은 그대로다.) 그래도 손님이 부를 수 있는 action·command는
   서버(auth.ts)가 여전히 자른다: 목록 조회와 조명·냉난방 조작만 허용한다. 기기 등록·해제와
   CCTV는 서버가 자른다.
 

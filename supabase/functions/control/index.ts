@@ -16,8 +16,9 @@
 
 import { dbClient } from "./devices.ts";
 import { assertAllowed, resolveRole, scrubDevices, type Role } from "./auth.ts";
-import { withinReservationWindow } from "./reservation-window.ts";
+import { withinGuideWindow, withinReservationWindow } from "./reservation-window.ts";
 import { HandlerError } from "./handlers/shared.ts";
+import { guide } from "./handlers/guide.ts";
 import { list } from "./handlers/list.ts";
 import { issue } from "./automation/dispatch.ts";
 import { automate } from "./handlers/automation.ts";
@@ -104,8 +105,19 @@ Deno.serve(async (req) => {
     // pg_cron은 매분 403만 받았다 — cron 실행은 '성공'으로 남아 침묵으로 보였다.
     // 여기서 여는 것이 안전한 이유는 auth.ts에 이미 적혀 있다: 대상 예약을 호출자가 고르지
     // 못하고 서버가 지금 시각으로 직접 계산한다(형운 결정, 2026-08-07).
-    if (role === "guest" && action !== "automate" && !(await withinReservationWindow(sb))) {
-      return json({ error: "지금은 예약 시간이 아니에요", code: "outside_reservation_window" }, 403);
+    //
+    // **`guide`만 게이트가 15분 이르다.** 이용 안내 페이지는 손님이 문 앞에서 현관 비밀번호를
+    // 읽는 화면이라 입실 전에 열려야 하고, 그 리드타임은 자동화가 냉난방·조명을 준비하는 시각과
+    // 같은 함수(`isOccupied`)에서 나온다 — reservation-window.ts 참고. 기기 제어는 그대로
+    // 시작 정각부터다: 준비 15분은 앞 손님의 마지막 15분일 수 있어, 그때 제어를 열면 다음
+    // 손님이 앞 손님 방의 조명을 만질 수 있다. 안내 값(비밀번호·와이파이)에는 그 문제가 없다.
+    if (role === "guest" && action !== "automate") {
+      const open = action === "guide"
+        ? await withinGuideWindow(sb)
+        : await withinReservationWindow(sb);
+      if (!open) {
+        return json({ error: "지금은 예약 시간이 아니에요", code: "outside_reservation_window" }, 403);
+      }
     }
 
     switch (action) {
@@ -127,6 +139,10 @@ Deno.serve(async (req) => {
         return json(await remove(sb, body));
       case "automate":
         return json(await automate(sb));
+
+      // ── 이용 안내 페이지. 게이트를 통과했다는 것 자체가 응답이다(handlers/guide.ts) ──
+      case "guide":
+        return json(guide());
 
       // ── 손님 안내 문자. 전부 admin 전용이다(GUEST_ACTIONS에 없다).
       //    미리보기까지 막는 이유는 문구에 예약 일시가 들어가서다 — 그건 곧 언제 이 공간이

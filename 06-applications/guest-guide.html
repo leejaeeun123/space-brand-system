@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-guide="checking">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -118,6 +118,25 @@
   /* Footer */
   footer{padding:40px 24px 0;text-align:center;}
   footer p{font-size:13px;color:#6b665c;}
+
+  /* ── 시간 게이트 ──
+     예약 시간에만 여는 섹션은 **기본이 닫힘**이다. 서버가 열어줬을 때만 보인다
+     (`html[data-guide="open"]`). 반대로 두면 응답이 늦거나 실패한 동안 내용이 노출된다.
+     현관 비밀번호·와이파이 비밀번호는 애초에 이 파일에 없다 — 서버가 채운다. 여기서
+     감추는 것은 방어가 아니라 화면 정리이고, 실제 방어는 값을 안 내려주는 쪽이다. */
+  [data-gated]{display:none;}
+  html[data-guide="open"] [data-gated]{display:block;}
+
+  .gate-msg{display:none;padding:40px 24px;border-top:1px solid var(--hair);}
+  html[data-guide="checking"] #gateChecking{display:block;}
+  html[data-guide="closed"] #gateClosed{display:block;}
+  html[data-guide="error"] #gateError{display:block;}
+
+  .gate-msg h2{color:var(--orange-text);}
+  .gate-msg p{font-size:15px;color:#4a453d;}
+  .gate-msg p + p{margin-top:12px;}
+  .gate-msg .when{font-weight:600;color:var(--ink);}
+  .gate-msg a{color:var(--orange-text);font-weight:600;}
 </style>
 </head>
 <body>
@@ -129,7 +148,36 @@
     <p class="welcome">오늘 타입라운지를 찾아주셔서 반가워요.<br>스태프 없이 운영되는 공간이라, 이용 방법은 이 페이지로 안내해드릴게요.</p>
   </header>
 
-  <section id="directions">
+  <!-- 게이트 상태 안내. 셋 다 마크업으로 두고 CSS가 하나만 보여준다 — 문구를 JS로 만들면
+       스크립트가 실패한 순간 아무 설명 없는 빈 페이지가 된다. -->
+  <section class="gate-msg" id="gateChecking">
+    <h2>확인 중</h2>
+    <p>예약 시간을 확인하고 있어요. 잠시만 기다려 주세요.</p>
+  </section>
+
+  <section class="gate-msg" id="gateClosed">
+    <h2>아직 열리지 않았어요</h2>
+    <p>이용 안내는 <span class="when">입실 10분 전</span>부터 퇴실 시간까지 볼 수 있어요.
+      입실 안내 문자를 받으시면 이 페이지가 열려 있어요.</p>
+    <p>예약 시간이 맞는데 이 화면이 보이면 연락 주세요. <a href="tel:01048109142">010-4810-9142</a></p>
+  </section>
+
+  <section class="gate-msg" id="gateError">
+    <h2>연결에 실패했어요</h2>
+    <p>잠시 후 새로고침해 주세요. 계속 이 화면이면 연락 주세요.
+      <a href="tel:01048109142">010-4810-9142</a></p>
+  </section>
+
+  <noscript>
+    <section class="gate-msg" style="display:block">
+      <h2>브라우저 설정 안내</h2>
+      <p>이 페이지는 예약 시간에 맞춰 안내를 보여주기 때문에 자바스크립트가 필요해요.
+        설정에서 켜 주시거나, 연락 주시면 바로 안내해 드릴게요.
+        <a href="tel:01048109142">010-4810-9142</a></p>
+    </section>
+  </noscript>
+
+  <section id="directions" data-gated>
     <h2>찾아오는 길</h2>
     <p class="address">서울 마포구 월드컵로3길 31-32, 3층</p>
     <div class="map-embed">
@@ -146,7 +194,7 @@
     </div>
   </section>
 
-  <section id="setup">
+  <section id="setup" data-gated>
     <h2>공간 이용법</h2>
 
     <div class="item">
@@ -154,7 +202,7 @@
       <div>
         <h3>현관 비밀번호</h3>
         <div class="wifi-box">
-          <div>1010123</div>
+          <div id="doorPin">···</div>
         </div>
       </div>
     </div>
@@ -207,14 +255,14 @@
       <div>
         <h3>와이파이</h3>
         <div class="wifi-box">
-          <div>ID&nbsp;&nbsp;TYPE LOUNGE</div>
-          <div>PW&nbsp;&nbsp;075C62183A</div>
+          <div>ID&nbsp;&nbsp;<span id="wifiSsid">···</span></div>
+          <div>PW&nbsp;&nbsp;<span id="wifiPw">···</span></div>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="amenities">
+  <section id="amenities" data-gated>
     <h2>이용 가능한 시설</h2>
     <div class="amenity-grid">
       <div class="amenity"><div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="화장실"><path fill="currentColor" fill-rule="evenodd" d="M40.50 24.50 L40.50 12.50 L28.50 12.50 L28.50 24.50 L40.50 24.50 Z M37.50 21.50 L31.50 21.50 L31.50 15.50 L37.50 15.50 L37.50 21.50 Z M71.50 12.50 L59.50 12.50 L59.50 24.50 L71.50 24.50 L71.50 12.50 Z M62.50 21.50 L62.50 15.50 L68.50 15.50 L68.50 21.50 L62.50 21.50 Z M40.21 28.50 L29.79 28.50 L22.14 63.50 L30.50 63.50 L30.50 83.00 L30.50 84.50 L33.50 84.50 L33.50 63.50 L36.50 63.50 L36.50 83.00 L36.50 84.50 L39.50 84.50 L39.50 63.50 L47.86 63.50 L40.21 28.50 Z M39.50 60.50 L36.50 60.50 L33.50 60.50 L30.50 60.50 L25.86 60.50 L32.21 31.50 L37.79 31.50 L44.14 60.50 L39.50 60.50 Z M72.51 83.17 L72.68 84.66 L75.66 84.32 L69.34 29.50 L60.66 29.50 L54.51 82.83 L54.34 84.32 L57.32 84.66 L63.34 32.50 L66.66 32.50 L72.51 83.17 Z"/></svg></div><span>실내 화장실</span></div>
@@ -227,7 +275,7 @@
     <p class="small" style="margin-top:16px;">스태프룸과 발코니는 고가 장비가 있어 위험할 수 있어서 출입을 제한하고 있어요.</p>
   </section>
 
-  <section id="cautions">
+  <section id="cautions" data-gated>
     <h2>이용 시 안내</h2>
 
     <ul class="plain">
@@ -273,7 +321,7 @@
     </div>
   </section>
 
-  <section id="trash">
+  <section id="trash" data-gated>
     <h2>쓰레기</h2>
     <div class="item">
       <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="쓰레기통"><path fill="currentColor" fill-rule="evenodd" d="M42.65 26.65 L42.65 31.65 L35.26 31.65 L35.25 31.56 L33.95 31.65 L30.00 31.65 L28.65 31.65 L28.65 34.35 L32.74 34.35 L35.65 76.07 L35.66 76.40 L35.70 76.80 L35.76 77.18 L35.85 77.56 L35.97 77.92 L36.12 78.27 L36.31 78.61 L36.54 78.92 L36.79 79.21 L37.08 79.46 L37.39 79.69 L37.73 79.88 L38.08 80.03 L38.44 80.15 L38.82 80.24 L39.20 80.30 L39.60 80.34 L39.98 80.35 L60.02 80.35 L60.40 80.34 L60.80 80.30 L61.18 80.24 L61.56 80.15 L61.92 80.03 L62.27 79.88 L62.61 79.69 L62.92 79.46 L63.21 79.21 L63.46 78.92 L63.69 78.61 L63.88 78.27 L64.03 77.92 L64.15 77.56 L64.24 77.18 L64.30 76.80 L64.34 76.40 L64.35 76.07 L67.26 34.35 L70.00 34.35 L71.35 34.35 L71.35 31.65 L66.05 31.65 L64.75 31.56 L64.74 31.65 L57.35 31.65 L57.35 26.65 L42.65 26.65 Z M54.65 31.65 L45.35 31.65 L45.35 29.35 L54.65 29.35 L54.65 31.65 Z M64.55 34.35 L61.65 75.93 L61.64 76.24 L61.62 76.46 L61.59 76.65 L61.55 76.81 L61.51 76.95 L61.46 77.06 L61.41 77.15 L61.35 77.23 L61.29 77.29 L61.23 77.35 L61.15 77.41 L61.06 77.46 L60.95 77.51 L60.81 77.55 L60.65 77.59 L60.46 77.62 L60.24 77.64 L59.98 77.65 L40.02 77.65 L39.76 77.64 L39.54 77.62 L39.35 77.59 L39.19 77.55 L39.05 77.51 L38.94 77.46 L38.85 77.41 L38.77 77.35 L38.71 77.29 L38.65 77.23 L38.59 77.15 L38.54 77.06 L38.49 76.95 L38.45 76.81 L38.41 76.65 L38.38 76.46 L38.36 76.24 L38.35 75.93 L35.45 34.35 L42.65 34.35 L45.35 34.35 L54.65 34.35 L57.35 34.35 L64.55 34.35 Z M45.35 72.35 L45.35 41.00 L45.35 39.65 L42.65 39.65 L42.65 71.00 L42.65 72.35 L45.35 72.35 Z M51.35 41.00 L51.35 39.65 L48.65 39.65 L48.65 71.00 L48.65 72.35 L51.35 72.35 L51.35 41.00 Z M57.35 41.00 L57.35 39.65 L54.65 39.65 L54.65 71.00 L54.65 72.35 L57.35 72.35 L57.35 41.00 Z"/></svg></div>
@@ -286,7 +334,7 @@
     </div>
   </section>
 
-  <section id="checkout">
+  <section id="checkout" data-gated>
     <h2>퇴실 전에</h2>
     <p>가구와 비품은 원래 자리로 정리해주세요.<br>사진을 남기고 리뷰를 써주시면 다음 방문 때 추가 시간을 드려요.</p>
   </section>
@@ -308,5 +356,58 @@
   </footer>
 
 </div>
+
+<script>
+/* 이용 안내를 예약 시간에만 연다.
+ *
+ * **판정은 서버가 한다.** 이 페이지는 소스가 그대로 공개되므로 클라이언트 시계를 보고
+ * 감추는 방식으로는 아무것도 막지 못한다. 그래서 현관 비밀번호·와이파이 비밀번호가 이 파일에
+ * 아예 없고, `guide` action이 게이트를 통과한 요청에만 값을 내려준다
+ * (supabase/functions/control/handlers/guide.ts · reservation-window.ts).
+ *
+ * 게이트가 열리는 시각은 **입실 안내 문자와 같다**(입실 10분 전). 그 문자가 이 페이지 링크를
+ * 싣고 있어서 — 링크를 받은 손님이 그 자리에서 눌렀을 때 닫혀 있으면 안 된다.
+ *
+ * anon key가 소스에 공개돼 있는 것은 guest-control.html과 같은 조건이다. 이 키로 할 수 있는
+ * 일은 서버가 자르고(auth.ts), 예약 테이블은 RLS로 손님이 읽지 못한다.
+ */
+(function(){
+  var SUPABASE_URL = "https://sewqusncgznypjigmfde.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNld3F1c25jZ3pueXBqaWdtZmRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzM3OTAsImV4cCI6MjEwMTI0OTc5MH0.cMoaJUulz7m56aWQ8neQm013c75dGbCIuzEd8MS2vnI";
+  var root = document.documentElement;
+
+  function setState(s){ root.setAttribute('data-guide', s); }
+
+  function fill(id, value){
+    var el = document.getElementById(id);
+    /* textContent 로만 넣는다 — 서버가 준 값이라도 innerHTML 로 넣는 습관을 이 페이지에
+       만들지 않는다. */
+    if (el) el.textContent = value == null ? '' : String(value);
+  }
+
+  fetch(SUPABASE_URL + '/functions/v1/control', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'guide' })
+  }).then(function(res){
+    return res.json().then(function(body){ return { ok: res.ok, body: body }; });
+  }).then(function(r){
+    if (r.ok) {
+      fill('doorPin', r.body.door_pin);
+      fill('wifiSsid', r.body.wifi_ssid);
+      fill('wifiPw', r.body.wifi_password);
+      /* 값을 채운 뒤에 연다 — 순서를 뒤집으면 '···'가 한 프레임 보인다. */
+      setState('open');
+      return;
+    }
+    /* "예약 시간이 아님"과 그 밖의 실패를 갈라서 말한다. 전부 같은 문구로 뭉개면 와이파이가
+       잠깐 끊긴 것도 "아직 안 열렸어요"로 보이고, 손님은 시간을 잘못 안 줄 알고 기다린다.
+       코드로 판정하는 이유는 문구가 바뀌면 문자열 비교가 조용히 깨지기 때문이다. */
+    setState(r.body && r.body.code === 'outside_reservation_window' ? 'closed' : 'error');
+  }).catch(function(){
+    setState('error');
+  });
+})();
+</script>
 </body>
 </html>

@@ -27,9 +27,10 @@ Space(`nmwc-ai/Space`, 유재형)의 `src/control/thinq` 를 이식한 것이다
 | `cleaner` | `token`이 `CLEANING_TOKEN`과 일치 | `cleaning-done.html` (`/cleaning`) | `cleaning_pending` + `cleaning_complete` 둘뿐 |
 
 **손님 경로에는 비밀번호가 없다.** 예전엔 `GUEST_PASSWORD`(=현관 비밀번호)로 게이트를 걸었지만,
-그 값은 사이트 루트(`guest-guide.html`)에 이미 평문으로 공개돼 있어 별도 장벽이 아니었다. 지금은
-`password`를 안 보낸 요청이 곧 guest다 — 그 대신 guest가 부를 수 있는 action·command는 그대로
-서버가 잘라낸다.
+그 값이 사이트 루트에 평문 공개돼 있어 장벽이 아니었다. 그 전제는 2026-08-17에 사라졌다 —
+현관 비밀번호도 이제 예약 시간에만 내려간다(`handlers/guide.ts`). 그래도 게이트를 되살리지 않는다:
+손님을 가르는 것은 비밀번호가 아니라 **예약 시간 창**이다. 지금은 `password`를 안 보낸 요청이
+곧 guest이고, guest가 부를 수 있는 action·command는 그대로 서버가 잘라낸다.
 
 admin 비밀번호는 이 함수만 여는 열쇠가 아니라 `reservations`의 `admin_*` RPC — 예약자 이름·
 전화번호·이메일 — 까지 여는 열쇠다(`admin.html`이 같은 값을 양쪽에 쓴다). 그래서 admin 판정은

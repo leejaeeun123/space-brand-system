@@ -57,6 +57,23 @@ export function dueAt(r: ScheduleWindow, timing: Timing): Date {
   return new Date(base.getTime() + timing.offsetMinutes * 60000);
 }
 
+/**
+ * 입실 안내 문자가 나가는 시각.
+ *
+ * **이용 안내 페이지의 게이트가 이 값을 본다**(`reservation-window.ts`). 그 문자가 안내 페이지
+ * 링크를 싣고 있어서다 — 링크를 받은 손님이 눌렀을 때 페이지가 닫혀 있으면 안 된다. 리드타임
+ * 숫자를 여기(`TIMINGS`) 한 곳에만 두면 문자 시각을 바꿀 때 게이트가 저절로 따라온다.
+ *
+ * 기기 준비 시각(`windows.prepTime`, 입실 15분 전)과는 **일부러 다르다.** 준비는 앞 예약이
+ * 붙어 있으면 정각으로 밀리지만(`prepDueState`), 안내 값은 앞 손님과 충돌할 게 없어 밀 이유가
+ * 없다. 두 시각을 하나로 묶으면 앞 예약이 있는 날 손님이 문 앞에서 비밀번호를 못 본다.
+ */
+export function checkinNoticeAt(r: ScheduleWindow): Date {
+  const checkin = TIMINGS.find((t) => t.kind === "checkin");
+  if (!checkin) throw new Error("checkin 타이밍이 TIMINGS에 없습니다");
+  return dueAt(r, checkin);
+}
+
 export type SmsDueState = "wait" | "fire" | "expired";
 
 export function stateOf(r: ScheduleWindow, timing: Timing, now: Date): SmsDueState {
