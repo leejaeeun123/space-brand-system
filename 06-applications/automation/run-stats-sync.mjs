@@ -2,12 +2,19 @@
 /**
  * 스클 운영지표 수집을 한 줄로 돌린다 — 콘솔에 붙여넣지 않고.
  *
- *   node run-stats-sync.mjs --dry-run          # 미리보기 (비밀번호 불필요)
+ *   node run-stats-sync.mjs --dry-run          # 미리보기 (자격증명 불필요)
  *   node run-stats-sync.mjs                    # 최근 14일 재수집
  *   node run-stats-sync.mjs --all              # 전체 기간 백필
  *   node run-stats-sync.mjs --days 30
  *
- * 비밀번호는 `TL_ADMIN_PASSWORD` 환경변수로 주거나, 없으면 화면에 안 보이게 물어본다.
+ * 자격증명은 `TL_STATS_KEY` 환경변수로 주거나, 없으면 화면에 안 보이게 물어본다.
+ * 키 발급·회전은 automation/README.md "수집 자격증명" 절.
+ *
+ * ⚠️ **어드민 비밀번호를 여기 쓰지 않는다.** 이 스크립트는 자격증명을
+ *    partner.spacecloud.kr 페이지의 JS 컨텍스트에 주입하는데, 그 페이지는 우리가 통제하지
+ *    않는다 — 어드민 비밀번호가 거기서 새면 예약자 이름·연락처를 여는 admin_* RPC 전체가
+ *    열린다. stats 키는 새도 지표 오염(재수집으로 복구)에 그친다(20260818020000).
+ *    `TL_ADMIN_PASSWORD`는 전환기 호환으로만 받고, 받을 때마다 경고를 찍는다.
  *
  * ── 왜 브라우저를 거치는가 ───────────────────────────────────────────────────
  *
@@ -63,7 +70,7 @@ if (val('--to')) opts.to = val('--to');
 function askHidden(prompt) {
   return new Promise((resolve, reject) => {
     if (!process.stdin.isTTY) {
-      reject(new Error('비밀번호가 필요합니다. TL_ADMIN_PASSWORD 환경변수로 주세요.'));
+      reject(new Error('stats 키가 필요합니다. TL_STATS_KEY 환경변수로 주세요.'));
       return;
     }
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
@@ -80,15 +87,24 @@ function askHidden(prompt) {
   });
 }
 
-async function resolvePassword() {
+async function resolveCredential() {
   if (opts.dryRun) return '';                      // 미리보기는 DB를 안 건드린다
-  if (process.env.TL_ADMIN_PASSWORD) return process.env.TL_ADMIN_PASSWORD;
-  return askHidden('admin.html 비밀번호: ');
+  if (process.env.TL_STATS_KEY) return process.env.TL_STATS_KEY;
+  if (process.env.TL_ADMIN_PASSWORD) {
+    // 서버는 둘 다 받지만(stats_or_admin_check) 어드민 비밀번호를 서드파티 페이지에
+    // 넣는 습관을 끊는 것이 이 키의 존재 이유다 — 조용히 받으면 아무도 안 바꾼다.
+    console.warn(
+      '⚠️ TL_ADMIN_PASSWORD로 실행 중입니다 — 어드민 비밀번호가 스클 페이지에 주입됩니다.\n' +
+      '   stats 전용 키로 바꾸세요: automation/README.md "수집 자격증명" 절.'
+    );
+    return process.env.TL_ADMIN_PASSWORD;
+  }
+  return askHidden('stats 키: ');
 }
 
 // --- 실행 ------------------------------------------------------------------
 
-const password = await resolvePassword();
+const password = await resolveCredential();
 const source = readFileSync(path.join(HERE, 'spacecloud-stats-sync.js'), 'utf8');
 
 // 수집기 원문·비밀번호·옵션을 JSON으로 실어 보낸다. 문자열 이어붙이기로 만들면

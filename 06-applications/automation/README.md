@@ -284,13 +284,42 @@ exclusive 7시간이면 9,142.86원이라는 단가가 나온다.
 
 ```bash
 cd 06-applications/automation
-node run-stats-sync.mjs --dry-run      # 미리보기 (비밀번호 불필요, DB 변경 없음)
+node run-stats-sync.mjs --dry-run      # 미리보기 (자격증명 불필요, DB 변경 없음)
 node run-stats-sync.mjs                # 최근 14일 재수집
 node run-stats-sync.mjs --all          # 전체 기간 백필
 ```
 
-비밀번호는 `TL_ADMIN_PASSWORD` 환경변수로 주거나, 없으면 화면에 안 보이게 물어본다.
+자격증명은 `TL_STATS_KEY` 환경변수로 주거나, 없으면 화면에 안 보이게 물어본다.
 `aside`(Aside 브라우저 CLI)가 깔려 있고 그 브라우저에 파트너 로그인이 살아 있어야 한다.
+
+## 수집 자격증명 — stats 전용 키
+
+적재 RPC(`admin_upsert_sc_daily`)는 **stats 전용 키**를 받는다(어드민 비밀번호도 받지만
+아래 이유로 쓰지 않는다). 키가 하는 일은 지표 적재 하나뿐이라, 새도 피해가 지표 오염
+(같은 날짜 재수집으로 복구)에 그친다.
+
+**어드민 비밀번호를 쓰면 안 되는 이유**: 러너는 자격증명을 **partner.spacecloud.kr 페이지의
+JS 컨텍스트**에 주입한다(그 페이지의 세션을 빌려야 해서 — 위 "화면을 긁지 않는 이유").
+그 페이지는 우리가 통제하지 않으므로, 거기서 어드민 비밀번호가 새면 예약자 이름·연락처를
+여는 `admin_*` RPC 전체가 열린다. 전환기 호환으로 `TL_ADMIN_PASSWORD`도 아직 받지만
+받을 때마다 경고가 찍힌다 — 경고가 보이면 아래로 갈아탄다.
+
+**발급·회전** (Supabase SQL 편집기 또는 psql):
+
+```bash
+openssl rand -hex 32                   # 키 생성 — 사람이 외울 값이 아니다
+```
+
+```sql
+select public.stats_set_key('<어드민 비밀번호>', '<생성한 키>');
+```
+
+그다음 실행 환경의 `TL_STATS_KEY`를 새 값으로 바꾼다. 끝 — 회전도 같은 두 단계다.
+
+> 이 키는 어드민 비밀번호 회전 세 자리(`control-setup.md` M절)와 **무관하다.** 어드민을
+> 회전해도 이 키는 살고, 이 키를 회전해도 어드민은 안 움직인다 — 네 번째 자리가 아니다.
+> 키를 잃어버려도 잠기지 않는다: 심기 전·분실 시엔 어드민 비밀번호로도 적재가 되므로
+> (`stats_or_admin_check`), 그때 새 키를 심으면 된다.
 
 토큰이 죽었으면 러너가 종료코드 `2`와 함께 로그인 안내를 낸다. 그때만 사람이
 `partner.spacecloud.kr/auth/login`에서 네이버로 한 번 로그인하면 된다.

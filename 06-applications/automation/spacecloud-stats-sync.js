@@ -319,9 +319,11 @@ var scStats = (function () {
   async function run(password, opts) {
     opts = opts || {};
     var dryRun = !!opts.dryRun;
-    // 미리보기는 DB를 건드리지 않으므로 비밀번호를 요구하지 않는다 — 수집만 확인하려고
-    // 비밀번호를 꺼내오게 만들면, 안 꺼내도 되는 상황에서 자꾸 꺼내는 습관이 생긴다.
-    if (!password && !dryRun) throw new Error('admin.html 비밀번호가 필요합니다.');
+    // 미리보기는 DB를 건드리지 않으므로 자격증명을 요구하지 않는다 — 수집만 확인하려고
+    // 키를 꺼내오게 만들면, 안 꺼내도 되는 상황에서 자꾸 꺼내는 습관이 생긴다.
+    // 받는 값은 stats 전용 키다(어드민 비밀번호도 서버가 받아주지만 여기 넣지 않는다 —
+    // 이 코드는 스클 페이지 컨텍스트에서 돈다. run-stats-sync.mjs 머리말 참고).
+    if (!password && !dryRun) throw new Error('stats 키가 필요합니다 (automation/README.md "수집 자격증명" 절).');
 
     var to = opts.to || lastAvailableDate();
     var from = opts.from ||

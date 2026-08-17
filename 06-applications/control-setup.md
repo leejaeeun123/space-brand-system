@@ -795,6 +795,11 @@ supabase secrets set ADMIN_PASSWORD='<같은 값>'
 Apps Script는 명령이 없다. https://script.google.com → `SpaceCloud Gmail Sync` 프로젝트 →
 좌측 톱니바퀴(프로젝트 설정) → **스크립트 속성** → `ADMIN_PASSWORD`를 같은 값으로 고친다.
 
+> **스클 지표 수집의 stats 키는 이 세 자리에 포함되지 않는다**(20260818020000). 독립 키라
+> 어드민을 회전해도 같이 움직일 필요가 없다 — 발급·회전은 `automation/README.md`
+> "수집 자격증명" 절. 지표 수집이 어드민 비밀번호를 쓰던 시절(TL_ADMIN_PASSWORD)의
+> 흔적이 현장 환경변수에 남아 있으면 그때 같이 갈아탄다.
+
 > **청소 담당자에게는 따로 알리지 않아도 된다**(2026-08-17부터). 아침 청소 안내 문자가
 > 현관·어드민 비밀번호를 함께 싣고(`cleaning/templates.ts`의 `accessBlock`) Edge 시크릿에서
 > 값을 읽으므로, 위 3)단계를 마치면 **다음 아침 문자부터 새 값이 나간다.** 현관 비밀번호를
