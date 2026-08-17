@@ -108,7 +108,7 @@ export function unsubscribe(subscriptionUrl, creds) {
 }
 
 /**
- * 쌓인 알림을 꺼낸다 → `[{ topic, at }]`.
+ * 쌓인 알림을 꺼낸다 → `[{ topic, at, active }]`.
  *
  * `at`은 **카메라가 실어 보낸 `UtcTime`**이지 우리가 받은 시각이 아니다. 폴링 간격만큼 늦게
  * 받으므로 수신 시각으로 적으면 퇴실 직전의 움직임이 판정 창 안으로 밀려 들어와,
@@ -116,6 +116,12 @@ export function unsubscribe(subscriptionUrl, creds) {
  *
  * `UtcTime`을 못 읽은 알림은 **버린다.** 지금 시각으로 대체하면 위의 밀림이 그대로 생긴다 —
  * 시각을 모르는 감지는 이 기능에 쓸 수 없다.
+ *
+ * `active`는 Data의 SimpleItem 값(`IsMotion="true"` 등)이다. CellMotionDetector는 상태형
+ * (Property) 이벤트라 **시작(true)과 종료(false)가 같은 토픽으로 온다** — 값을 안 읽으면
+ * '움직임이 끝났다'는 알림이 움직임으로 집힌다. 종료는 감지 홀드가 풀리는 몇 초 뒤에 오므로,
+ * 유예 안에 나간 손님의 종료 이벤트가 유예 밖 시각을 달고 와 정상 퇴실을 오탐시킨다.
+ * 값이 아예 없으면 null로 둔다 — 버릴지는 의미를 아는 쪽(`isMotion`)이 정한다.
  */
 export async function pull(subscriptionUrl, creds) {
   const xml = await soap(
@@ -133,7 +139,14 @@ export async function pull(subscriptionUrl, creds) {
     const at = new Date(utc);
     if (Number.isNaN(at.getTime())) continue;
     const topic = (/<[^>]*Topic[^>]*>([^<]+)</.exec(block)?.[1] ?? "").trim();
-    out.push({ topic: topic.split("/").pop() ?? topic, at });
+    // Source의 SimpleItem(VideoSourceConfigurationToken 등)과 섞이지 않게 Data 안에서만 읽는다.
+    const data = /<[^>]*Data>([\s\S]*?)<\/[^>]*Data>/.exec(block)?.[1] ?? "";
+    const value = /Value="([^"]+)"/.exec(data)?.[1] ?? null;
+    out.push({
+      topic: topic.split("/").pop() ?? topic,
+      at,
+      active: value === null ? null : value === "true",
+    });
   }
   return out;
 }
@@ -150,7 +163,12 @@ export async function pull(subscriptionUrl, creds) {
  *
  * 나중에 Tapo 앱에서 사람 감지를 켜면 `PeopleDetector`가 오기 시작한다. 그때 여기 한 줄을
  * 더하면 되고, **그 전까지 판정은 사람이 아니라 움직임이다**(오탐 여지가 그만큼 있다).
+ *
+ * `active === false`(움직임 종료)는 움직임이 아니다 — `pull`의 주석에 있는 오탐 경로다.
+ * `null`(값을 못 읽음)은 **움직임으로 친다**: FW가 바뀌어 파서가 값을 놓치는 날, 종료까지
+ * 세는 과민함은 눈에 띄지만(오탐 알림) 전부 버리는 과묵함은 기능이 조용히 꺼진 채 아무도
+ * 모른다. 조용한 고장이 더 나쁘다는 태도는 `motion.js`의 실패 처리와 같다.
  */
-export function isMotion(topic) {
-  return topic === "Motion";
+export function isMotion(event) {
+  return event.topic === "Motion" && event.active !== false;
 }

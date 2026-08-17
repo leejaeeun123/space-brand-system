@@ -466,11 +466,12 @@ tail -f ~/Library/Logs/typelounge/motion.log
 
 로직만으로는 끝나지 않는다. **라운지 카메라 앞에서 손을 흔든다.**
 
-```bash
-tail -f ~/Library/Logs/typelounge/motion.log     # [motion] lounge_left 움직임 ...
-```
+감지 건별 로그는 평소에 **안 남는다** — 건마다 적으면 `motion.log`가 사람이 공간에 있었던
+시간대의 이력 대장이 된다(DB가 카메라당 1행만 덮어쓰는 것과 같은 이유다). 현장 확인 때만
+`.env`에 `MOTION_DEBUG=1`을 넣고 relay를 재설치해 잠깐 켜고, **확인이 끝나면 지운다.**
 
-- [ ] 움직이면 `motion.log`에 `움직임` 줄이 뜬다
+- [ ] 움직이면 `camera_motion`의 `last_motion_at`이 그 시각으로 갱신된다 (또는
+      `MOTION_DEBUG=1` 상태에서 `motion.log`에 `움직임` 줄이 뜬다)
 - [ ] 가만히 있으면 30초마다 조용히 하트비트만 돈다(로그에 안 남는다 — 정상)
 - [ ] `camera_motion` 행 2개의 `observed_at`이 계속 갱신된다
 
@@ -498,6 +499,9 @@ ffmpeg가 막힌 것과 **같은 벽**이다(아래 "왜 이렇게까지 하는�
 
 `MOTION_PATHS`를 비우고 relay를 재설치한다. 감시자가 안 뜨고 `camera_motion`이 낡으면
 서버는 '모름'으로 보고 **알리지 않는다** — 조용히 꺼지는 것이 아니라 판단을 멈춘다.
+'모름' 경보(`motion_watch_stale`)는 하루 동안 반복되다가, 그 뒤로는 감시를 접은 것으로 보고
+멎는다(`occupancy.ts`의 `MOTION_RETIRED_SECONDS`). 어드민에서 카메라를 지운 경우가 아니라면
+`camera_motion` 잔행은 지우지 않아도 된다 — 감시를 되살리면 저절로 판정 대상으로 돌아온다.
 
 ---
 

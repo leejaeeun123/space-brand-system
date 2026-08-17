@@ -256,9 +256,17 @@ async function runAutomation(sb: SupabaseClient, now: Date) {
   let deviceOffline = 0;
   let cameraOffline = 0;
   let cameraPairs: Array<[Camera, CameraState]> = [];
+  // 카메라 목록은 점검과 별도로 조회한다 — 이 목록은 아래 알림(flush)의 **이름 해석**에도
+  // 쓰여서, 점검과 같은 try에 묶으면 점검이 실패한 틱에 나가는 checkout_overdue 알림의
+  // 카메라가 전부 "알 수 없는 기기"로 찍힌다. 조회 실패는 점검 실패와 같은 신호로 남긴다.
+  try {
+    cameraPairs = await listCameras(sb);
+  } catch (e) {
+    console.error("카메라 목록 조회 실패 — 이름 해석과 카메라 점검 없이 계속한다", e);
+    await recordSystemError(sb, "connectivity_failed", e instanceof Error ? e.message : String(e), now);
+  }
   try {
     const current = await getDevices();
-    cameraPairs = await listCameras(sb);
     const result = await checkConnectivity(sb, current, cameraPairs, thinqErrors, now);
     deviceOffline = result.deviceAlerts;
     cameraOffline = result.cameraAlerts;

@@ -82,9 +82,11 @@ async function watchOne(sb, { path, ip, id }, creds, state) {
       failures = 0;
 
       // 한 번의 pull에 여러 건이 실려 올 수 있다 — 가장 늦은 것이 '마지막 움직임'이다.
+      // 종료(active=false) 이벤트는 isMotion이 거른다 — 유예 안에 나간 손님의 종료가
+      // 유예 밖 시각을 달고 와 '남아 있음'으로 집히는 것을 막는 자리다.
       let motionAt = null;
       for (const e of events) {
-        if (!isMotion(e.topic)) continue;
+        if (!isMotion(e)) continue;
         if (motionAt === null || e.at > motionAt) motionAt = e.at;
       }
 
@@ -93,7 +95,10 @@ async function watchOne(sb, { path, ip, id }, creds, state) {
         // 움직임은 **즉시** 적는다. 하트비트 주기를 기다리면 그만큼 판정이 늦는다.
         await save(sb, id, { motionAt, now });
         lastHeartbeat = Date.now();
-        console.log(`[motion] ${path} 움직임 ${motionAt.toISOString()}`);
+        // 감지 건별 로그는 **평소에 남기지 않는다.** DB가 카메라당 1행만 덮어쓰는 이유와
+        // 같다 — 건마다 적으면 motion.log가 사람이 공간에 있었던 시간대의 이력 대장이 된다.
+        // 현장 확인이 필요할 때만 MOTION_DEBUG=1로 잠깐 켠다(cctv-setup.md C-10).
+        if (process.env.MOTION_DEBUG) console.log(`[motion] ${path} 움직임 ${motionAt.toISOString()}`);
       } else if (Date.now() - lastHeartbeat > HEARTBEAT_MS) {
         await save(sb, id, { motionAt: null, now });
         lastHeartbeat = Date.now();
@@ -105,6 +110,10 @@ async function watchOne(sb, { path, ip, id }, creds, state) {
       if (failures === 1) console.error(`[motion] ${path} pull 실패:`, e.message);
       if (failures >= REFRESH_AFTER_FAILURES) {
         console.error(`[motion] ${path} ${failures}회 실패 — 구독을 다시 맺는다`);
+        // 죽었다고 판단한 구독도 카메라 쪽에는 수명(PT10M)이 남아 있을 수 있다. 카메라가
+        // 구독마다 별도 포트를 여는 실측이 있어, 해지 없이 재구독만 반복하면 카메라 쪽
+        // 구독 자원이 겹겹이 쌓인다. 실패해도 좋다 — 진짜 죽은 구독이면 어차피 만료된다.
+        if (sub) await unsubscribe(sub, creds).catch(() => {});
         sub = null;
         failures = 0;
       }

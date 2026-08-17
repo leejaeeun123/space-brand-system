@@ -119,6 +119,41 @@ Deno.test("낡은 대와 멀쩡한 대가 섞이면 둘 다 각자의 자리로 
   assertEquals(d.unknown, ["lounge-r"]);
 });
 
+Deno.test("하루 넘게 끊긴 행은 '모름'도 아니다 — 감시를 접은 카메라의 잔행", () => {
+  // 감시 구성은 현장 셸에 있어 DB는 감시를 뺀 카메라를 모른다. 잔행을 '모름'으로 치면
+  // 그 카메라를 뺀 날부터 퇴실 창마다 stale 경보가 영영 반복된다 — 사람이 경보를 무시하는
+  // 법을 배우는 바로 그 경로라, 판정에서 통째로 제외한다.
+  const retired: MotionReading = {
+    camera_id: "office",
+    last_motion_at: "2026-08-17T09:00:00+09:00",
+    observed_at: "2026-08-17T08:00:00+09:00", // 25시간 전
+  };
+  const d = decideOverdue([retired], LOOK_FROM, NOW);
+  assertEquals(d.moved, []);
+  assertEquals(d.unknown, []);
+});
+
+Deno.test("잔행과 멀쩡한 대가 섞이면 잔행만 조용히 빠진다", () => {
+  const retired: MotionReading = {
+    camera_id: "office",
+    last_motion_at: null,
+    observed_at: "2026-08-16T09:00:00+09:00", // 이틀 전
+  };
+  const d = decideOverdue([fresh("lounge-l", "2026-08-18T09:07:00+09:00"), retired], LOOK_FROM, NOW);
+  assertEquals(d.moved, ["lounge-l"]);
+  assertEquals(d.unknown, []);
+});
+
+Deno.test("낡음의 경계 — 180초 초과~하루 이내는 여전히 '모름'이다", () => {
+  // 방금 끊긴 감시자는 사람이 알아야 할 사건이다. 잔행 제외가 이 신호까지 삼키면 안 된다.
+  const stale: MotionReading = {
+    camera_id: "lounge-l",
+    last_motion_at: null,
+    observed_at: new Date(NOW.getTime() - 10 * 60_000).toISOString(), // 10분 전
+  };
+  assertEquals(decideOverdue([stale], LOOK_FROM, NOW).unknown, ["lounge-l"]);
+});
+
 Deno.test("관측 행이 없으면 아무것도 나오지 않는다 — 감시자 미설치 상태", () => {
   const d = decideOverdue([], LOOK_FROM, NOW);
   assertEquals(d.moved, []);

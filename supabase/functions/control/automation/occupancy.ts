@@ -38,6 +38,20 @@ export const OVERDUE_GRACE_MINUTES = 3;
  */
 export const MOTION_STALE_SECONDS = 180;
 
+/**
+ * 관측이 이보다 오래 끊겼으면 '감시자가 죽었다'가 아니라 **'감시를 접었다'**로 본다.
+ *
+ * 감시 구성은 현장 셸(`camera-relay-all.sh`의 `MOTION_PATHS`)에 있어 DB는 감시를 뺀 카메라를
+ * 모른다 — `camera_motion`에는 그 카메라의 마지막 행이 영영 남는다. 그 잔행을 계속 '모름'으로
+ * 치면 카메라를 뺀 날부터 퇴실이 있는 창마다 stale 경보가 끝없이 반복되고, 사람은 그 경보를
+ * 무시하는 법을 배운다 — 경보가 지키려던 것을 경보 자신이 죽인다.
+ *
+ * 하루로 둔 이유: 감시자가 **진짜로 죽은 것**이라면 첫 경보들이 하루 안에 사람을 움직였어야
+ * 하고, 하루가 지나도록 아무도 안 고쳤다면 반복 경보가 더 해줄 일은 없다. 감시를 되살리면
+ * observed_at이 다시 신선해져 저절로 판정 대상으로 돌아온다.
+ */
+export const MOTION_RETIRED_SECONDS = 24 * 60 * 60;
+
 /** `camera_motion` 한 행. 판정에 필요한 것만. */
 export interface MotionReading {
   camera_id: string;
@@ -61,13 +75,15 @@ export interface OverdueDecision {
  *
  * **낡은 관측을 먼저 걸러낸다.** 낡은 행의 `last_motion_at`은 창보다 이를 수밖에 없어서
  * 그냥 두면 조용히 '움직임 없음'에 섞인다 — 감시자가 죽은 채로 "아무도 없습니다"가 참이 되는
- * 바로 그 상태다.
+ * 바로 그 상태다. 낡음에도 결이 둘 있다: 방금 끊긴 것은 '모름'(경보 대상)이고, 하루 넘게
+ * 끊긴 것은 '감시 종료'(판정에서 제외 — `MOTION_RETIRED_SECONDS`의 주석 참조)다.
  */
 export function decideOverdue(
   motions: MotionReading[],
   lookFrom: Date,
   now: Date,
   staleSeconds = MOTION_STALE_SECONDS,
+  retiredSeconds = MOTION_RETIRED_SECONDS,
 ): OverdueDecision {
   const moved: string[] = [];
   const unknown: string[] = [];
@@ -75,6 +91,7 @@ export function decideOverdue(
 
   for (const m of motions) {
     const observed = Date.parse(m.observed_at);
+    if (Number.isFinite(observed) && now.getTime() - observed > retiredSeconds * 1000) continue;
     if (!Number.isFinite(observed) || now.getTime() - observed > staleSeconds * 1000) {
       unknown.push(m.camera_id);
       continue;
@@ -159,6 +176,11 @@ export async function checkCheckoutOverdue(
 
   // 이번 창에서 이미 알렸으면 끝. 장부가 판단 근거인 이유는 `fetchActedDevices`의 주석과 같다 —
   // 관측값은 낡지만 장부는 낡지 않는다.
+  //
+  // ⚠️ 알려진 한계: 이 조회와 아래 기록 사이가 원자적이지 않다. `automate`는 anon으로 누구나
+  // 부를 수 있어(claimPending 주석 참조) 크론 틱과 수동 호출이 수 초 안에 겹치면 같은 창에서
+  // 두 번 알릴 수 있다. 대가가 중복 알림 1건뿐이라 유니크 제약(스키마 변경)의 비용을 치르지
+  // 않는다 — 스윕의 창당 1회 억제(enforce.ts)와 같은 태도다.
   if (await fetchLatestByAction(sb, "checkout_overdue", "observed", since)) return 0;
 
   const minutes = Math.floor(elapsed);
