@@ -148,10 +148,23 @@ sudo launchctl bootstrap system /Library/LaunchDaemons/<그 plist>
 | DB 마이그레이션 | `devices`·`device_state`·`device_commands`·`cameras`·`camera_state` 전부 적용됨 |
 | Edge Function `control` | 배포됨. 카메라 액션(`cameras`/`camera_register`/`camera_delete`/`camera_credentials`) 포함 |
 | Supabase 시크릿 | `ADMIN_PASSWORD` + `CAMERA_*` 5개 설정 완료 |
-| Vercel | `https://typelounge.vercel.app/admin` 라이브. guest-guide는 `/` |
+| Vercel | `https://typelounge.vercel.app/admin` 라이브. guest-guide는 `/`, 손님 제어는 `/control`(공간 QR·이용 안내 CRM에서 유입) |
 | Cloudflare | `nmwc.ai.kr` Active(Free). **DNS 레코드는 아직 없다** — C-6에서 만든다 |
 
 `supabase db push`·`functions deploy`·`secrets set`을 **다시 돌릴 이유가 없다.** 돌리지 마라.
+
+### 라이브 페이지 · 접속
+
+| 페이지 | 주소 | 접속 |
+|---|---|---|
+| 게스트 가이드 | `typelounge.vercel.app/` | 공개 |
+| 손님 제어 | `typelounge.vercel.app/control` | `GUEST_PASSWORD`. 공간 QR·이용 안내 CRM에서 들어온다 |
+| 예약 관리 어드민 | `typelounge.vercel.app/admin` | **`1231001010`** |
+
+> 어드민 비밀번호는 이미 `supabase/migrations/20260803000000_add_cancelled_status.sql`에 평문으로
+> 들어가 있고 이 레포는 public이다. 그래서 여기에도 적어둔다 — **숨겨져 있다고 착각하지 않기 위해서다.**
+> 이 값은 기기 제어뿐 아니라 `admin_*` RPC를 통해 **예약자 이름·연락처**를 연다. 바꾸려면 커밋 히스토리에
+> 남은 값도 같이 죽는 게 아니므로, 비밀번호 자체를 교체(시크릿 + RPC + 어드민)해야 실제로 닫힌다.
 
 ### 아직 아무것도 안 된 것
 

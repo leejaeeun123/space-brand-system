@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TYPE LOUNGE — BX (Brand Experience)</title>
+<meta name="description" content="브랜드 경험·언어 — 퍼소나 · 보이스 · Use/Avoid · 샘플 카피 · 타겟 · 포지셔닝.">
+<link href="https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css" rel="stylesheet">
+<style>
+  :root{
+    --orange:#E2531E; --white:#ffffff; --ink:#16130F;
+    --paper:#ffffff; --line:rgba(22,19,15,.14);
+    --ff:'Paperlogy','Pretendard',sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --maxw:1200px; --side:212px; --headh:59px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:calc(var(--headh) + 20px)}
+  /* 자간 +3% 는 이 브랜드북이 설명하는 규칙 그대로다 (brand.md 「03. Typography」) */
+  body{background:var(--white);color:var(--ink);font-family:var(--ff);font-weight:400;line-height:1.65;
+       letter-spacing:.03em;-webkit-font-smoothing:antialiased}
+  /* 코드·원본 마크다운은 문자 정렬이 목적이라 자간을 걸지 않는다 */
+  code,pre,.mdsrc,.sw .hex,.toc a .n,.ddmenu a small,.spec .sm,.mdbar .p{letter-spacing:normal}
+  a{color:inherit}
+
+  /* ---------- top bar ---------- */
+  header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1.5px solid var(--ink)}
+  .nav{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:20px}
+  .brandmark{display:flex;align-items:center;flex:0 0 auto}
+  .brandmark img{height:22px;width:auto;display:block}
+  .tabs{display:flex;gap:4px;flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    text-decoration:none;border:1.5px solid transparent;color:var(--ink);padding:7px 13px;border-radius:2px;
+    white-space:nowrap;transition:.12s ease-out}
+  .tabs a:hover{border-color:var(--line)}
+  .tabs a.on{background:var(--ink);color:var(--white)}
+  .navtools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+  .tbtn{font-family:var(--ff);font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    background:none;border:1.5px solid var(--line);color:var(--ink);padding:6px 11px;border-radius:3px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;transition:.12s ease-out;white-space:nowrap}
+  .tbtn:hover{border-color:var(--orange);color:var(--orange)}
+  .tbtn[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+
+  /* download dropdown */
+  .dd{position:relative}
+  .dd>summary{list-style:none;cursor:pointer}
+  .dd>summary::-webkit-details-marker{display:none}
+  .dd[open]>summary .caret{transform:rotate(180deg)}
+  .caret{font-size:9px;transition:.14s}
+  .ddmenu{position:absolute;right:0;top:calc(100% + 7px);min-width:216px;background:var(--white);
+    border:1.5px solid var(--ink);border-radius:5px;box-shadow:0 10px 30px rgba(22,19,15,.13);padding:5px;z-index:70}
+  .ddmenu a{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:9px 11px;border-radius:3px;text-decoration:none;font-size:13.5px;font-weight:600;transition:.1s}
+  .ddmenu a:hover{background:rgba(226,83,30,.09);color:var(--orange)}
+  .ddmenu a small{font-family:var(--mono);font-size:10.5px;font-weight:400;color:rgba(22,19,15,.45);white-space:nowrap}
+  .ddmenu a:hover small{color:var(--orange)}
+  .ddmenu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+
+  /* ---------- layout ---------- */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:0 24px;display:grid;grid-template-columns:var(--side) 1fr;gap:44px;align-items:start}
+  main{min-width:0;padding-bottom:140px}
+
+  /* ---------- sidebar TOC ---------- */
+  .toc{position:sticky;top:calc(var(--headh) + 34px);padding:34px 0 40px;font-size:13px}
+  .toc .tt{font-weight:600;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(22,19,15,.42);margin-bottom:12px}
+  .toc ol{list-style:none}
+  .toc li{margin:0}
+  .toc a{display:flex;gap:9px;padding:5px 0 5px 10px;text-decoration:none;color:rgba(22,19,15,.62);
+    border-left:2px solid var(--line);line-height:1.4;transition:.12s ease-out}
+  .toc a:hover{color:var(--ink);border-left-color:rgba(22,19,15,.4)}
+  .toc a.on{color:var(--orange);border-left-color:var(--orange);font-weight:600}
+  .toc a .n{font-family:var(--mono);font-size:11px;opacity:.62;flex:0 0 auto}
+  .toc .other{margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+  .toc .other a{border-left:0;padding-left:0;font-size:12.5px}
+  .toc .other .tt{margin-bottom:8px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:60px 0 38px;border-bottom:1.5px solid var(--ink)}
+  .kicker{font-weight:600;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+  .hero h1{font-weight:600;font-size:clamp(38px,6.4vw,62px);line-height:1;letter-spacing:.03em;margin:14px 0 16px}
+  .hero .lede{max-width:620px;font-size:16.5px;color:rgba(22,19,15,.72)}
+  .hero .lede p{margin:0 0 6px}
+  .hero .lede code{font-size:.9em}
+
+  /* ---------- sections ---------- */
+  section{padding:50px 0;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--headh) + 20px)}
+  .snum{font-weight:600;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
+  h2{font-weight:600;font-size:28px;letter-spacing:.03em;margin:6px 0 20px}
+  h3{font-weight:600;font-size:17.5px;margin:28px 0 10px}
+  h4{font-weight:600;font-size:15px;margin:20px 0 8px;color:rgba(22,19,15,.75)}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px;padding-left:20px}li{margin:5px 0}
+  strong{font-weight:600}
+  a.ext{color:var(--orange)}
+  code{font-family:var(--mono);font-size:.87em;background:rgba(22,19,15,.07);padding:2px 6px;border-radius:3px}
+  pre{background:rgba(22,19,15,.05);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;margin:14px 0}
+  pre code{background:none;padding:0;font-size:12.5px;line-height:1.75}
+  hr{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:rgba(22,19,15,.6);border-bottom:1.5px solid var(--ink)}
+  tr:hover td{background:rgba(226,83,30,.04)}
+  .tablewrap{overflow-x:auto;margin:14px 0 20px}
+  .tablewrap table{margin:0}
+  /* 식별자 열(E-1 · 토큰명)이 글자 단위로 접히지 않게 — 넘치면 표가 가로로 스크롤된다 */
+  td:first-child,th:first-child{white-space:nowrap}
+  td code{white-space:nowrap}
+
+  /* blockquote → note callout */
+  blockquote{background:var(--paper);border-left:3px solid var(--orange);padding:12px 16px;
+    border-radius:0 4px 4px 0;font-size:14px;margin:16px 0}
+  blockquote p:last-child{margin-bottom:0}
+
+  /* ---------- swatches ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sw{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+  .sw .chip{height:78px}
+  .sw .meta{padding:10px 12px}
+  .sw .nm{font-weight:600;font-size:14px}
+  .sw .hex{font-family:var(--mono);font-size:12px;color:rgba(22,19,15,.6);margin-top:3px}
+  .sw .use{font-size:12px;color:rgba(22,19,15,.6);margin-top:6px;line-height:1.4}
+
+  /* ---------- logo chips ---------- */
+  .logobox{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:16px;margin:18px 0}
+  .lchip{min-width:0;padding:32px 20px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:7px;
+    border:1px solid var(--line);text-decoration:none;color:inherit;cursor:pointer;transition:.12s ease-out}
+  .lchip:hover{border-color:var(--orange)}
+  .lchip.light{background:var(--paper)}
+  .lchip.dark{background:var(--ink);color:var(--white)}
+  .lchip.orange{background:var(--orange);color:#fff}
+  .lchip .dlhint{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .lchip:hover .dlhint{opacity:1}
+  .lchip.dark .dlhint,.lchip.orange .dlhint{color:#fff}
+  .lchip img{height:70px;width:auto;display:block;max-width:100%}
+  .lchip.h img{height:34px}
+  .plabel{font-weight:600;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+
+  /* inline download row */
+  .dl{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:6px 0 10px}
+  .dl-label{font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(22,19,15,.55)}
+  .dl a{font-size:12.5px;font-weight:600;text-decoration:none;border:1.5px solid var(--line);border-radius:3px;padding:5px 11px;transition:.12s ease-out}
+  .dl a:hover{border-color:var(--orange);color:var(--orange)}
+
+  /* ---------- cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;margin:16px 0}
+  .card{border:1.5px solid var(--ink);border-radius:6px;padding:18px 18px 20px;background:var(--paper)}
+  .card .t{font-weight:600;font-size:16px;margin-bottom:2px}
+  .card .t.warn{color:var(--orange)}
+  .card .anb{font-size:13px;color:var(--orange);font-weight:600;margin-bottom:10px}
+  .card ul{margin:0;padding-left:17px;font-size:13.5px}
+  .say{font-size:13.5px;margin-top:8px}
+  .say.no{color:rgba(22,19,15,.5)}
+  .say b{font-weight:600}
+
+  .pill{display:inline-block;font-weight:400;font-size:12px;letter-spacing:.03em;text-transform:uppercase;
+    padding:5px 12px;border:1.5px solid var(--ink);border-radius:3px;margin:0 6px 6px 0}
+  .pill.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+  /* ---------- picto / mode grids ---------- */
+  .pictos{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:10px;margin:16px 0}
+  .picto{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 10px;
+    border:1px solid var(--line);border-radius:6px;background:var(--paper);text-decoration:none;color:inherit;transition:.12s ease-out}
+  .picto:hover{border-color:var(--orange)}
+  .picto img{width:38px;height:38px;object-fit:contain}
+  .picto span{font-size:11.5px;font-weight:600;color:rgba(22,19,15,.7);text-align:center;line-height:1.3}
+  .picto small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .picto:hover small{opacity:1}
+
+  .modetags{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+  .mtag{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 20px;border:1px solid var(--line);
+    border-radius:6px;background:var(--paper);text-decoration:none;color:inherit;transition:.12s ease-out}
+  .mtag:hover{border-color:var(--orange)}
+  .mtag img{height:32px;width:auto;display:block}
+  .mtag small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s}
+  .mtag:hover small{opacity:1}
+
+  /* ---------- photos ---------- */
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:20px 0}
+  .shot{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column}
+  .shot .ph{background:#EFEDE9;display:flex;align-items:center;justify-content:center;height:300px}
+  .shot .ph img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .shot .cap{padding:11px 13px;border-top:1px solid var(--line)}
+  .shot .cap .tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--orange);margin-bottom:4px}
+  .shot .cap b{font-weight:600;font-size:14.5px;display:block}
+  .shot .cap span{font-size:12.5px;color:rgba(22,19,15,.62);line-height:1.45;display:block;margin-top:4px}
+  .shots.wide{grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+  .shots.wide .ph{height:340px}
+
+  /* ---------- A5 sheets ---------- */
+  .sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sheets.land{grid-template-columns:repeat(auto-fill,minmax(224px,1fr))}
+  .sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);
+    text-decoration:none;color:inherit;display:block;transition:.12s ease-out}
+  .sheet:hover{border-color:var(--orange)}
+  .sheet img{width:100%;height:auto;display:block;background:#fff}
+  .sheet .cap{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .sheet .cap b{font-weight:600;font-size:12.5px}
+  .sheet .cap small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s;white-space:nowrap}
+  .sheet:hover .cap small{opacity:1}
+
+  /* ---------- type specimen ---------- */
+  .spec{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:16px 0}
+  .spec div{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:18px}
+  .spec div:last-child{border-bottom:0}
+  .spec .sm{font-family:var(--mono);font-size:10.5px;color:rgba(22,19,15,.42);white-space:nowrap;flex:0 0 auto}
+  .spec .sv{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---------- sequence ---------- */
+  .seq{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:18px 0;
+    font-size:13.5px;line-height:1.9;overflow-x:auto;white-space:nowrap}
+  .seq b{font-weight:600}
+  .seq .ar{color:var(--orange);margin:0 8px}
+
+  /* ---------- asset download center ---------- */
+  .kit{border:1.5px solid var(--ink);border-radius:6px;padding:18px 20px;margin:18px 0;display:flex;
+    align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .kit .kt{font-weight:600;font-size:16px}
+  .kit .ks{font-size:13px;color:rgba(22,19,15,.6);margin-top:3px}
+  .kit a{background:var(--ink);color:var(--white);text-decoration:none;font-weight:600;font-size:13px;
+    letter-spacing:.06em;text-transform:uppercase;padding:11px 20px;border-radius:3px;transition:.12s}
+  .kit a:hover{background:var(--orange)}
+  .grouphead{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:30px 0 4px}
+  .grouphead h3{margin:0}
+  .grouphead a{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);
+    text-decoration:none;border-bottom:1.5px solid transparent;transition:.12s}
+  .grouphead a:hover{border-bottom-color:var(--orange)}
+
+  /* ---------- MD view ---------- */
+  #mdview{display:none;padding:34px 0 0}
+  #mdview.on{display:block}
+  body.md main>.hero,body.md main>section{display:none}
+  body.md #toc ol,body.md #toc>.tt{display:none}   /* 원본 보기에는 앵커가 없다 */
+  .mdbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
+  .mdbar .p{font-family:var(--mono);font-size:12px;color:rgba(22,19,15,.5)}
+  .mdsrc{background:rgba(22,19,15,.04);border:1px solid var(--line);border-radius:6px;padding:20px 22px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word;overflow-x:auto;tab-size:2}
+
+  .foot{padding:44px 0 0;font-size:13px;color:rgba(22,19,15,.5)}
+  .foot a{color:var(--orange);text-decoration:none}
+
+  @media(max-width:900px){
+    :root{--headh:56px}
+    .shell{grid-template-columns:1fr;gap:0}
+    .toc{position:static;padding:26px 0 0;border-bottom:1px solid var(--line);padding-bottom:20px}
+    .toc ol{display:flex;flex-wrap:wrap;gap:4px 0}
+    .toc a{border-left:0;padding:5px 11px 5px 0}
+    .toc a.on{border-left:0}
+    .toc .other{width:100%}
+    .hero{padding:38px 0 30px}
+    section{padding:40px 0}
+    .nav{padding:11px 16px;gap:12px;flex-wrap:wrap}
+    .shell{padding:0 16px}
+    .brandmark{order:1}.navtools{order:2;margin-left:auto}.tabs{order:3;width:100%;flex:1 0 100%}
+  }
+  @media(max-width:520px){
+    /* 좁은 화면에서 헤더가 뷰포트를 넘기면 문서 전체가 가로로 밀린다 */
+    .nav{padding:10px 14px;gap:8px}
+    .shell{padding:0 14px}
+    .brandmark img{height:19px}
+    .tbtn{font-size:11px;padding:5px 9px;letter-spacing:.05em}
+    .ddmenu{min-width:200px}
+    .lchip{padding:24px 14px}
+    .lchip img{height:56px}
+    .lchip.h img{height:26px}
+    .kit{flex-direction:column;align-items:stretch}
+    .kit a{text-align:center}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brandmark" href="index.html"><img src="assets/logo/logo-wordmark-h-ink.svg" alt="TYPE LOUNGE" height="22"></a>
+    <nav class="tabs"><a href="index.html">Brand</a><a href="bx.html" class="on">BX</a><a href="signage.html">Signage</a><a href="product.html">Product</a></nav>
+    <div class="navtools">
+      <button class="tbtn" id="mdtoggle" aria-pressed="false" title="원본 마크다운 보기">MD</button>
+      <details class="dd" id="dd">
+        <summary class="tbtn">Download <span class="caret">▼</span></summary>
+        <div class="ddmenu">
+          <a href="standalone/index.html" download="260816 typelounge_brandbook_index.html" id="dl-html">HTML page <small>4개 탭 · 단일 파일</small></a>
+          <a href="md/bx.md" download="bx.md" id="dl-md">MD source <small>bx.md</small></a>
+          <a href="type-lounge-logos.zip" download="type-lounge-logos.zip">Logo (SVG) <small>워드마크 전체 zip</small></a>
+          <hr>
+          <a href="type-lounge-brand-kit.zip" download="type-lounge-brand-kit.zip">Download all <small>0.2 MB</small></a>
+        </div>
+      </details>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="toc" id="toc">
+    <div class="tt">On this page</div>
+    <ol><li><a href="#brand-platform"><span class="n">01</span><span>Brand Platform</span></a></li><li><a href="#persona-형용사-3개-a-not-b"><span class="n">02</span><span>Persona — 형용사 3개 (&quot;A, not B&quot;)</span></a></li><li><a href="#tone-of-voice"><span class="n">03</span><span>Tone of Voice</span></a></li><li><a href="#brand-language-use-avoid"><span class="n">04</span><span>Brand Language (Use / Avoid)</span></a></li><li><a href="#sample-copy"><span class="n">05</span><span>Sample Copy</span></a></li><li><a href="#target-audience"><span class="n">06</span><span>Target Audience</span></a></li><li><a href="#positioning"><span class="n">07</span><span>Positioning</span></a></li><li><a href="#brand-story"><span class="n">08</span><span>Brand Story</span></a></li></ol>
+    <div class="other">
+      <div class="tt">Brand book</div>
+      <a href="index.html">Brand</a><a href="bx.html" class="on">BX</a><a href="signage.html">Signage</a><a href="product.html">Product</a>
+    </div>
+  </aside>
+
+  <main id="top">
+    <div class="hero">
+      <div class="kicker">Design System · 02</div>
+      <h1>BX (Brand Experience)</h1>
+      <div class="lede"><p>타입라운지 브랜드 경험·언어 시스템.
+최종 확정본.</p></div>
+    </div>
+
+    <section id="brand-platform">
+      <div class="snum">01 — BRAND PLATFORM</div>
+      <h2>Brand Platform</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>요소</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Concept</strong></td>
+<td>하나의 공간, 여럿의 쓰임 — <strong>멀티유즈 라운지</strong></td>
+</tr>
+<tr>
+<td><strong>Vision</strong></td>
+<td>비어 있어서 무엇이든 될 수 있지만, 늘 따뜻한 공간</td>
+</tr>
+<tr>
+<td><strong>Mission</strong></td>
+<td>세팅 노동 없이 — 사무실·클래스·모임을 한 곳에서, 분위기는 이미 완성</td>
+</tr>
+<tr>
+<td><strong>Core Principle</strong></td>
+<td><strong>분위기는 하나, 용도는 여럿 (One mood, many uses)</strong></td>
+</tr>
+</tbody>
+</table></div>
+    </section>
+    <section id="persona-형용사-3개-a-not-b">
+      <div class="snum">02 — PERSONA — 형용사 3개 (&quot;A, NOT B&quot;)</div>
+      <h2>Persona — 형용사 3개 (&quot;A, not B&quot;)</h2>
+<p>브랜드가 사람이라면 — <strong>"좋은 안목을 가졌지만 으스대지 않는, 편안한 호스트."</strong>
+자기 거실에 당신을 초대해, 좋은 가구와 적당한 거리감을 내어주고, 나머지는 당신이 채우게 두는 사람.</p>
+<div class="cards"><div class="card"><div class="t">따뜻한</div><div class="anb">Warm, not loud</div><div class="say"><b>✓</b> &quot;오셔서 편하게 쓰시면 돼요. 분위기는 저희가 준비해 둘게요.&quot;</div><div class="say no"><b>✗</b> &quot;최고의 공간에서 잊지 못할 순간을 만들어보세요!!&quot;</div></div><div class="card"><div class="t">절제된</div><div class="anb">Restrained, not empty</div><div class="say"><b>✓</b> &quot;비어 있어서, 무엇이든 될 수 있어요.&quot;</div><div class="say no"><b>✗</b> &quot;감성 가득한 프리미엄 럭셔리 무드의 완벽한 공간&quot;</div></div><div class="card"><div class="t">안목 있는</div><div class="anb">Curated, not showy</div><div class="say"><b>✓</b> &quot;디자인 가구로 골라 채웠어요. 앉아보시면 알아요.&quot;</div><div class="say no"><b>✗</b> &quot;임스, 바르셀로나, 핀율 등 디자인 거장의 명작들로…&quot;</div></div></div>
+
+<blockquote>
+<p>보조 축: <strong>솔직한</strong> (Honest, not hollow) — 한계도 인정한다. "넓진 않지만, 그래서 오히려 아늑해요."</p>
+</blockquote>
+<p><strong>전달하려는 코어 감각</strong> = <strong>내려놓음</strong>(도착·안도). 문을 열면 무드가 이미 완성돼 있어 세팅 노동도 긴장도 없이 그냥 들어와 앉는 순간. 이를 떠받치는 3감각 = 감싸임(아늑) · 변신의 자유(여럿) · 슬쩍 드러나는 안목(고름).</p>
+    </section>
+    <section id="tone-of-voice">
+      <div class="snum">03 — TONE OF VOICE</div>
+      <h2>Tone of Voice</h2>
+<p>4개 보이스 속성. 각 속성은 "We are / We are not" 극성으로 정의.</p>
+<h3>따뜻한 (Warm)</h3>
+<ul>
+<li><strong>We are</strong>: 편안하고 환대하는, 거실에 초대하는 말투</li>
+<li><strong>We are not</strong>: 과장된 친근함, 오버하는 텐션</li>
+<li>✓ "오셔서 편하게 쓰시면 돼요. 분위기는 저희가 준비해 둘게요."</li>
+<li>✗ "최고의 공간에서 잊지 못할 순간을 만들어보세요!!"</li>
+</ul>
+<h3>절제된 (Restrained)</h3>
+<ul>
+<li><strong>We are</strong>: 여백을 두는, 다 말하지 않는, 고른 단어</li>
+<li><strong>We are not</strong>: 미사여구, 형용사 남발</li>
+<li>✓ "비어 있어서, 무엇이든 될 수 있어요."</li>
+<li>✗ "감성 가득한 프리미엄 럭셔리 무드의 완벽한 공간"</li>
+</ul>
+<h3>안목 있는 (Curated)</h3>
+<ul>
+<li><strong>We are</strong>: 디자인을 알지만 설명충이 아닌, 슬쩍 맥락만 주는</li>
+<li><strong>We are not</strong>: 지식 자랑, 브랜드명 나열로 권위 세우기</li>
+<li>✓ "디자인 가구로 골라 채웠어요. 앉아보시면 알아요."</li>
+<li>✗ "임스, 바르셀로나, 핀율 등 디자인 거장의 명작들로 구성된…"</li>
+</ul>
+<h3>솔직한 (Honest)</h3>
+<ul>
+<li><strong>We are</strong>: 한계도 인정하는(3층이에요, 넓지 않아요), 그래서 신뢰 가는</li>
+<li><strong>We are not</strong>: 다 좋다는 식의 공허한 약속</li>
+<li>✓ "넓진 않지만, 그래서 오히려 아늑해요. 6~8명 모임에 좋아요."</li>
+<li>✗ "모든 모임에 완벽한 무한대의 공간!"</li>
+</ul>
+<h3>스타일 규칙</h3>
+<ul>
+<li>존댓말 기본 + 대화적 어미(~거든요, ~지요, ~돼요) 허용. 반말 금지.</li>
+<li>느낌표 문장당 1개 이하, 연속 금지.</li>
+<li>형용사 절제. 영문 병기는 타입명 등 필요한 곳만.</li>
+</ul>
+    </section>
+    <section id="brand-language-use-avoid">
+      <div class="snum">04 — BRAND LANGUAGE (USE / AVOID)</div>
+      <h2>Brand Language (Use / Avoid)</h2>
+<h3>Use — 실제로 쓰는 단어</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>쓴다</th>
+<th>안 쓴다</th>
+<th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>라운지 / 거실</td>
+<td>스튜디오(기능 설명일 때만)</td>
+<td>정서 우선</td>
+</tr>
+<tr>
+<td>타입 (WORK · CLASS · GATHERING)</td>
+<td>옵션 / 패키지</td>
+<td>변신하는 공간 컨셉</td>
+</tr>
+<tr>
+<td>대여 / 이용</td>
+<td>렌탈</td>
+<td>한국어 우선</td>
+</tr>
+<tr>
+<td>모임 / 가져오다</td>
+<td>행사 / 세팅하다</td>
+<td>사용자 부담 낮추는 어휘</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Avoid — 기존에 잘못 써온 단어</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>잘못</th>
+<th>왜 안 되나</th>
+<th>대신</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>프리미엄 / 럭셔리 / 감성 / 완벽</td>
+<td>공허한 수식, 절제 위반</td>
+<td>구체적 사실·질감으로</td>
+</tr>
+<tr>
+<td>느낌표 연발 (<code>!!</code>)</td>
+<td>오버하는 친근함</td>
+<td>문장당 1개 이하</td>
+</tr>
+<tr>
+<td>형용사 남발</td>
+<td>절제·여백 위반</td>
+<td>명사·동사 중심</td>
+</tr>
+<tr>
+<td>렌탈 / 세팅하다</td>
+<td>부담·기능 냄새</td>
+<td>대여·이용 / 가져오다</td>
+</tr>
+<tr>
+<td>옵션 / 패키지</td>
+<td>변신 컨셉 희석</td>
+<td>타입</td>
+</tr>
+<tr>
+<td>바르셀로나·임스 명작 나열</td>
+<td>지식 자랑 + 상표 리스크</td>
+<td>구체적 질감·형태로 묘사</td>
+</tr>
+<tr>
+<td>미드센추리 ~풍</td>
+<td>특정 사조 라벨 — 브랜드 정체성과 불일치</td>
+<td>디자인 클래식 ~풍 · 구체적 질감</td>
+</tr>
+<tr>
+<td>근거 없는 낙관</td>
+<td>솔직함 위반</td>
+<td>한계도 인정</td>
+</tr>
+</tbody>
+</table></div>
+<h3>메시징 필러 (일관 반복 3축)</h3>
+<ol>
+<li><strong>"가져오기만 하세요"</strong> — 분위기·가구·세팅은 이미 준비됨.</li>
+<li><strong>"하나의 공간, 당신의 쓰임"</strong> — 정해진 용도가 없다는 것이 곧 자유.</li>
+<li><strong>"고른 것들의 편안함"</strong> — 큐레이션이 주는, 과하지 않은 따뜻함.</li>
+</ol>
+    </section>
+    <section id="sample-copy">
+      <div class="snum">05 — SAMPLE COPY</div>
+      <h2>Sample Copy</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>맥락</th>
+<th>톤</th>
+<th>예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hero(인스타 피드)</td>
+<td>절제·이미지 중심</td>
+<td>"비어 있는 거실. 오늘은 무엇이 되나요."</td>
+</tr>
+<tr>
+<td>CTA(예약 안내)</td>
+<td>따뜻·실용</td>
+<td>"주말은 빨리 차요. 원하시는 시간 먼저 잡아두세요."</td>
+</tr>
+<tr>
+<td>공간 사이니지</td>
+<td>절제·명료</td>
+<td>"WORK / CLASS / GATHERING — 오늘의 타입을 골라주세요."</td>
+</tr>
+<tr>
+<td>안내문</td>
+<td>정중·솔직</td>
+<td>"3층이라 처음엔 살짝 헷갈리실 수 있어요. 입구 안내를 따라오시면 돼요."</td>
+</tr>
+<tr>
+<td>문제 응대</td>
+<td>책임·공감</td>
+<td>"불편을 드려 죄송해요. 바로 확인하고 알려드릴게요."</td>
+</tr>
+<tr>
+<td>타입판 — WORK</td>
+<td>절제</td>
+<td>"WORK — 집중하는 라운지"</td>
+</tr>
+<tr>
+<td>타입판 — CLASS</td>
+<td>절제</td>
+<td>"CLASS — 비우면 스튜디오"</td>
+</tr>
+<tr>
+<td>타입판 — GATHERING</td>
+<td>절제</td>
+<td>"GATHERING — 둘러앉는 라운지"</td>
+</tr>
+</tbody>
+</table></div>
+    </section>
+    <section id="target-audience">
+      <div class="snum">06 — TARGET AUDIENCE</div>
+      <h2>Target Audience</h2>
+<div><span class="pill">WORK</span><span class="pill">CLASS</span><span class="pill">GATHERING</span></div>
+
+<p><strong>무인 자동화 운영</strong> → 3종 페르소나 <strong>동등 가중</strong>. 현장 스태프가 없어 <strong>자가안내(self-guide) 니즈가 전 페르소나 공통</strong>.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>타입</th>
+<th>페르소나</th>
+<th>Job-to-be-done</th>
+<th>페인포인트</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WORK</strong></td>
+<td>노마드 워커 (프리랜서·원격, 2030)</td>
+<td>"집중되면서 분위기 좋은, 카페보다 사적인 작업 공간"</td>
+<td>카페는 시끄럽고 눈치 / 공유오피스는 삭막·월 부담</td>
+</tr>
+<tr>
+<td><strong>CLASS</strong></td>
+<td>클래스·콘텐츠 호스트 (원데이클래스·촬영, 2030-40)</td>
+<td>"가구를 빼면 장비를 세팅할 수 있는, 사진·영상이 잘 나오는 클래스·촬영 공간"</td>
+<td>전용 스튜디오 임대료 / 일반 대관은 분위기 안 남</td>
+</tr>
+<tr>
+<td><strong>GATHERING</strong></td>
+<td>모임 주최자 (파티·소셜모임, 2030)</td>
+<td>"어색하지 않게 대화가 트이는, 우리끼리 편한 거실"</td>
+<td>카페·식당 옆 테이블 신경 / 파티룸은 너무 '파티'</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>공통 인사이트</strong>: 셋 다 <strong>"분위기는 이미 완성, 나는 콘텐츠만"</strong> 을 원함(→ 필러 1과 직결). 셋 다 사진/SNS 의식 → 공간·사이니지가 "찍고 싶게" 디자인. 시간대가 달라(낮 워크 / 저녁 클래스 / 주말 모임) 가동률 순환 가능.</p>
+<p><strong>1차 청중</strong>: 합정·홍대권 2030, 디자인·콘텐츠 감수성 높음, SNS 활동적.</p>
+    </section>
+    <section id="positioning">
+      <div class="snum">07 — POSITIONING</div>
+      <h2>Positioning</h2>
+<p>마포 합정의 디자인 감수성 높은 2030에게, <strong>타입라운지</strong> 는 사무실·클래스·모임을 한 곳에서 해결하는 <strong>멀티유즈 라운지</strong>입니다. 무미건조한 대관 스튜디오와 달리, 디자인 가구로 큐레이션된 공간이라 어떤 모임을 가져와도 <strong>이미 분위기가 완성되어 있습니다.</strong></p>
+<h3>차별화</h3>
+<ol>
+<li><strong>이미 완성된 무드</strong> — 빈 화이트박스와 달리 세팅 노동이 없음.</li>
+<li><strong>변신하는 라운지</strong> — 가벽·확장 테이블·가변 좌석으로 타입별 재구성.</li>
+<li><strong>합정 역세권 접근성</strong> — 단, 3층이라 "발견의 장치(사이니지)"가 중요.</li>
+<li><strong>무인 자동화 운영</strong> — 예약·결제는 앱, 현장은 사이니지 자가안내로 셀프 이용.</li>
+</ol>
+<h3>경쟁 맥락</h3>
+<ul>
+<li>카테고리는 "공간 대여/대관 스튜디오"이지만, 브랜드는 <strong>"멀티유즈 라운지"</strong>로 프레이밍(스튜디오의 기능성 + 라운지의 정서).</li>
+<li>우위: 무드 완성도(vs 화이트박스) · 유연성(vs 단일 목적 카페·스터디룸) · 정서(vs 비즈니스 회의실).</li>
+</ul>
+    </section>
+    <section id="brand-story">
+      <div class="snum">08 — BRAND STORY</div>
+      <h2>Brand Story</h2>
+<ul>
+<li><strong>Hero</strong> — 콘텐츠(모임·클래스·작업)만 가져오고 싶은 합정의 2030.</li>
+<li><strong>Enemy</strong> — 무미건조한 화이트박스 대관, 옆 테이블이 신경 쓰이는 카페, 너무 '파티'스러운 파티룸.</li>
+</ul>
+    </section>
+
+
+    <div id="mdview">
+      <div class="mdbar">
+        <span class="p">07-brand-book/bx.md</span>
+        <button class="tbtn" id="mdcopy">Copy</button>
+      </div>
+      <pre class="mdsrc" id="mdsrc"># TYPE LOUNGE — BX (Brand Experience)
+
+&gt; 타입라운지 브랜드 경험·언어 시스템.
+&gt; 최종 확정본.
+
+**목차**: Brand Platform · Persona · Tone of Voice · Brand Language · Sample Copy · Target Audience · Positioning · Brand Story
+
+---
+
+## 01. Brand Platform
+
+| 요소 | 내용 |
+|---|---|
+| **Concept** | 하나의 공간, 여럿의 쓰임 — **멀티유즈 라운지** |
+| **Vision** | 비어 있어서 무엇이든 될 수 있지만, 늘 따뜻한 공간 |
+| **Mission** | 세팅 노동 없이 — 사무실·클래스·모임을 한 곳에서, 분위기는 이미 완성 |
+| **Core Principle** | **분위기는 하나, 용도는 여럿 (One mood, many uses)** |
+
+---
+
+## 02. Persona — 형용사 3개 (&quot;A, not B&quot;)
+
+브랜드가 사람이라면 — **&quot;좋은 안목을 가졌지만 으스대지 않는, 편안한 호스트.&quot;**
+자기 거실에 당신을 초대해, 좋은 가구와 적당한 거리감을 내어주고, 나머지는 당신이 채우게 두는 사람.
+
+```tl-cards
+# 따뜻한 | Warm, not loud
+✓ &quot;오셔서 편하게 쓰시면 돼요. 분위기는 저희가 준비해 둘게요.&quot;
+✗ &quot;최고의 공간에서 잊지 못할 순간을 만들어보세요!!&quot;
+# 절제된 | Restrained, not empty
+✓ &quot;비어 있어서, 무엇이든 될 수 있어요.&quot;
+✗ &quot;감성 가득한 프리미엄 럭셔리 무드의 완벽한 공간&quot;
+# 안목 있는 | Curated, not showy
+✓ &quot;디자인 가구로 골라 채웠어요. 앉아보시면 알아요.&quot;
+✗ &quot;임스, 바르셀로나, 핀율 등 디자인 거장의 명작들로…&quot;
+```
+
+&gt; 보조 축: **솔직한** (Honest, not hollow) — 한계도 인정한다. &quot;넓진 않지만, 그래서 오히려 아늑해요.&quot;
+
+**전달하려는 코어 감각** = **내려놓음**(도착·안도). 문을 열면 무드가 이미 완성돼 있어 세팅 노동도 긴장도 없이 그냥 들어와 앉는 순간. 이를 떠받치는 3감각 = 감싸임(아늑) · 변신의 자유(여럿) · 슬쩍 드러나는 안목(고름).
+
+---
+
+## 03. Tone of Voice
+
+4개 보이스 속성. 각 속성은 &quot;We are / We are not&quot; 극성으로 정의.
+
+### 따뜻한 (Warm)
+- **We are**: 편안하고 환대하는, 거실에 초대하는 말투
+- **We are not**: 과장된 친근함, 오버하는 텐션
+- ✓ &quot;오셔서 편하게 쓰시면 돼요. 분위기는 저희가 준비해 둘게요.&quot;
+- ✗ &quot;최고의 공간에서 잊지 못할 순간을 만들어보세요!!&quot;
+
+### 절제된 (Restrained)
+- **We are**: 여백을 두는, 다 말하지 않는, 고른 단어
+- **We are not**: 미사여구, 형용사 남발
+- ✓ &quot;비어 있어서, 무엇이든 될 수 있어요.&quot;
+- ✗ &quot;감성 가득한 프리미엄 럭셔리 무드의 완벽한 공간&quot;
+
+### 안목 있는 (Curated)
+- **We are**: 디자인을 알지만 설명충이 아닌, 슬쩍 맥락만 주는
+- **We are not**: 지식 자랑, 브랜드명 나열로 권위 세우기
+- ✓ &quot;디자인 가구로 골라 채웠어요. 앉아보시면 알아요.&quot;
+- ✗ &quot;임스, 바르셀로나, 핀율 등 디자인 거장의 명작들로 구성된…&quot;
+
+### 솔직한 (Honest)
+- **We are**: 한계도 인정하는(3층이에요, 넓지 않아요), 그래서 신뢰 가는
+- **We are not**: 다 좋다는 식의 공허한 약속
+- ✓ &quot;넓진 않지만, 그래서 오히려 아늑해요. 6~8명 모임에 좋아요.&quot;
+- ✗ &quot;모든 모임에 완벽한 무한대의 공간!&quot;
+
+### 스타일 규칙
+- 존댓말 기본 + 대화적 어미(~거든요, ~지요, ~돼요) 허용. 반말 금지.
+- 느낌표 문장당 1개 이하, 연속 금지.
+- 형용사 절제. 영문 병기는 타입명 등 필요한 곳만.
+
+---
+
+## 04. Brand Language (Use / Avoid)
+
+### Use — 실제로 쓰는 단어
+
+| 쓴다 | 안 쓴다 | 이유 |
+|---|---|---|
+| 라운지 / 거실 | 스튜디오(기능 설명일 때만) | 정서 우선 |
+| 타입 (WORK · CLASS · GATHERING) | 옵션 / 패키지 | 변신하는 공간 컨셉 |
+| 대여 / 이용 | 렌탈 | 한국어 우선 |
+| 모임 / 가져오다 | 행사 / 세팅하다 | 사용자 부담 낮추는 어휘 |
+
+### Avoid — 기존에 잘못 써온 단어
+
+| 잘못 | 왜 안 되나 | 대신 |
+|---|---|---|
+| 프리미엄 / 럭셔리 / 감성 / 완벽 | 공허한 수식, 절제 위반 | 구체적 사실·질감으로 |
+| 느낌표 연발 (`!!`) | 오버하는 친근함 | 문장당 1개 이하 |
+| 형용사 남발 | 절제·여백 위반 | 명사·동사 중심 |
+| 렌탈 / 세팅하다 | 부담·기능 냄새 | 대여·이용 / 가져오다 |
+| 옵션 / 패키지 | 변신 컨셉 희석 | 타입 |
+| 바르셀로나·임스 명작 나열 | 지식 자랑 + 상표 리스크 | 구체적 질감·형태로 묘사 |
+| 미드센추리 ~풍 | 특정 사조 라벨 — 브랜드 정체성과 불일치 | 디자인 클래식 ~풍 · 구체적 질감 |
+| 근거 없는 낙관 | 솔직함 위반 | 한계도 인정 |
+
+### 메시징 필러 (일관 반복 3축)
+1. **&quot;가져오기만 하세요&quot;** — 분위기·가구·세팅은 이미 준비됨.
+2. **&quot;하나의 공간, 당신의 쓰임&quot;** — 정해진 용도가 없다는 것이 곧 자유.
+3. **&quot;고른 것들의 편안함&quot;** — 큐레이션이 주는, 과하지 않은 따뜻함.
+
+---
+
+## 05. Sample Copy
+
+| 맥락 | 톤 | 예시 |
+|---|---|---|
+| Hero(인스타 피드) | 절제·이미지 중심 | &quot;비어 있는 거실. 오늘은 무엇이 되나요.&quot; |
+| CTA(예약 안내) | 따뜻·실용 | &quot;주말은 빨리 차요. 원하시는 시간 먼저 잡아두세요.&quot; |
+| 공간 사이니지 | 절제·명료 | &quot;WORK / CLASS / GATHERING — 오늘의 타입을 골라주세요.&quot; |
+| 안내문 | 정중·솔직 | &quot;3층이라 처음엔 살짝 헷갈리실 수 있어요. 입구 안내를 따라오시면 돼요.&quot; |
+| 문제 응대 | 책임·공감 | &quot;불편을 드려 죄송해요. 바로 확인하고 알려드릴게요.&quot; |
+| 타입판 — WORK | 절제 | &quot;WORK — 집중하는 라운지&quot; |
+| 타입판 — CLASS | 절제 | &quot;CLASS — 비우면 스튜디오&quot; |
+| 타입판 — GATHERING | 절제 | &quot;GATHERING — 둘러앉는 라운지&quot; |
+
+---
+
+## 06. Target Audience
+
+```tl-pills
+WORK | CLASS | GATHERING
+```
+
+**무인 자동화 운영** → 3종 페르소나 **동등 가중**. 현장 스태프가 없어 **자가안내(self-guide) 니즈가 전 페르소나 공통**.
+
+| 타입 | 페르소나 | Job-to-be-done | 페인포인트 |
+|---|---|---|---|
+| **WORK** | 노마드 워커 (프리랜서·원격, 2030) | &quot;집중되면서 분위기 좋은, 카페보다 사적인 작업 공간&quot; | 카페는 시끄럽고 눈치 / 공유오피스는 삭막·월 부담 |
+| **CLASS** | 클래스·콘텐츠 호스트 (원데이클래스·촬영, 2030-40) | &quot;가구를 빼면 장비를 세팅할 수 있는, 사진·영상이 잘 나오는 클래스·촬영 공간&quot; | 전용 스튜디오 임대료 / 일반 대관은 분위기 안 남 |
+| **GATHERING** | 모임 주최자 (파티·소셜모임, 2030) | &quot;어색하지 않게 대화가 트이는, 우리끼리 편한 거실&quot; | 카페·식당 옆 테이블 신경 / 파티룸은 너무 &#x27;파티&#x27; |
+
+**공통 인사이트**: 셋 다 **&quot;분위기는 이미 완성, 나는 콘텐츠만&quot;** 을 원함(→ 필러 1과 직결). 셋 다 사진/SNS 의식 → 공간·사이니지가 &quot;찍고 싶게&quot; 디자인. 시간대가 달라(낮 워크 / 저녁 클래스 / 주말 모임) 가동률 순환 가능.
+
+**1차 청중**: 합정·홍대권 2030, 디자인·콘텐츠 감수성 높음, SNS 활동적.
+
+---
+
+## 07. Positioning
+
+마포 합정의 디자인 감수성 높은 2030에게, **타입라운지** 는 사무실·클래스·모임을 한 곳에서 해결하는 **멀티유즈 라운지**입니다. 무미건조한 대관 스튜디오와 달리, 디자인 가구로 큐레이션된 공간이라 어떤 모임을 가져와도 **이미 분위기가 완성되어 있습니다.**
+
+### 차별화
+1. **이미 완성된 무드** — 빈 화이트박스와 달리 세팅 노동이 없음.
+2. **변신하는 라운지** — 가벽·확장 테이블·가변 좌석으로 타입별 재구성.
+3. **합정 역세권 접근성** — 단, 3층이라 &quot;발견의 장치(사이니지)&quot;가 중요.
+4. **무인 자동화 운영** — 예약·결제는 앱, 현장은 사이니지 자가안내로 셀프 이용.
+
+### 경쟁 맥락
+- 카테고리는 &quot;공간 대여/대관 스튜디오&quot;이지만, 브랜드는 **&quot;멀티유즈 라운지&quot;**로 프레이밍(스튜디오의 기능성 + 라운지의 정서).
+- 우위: 무드 완성도(vs 화이트박스) · 유연성(vs 단일 목적 카페·스터디룸) · 정서(vs 비즈니스 회의실).
+
+---
+
+## 08. Brand Story
+
+- **Hero** — 콘텐츠(모임·클래스·작업)만 가져오고 싶은 합정의 2030.
+- **Enemy** — 무미건조한 화이트박스 대관, 옆 테이블이 신경 쓰이는 카페, 너무 &#x27;파티&#x27;스러운 파티룸.
+</pre>
+    </div>
+
+    <div class="foot">TYPE LOUNGE Brand Book · No More Work Company · 2026-08 · <a href="https://github.com/nmwc-ai/space-brand-system">GitHub</a></div>
+  </main>
+</div>
+
+
+<script>
+(function(){
+  // ---- MD view toggle ----
+  // 단일 파일(standalone/index.html)은 탭을 바꿀 때 .shell 안을 통째로 갈아끼운다.
+  // 그래서 '갈아끼운 뒤 다시 걸어야 하는 것'은 TLpage() 안에, 헤더에 한 번만 거는 것은 밖에 둔다.
+  var body=document.body, btn=document.getElementById('mdtoggle'), mdOn=false;
+  function setMd(on,push){
+    mdOn=on;
+    body.classList.toggle('md',on);
+    var view=document.getElementById('mdview');
+    if(view)view.classList.toggle('on',on);
+    btn.setAttribute('aria-pressed',on?'true':'false');
+    try{localStorage.setItem('tl-view',on?'md':'doc')}catch(e){}
+    if(push){
+      var u=new URL(location.href);
+      if(on)u.searchParams.set('view','md'); else u.searchParams.delete('view');
+      history.replaceState(null,'',u);
+    }
+  }
+
+  window.TLpage=function(){
+    setMd(mdOn,false);
+
+    // ---- copy md ----
+    var cp=document.getElementById('mdcopy');
+    if(cp)cp.addEventListener('click',function(){
+      navigator.clipboard.writeText(document.getElementById('mdsrc').textContent).then(function(){
+        cp.textContent='Copied'; setTimeout(function(){cp.textContent='Copy'},1400);
+      });
+    });
+
+    spy();
+  };
+
+  var q=new URLSearchParams(location.search).get('view'), stored=null;
+  try{stored=localStorage.getItem('tl-view')}catch(e){}
+  mdOn=(q==='md'||(q===null&&stored==='md'));
+  btn.addEventListener('click',function(){setMd(!body.classList.contains('md'),true);window.scrollTo({top:0,behavior:'instant'})});
+
+  // ---- 다운로드: 새 탭으로 열리지 않고 항상 파일로 떨어지게 ----
+  // SVG·MD 처럼 브라우저가 직접 렌더할 수 있는 타입은 download 속성만으로는 탐색이 일어난다.
+  // file:// 은 origin 이 불투명이라 download 속성도 fetch 도 통하지 않는다 — 그래서 텍스트 자산은
+  // 페이지 안에 미리 실어두고(#tl-files), md 는 이미 본문에 있는 원본(#mdsrc)에서 만들어 저장한다.
+  var FILES={};
+  try{var fj=document.getElementById('tl-files'); if(fj)FILES=JSON.parse(fj.textContent)}catch(e){}
+
+  function save(blob,name){
+    var u=URL.createObjectURL(blob),t=document.createElement('a');
+    t.href=u;t.download=name;document.body.appendChild(t);t.click();t.remove();
+    setTimeout(function(){URL.revokeObjectURL(u)},2000);
+  }
+  function basename(href){return href.split('/').pop().split('?')[0].split('#')[0]}
+
+  document.addEventListener('click',function(e){
+    var a=e.target.closest && e.target.closest('a[download]');
+    if(!a||a.dataset.dl)return;
+    var href=a.getAttribute('href')||'';
+    var name=(a.getAttribute('download')||'').trim()||basename(href);
+    if(!window.Blob||!window.URL||!URL.createObjectURL)return;
+
+    // 1) 이 페이지의 md 원본 — 본문에 이미 있으므로 어디서 열든 저장된다
+    if(/(^|\/)md\/[^\/]+\.md(\?|#|$)/.test(href)){
+      var src=document.getElementById('mdsrc');
+      if(src){e.preventDefault();save(new Blob([src.textContent],{type:'text/markdown;charset=utf-8'}),name);return;}
+    }
+
+    // 2) 페이지에 내장된 자산 — SVG 는 텍스트, zip 은 data URI 로 실려 있다
+    var key=href.replace(/^.*?(assets\/)/,'$1');
+    if(FILES[key]){
+      e.preventDefault();
+      var v=FILES[key];
+      if(v.slice(0,5)==='data:'){ fetch(v).then(function(r){return r.blob()})
+                                        .then(function(b){save(b,name)}); }
+      else save(new Blob([v],{type:'image/svg+xml;charset=utf-8'}),name);
+      return;
+    }
+
+    // 3) 나머지는 같은 출처에서 blob 으로 받아 저장 (zip·png·단일 HTML)
+    // 단일 HTML 안에서는 자산이 data: URI 라 file:// 로 열어도 fetch 로 저장할 수 있다
+    if(!window.fetch||(location.protocol==='file:'&&href.indexOf('data:')!==0))return;
+    if(/^[a-z]+:/i.test(href)&&href.indexOf(location.origin)!==0&&href.indexOf('data:')!==0)return;
+    e.preventDefault();
+    a.dataset.dl='1';
+    fetch(href).then(function(r){
+      if(!r.ok)throw new Error(r.status);
+      return r.blob();
+    }).then(function(b){
+      save(b,name);
+    }).catch(function(){
+      location.href=href;                                              // 실패하면 원래 동작으로
+    }).then(function(){delete a.dataset.dl});
+  });
+
+  // ---- dropdown: close on outside click / Esc ----
+  var dd=document.getElementById('dd');
+  document.addEventListener('click',function(e){if(!dd.contains(e.target))dd.removeAttribute('open')});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')dd.removeAttribute('open')});
+  dd.addEventListener('click',function(e){if(e.target.closest('.ddmenu a'))dd.removeAttribute('open')});
+
+  // ---- scroll spy ----
+  var spyio=null;
+  function spy(){
+    if(spyio){spyio.disconnect();spyio=null}
+    var links={}, secs=[].slice.call(document.querySelectorAll('main > section[id]'));
+    [].forEach.call(document.querySelectorAll('#toc ol a'),function(a){links[a.getAttribute('href').slice(1)]=a});
+    if(!secs.length || !('IntersectionObserver' in window))return;
+    var seen={};
+    spyio=new IntersectionObserver(function(es){
+      es.forEach(function(e){seen[e.target.id]=e.isIntersecting?e.intersectionRatio:0});
+      var best=null,bv=-1;
+      secs.forEach(function(s){var v=seen[s.id]||0; if(v>bv){bv=v;best=s.id}});
+      if(bv<=0){ // nothing visible: pick last section above the fold
+        for(var i=0;i<secs.length;i++){if(secs[i].getBoundingClientRect().top<160)best=secs[i].id}
+      }
+      Object.keys(links).forEach(function(k){links[k].classList.toggle('on',k===best)});
+    },{rootMargin:'-70px 0px -55% 0px',threshold:[0,.05,.25,.5,1]});
+    secs.forEach(function(s){spyio.observe(s)});
+  }
+
+  TLpage();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+# TYPE LOUNGE — Signage (공간 사이니지)
+
+> 타입라운지 공간 사이니지 시스템. **설치 완료·확정본**(2026-08-06) 기준으로 기록한다.
+
+**목차**: Principles · 사인 인벤토리 · 안내문 템플릿 · 픽토그램 · 재질·부착 · 문구 · 확장 절차
+
+> **표기 원칙**: 색은 항상 토큰으로 지시한다(`var(--spine-ink)` / `#16130F` ❌). 물성은 실제 발주 사양으로 적는다.
+
+---
+
+## 01. Principles
+
+1. **자가안내 우선 (Self-guide first)** — 무인 자동화 운영. 사인이 곧 안내 데스크. 입실→이용→퇴실을 이용객이 혼자 완결한다.
+2. **찾아오게 만들기** — 합정역 앞 **3층** 입지라 1층 노출이 없다. 1층 입간판 → 계단 참 현판 → 대문 현판까지 **한 번도 끊기지 않는** 유도가 사이니지의 첫 임무다.
+3. **도형이 글자보다 먼저** — 픽토그램·층 표기가 먼저 읽히고 글자는 보조. 단 **픽토는 항상 라벨과 병행**한다.
+4. **소수·정밀·절제** — 전용 52.49㎡. 사인 종류를 늘리지 않고, 같은 문법을 반복한다.
+5. **레이어 분리** — 외부는 **아이보리·화이트 면 + 잉크 레터링**으로 차분하게, 오렌지는 실내 안내판의 **고정 오브제(마스킹테이프)에만** 포인트로 쓴다. 사인이 가구를 이기지 않는다.
+6. **낮은 층고(약 2m) 대응** — 시선 높이 1.4~1.6m, 천장 행잉·돌출 없음.
+
+---
+
+## 02. 사인 인벤토리 (확정 5종)
+
+| # | 사인 | 위치 | 물성 | 내용 |
+|---|---|---|---|---|
+| E-1 | **1층 입간판** | 건물 앞 보행 동선, 자립 | **T형 아이보리 철제** (T자 베이스 자립형) | 계단 픽토 · `TYPE LOUNGE` · `WORK│GATHERING│CLASS` · `3F` · 영문 소개 카피 · `Powered by NMWC` |
+| E-2 | **대문 현판** | 3층 출입문 옆 벽면 | **무광 아크릴** | `TYPE LOUNGE` · `WORK│GATHERING│CLASS` · 영문 소개 카피 · `Powered by NMWC` |
+| E-3 | **계단 중간 현판** | 계단 참 간유리면 | **무광 아크릴** | `TYPE LOUNGE`(우측 정렬) · 계단 픽토 + `3F` |
+| I-1 | **자석 안내판** | 실내 벽, 시선 높이 | 블랙 프레임 스틸 자석보드 | 세로 A5 안내문 다수 — 와이파이(QR·ID/PW) · 냉난방기 · 블루투스 스피커 · TV · 조명 |
+| I-2 | **문 라벨** | 스태프룸 · 화장실 문 옆 | 트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 | 픽토 + `STAFF ROOM / Do not enter` · `TOILET` |
+
+### 설치 실물
+
+```tl-shots wide
+assets/photo/stand-1f.jpg | E-1 · 외부 | 1층 입간판 | T형 아이보리 철제(T자 베이스 자립) · 계단 픽토 + 워드마크 + 타입 태그 + `3F` + 영문 카피 + Powered by NMWC
+assets/photo/plate-gate.jpg | E-2 · 외부 | 대문 현판 | 무광 아크릴 · 3층 출입문 옆 벽면 · 워드마크 + 타입 태그 + 영문 카피 + Powered by NMWC
+assets/photo/plate-stairs.jpg | E-3 · 외부 | 계단 중간 현판 | 무광 아크릴 · 계단 참 간유리면 부착 · 워드마크(우측 정렬) + 계단 픽토 + `3F`. 최소 정보만
+assets/photo/board-magnet.jpg | I-1 · 실내 | 자석 안내판 | 블랙 프레임 스틸 자석보드 + 세로 A5 트레이싱지 안내문 · 원형 실버 자석 · 실버 클립 · **오렌지 마스킹테이프**로 레이어드 고정
+assets/photo/label-staffroom.jpg | I-2 · 실내 | 문 라벨 · 스태프룸 | 트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 · 픽토 + `STAFF ROOM / Do not enter`
+assets/photo/label-restroom.jpg | I-2 · 실내 | 문 라벨 · 화장실 | 같은 문법 · 픽토 + `TOILET`. 문 옆 시선 높이
+```
+
+원본: `07-brand-book/assets/photo/{stand-1f,plate-gate,plate-stairs,board-magnet,label-staffroom,label-restroom}.jpg`
+
+### 유도 시퀀스
+
+```tl-seq
+길 위 보행자 > E-1 1층 입간판 > E-3 계단 참 현판 > E-2 대문 현판 > I-1 안내판 · I-2 문 라벨
+```
+
+각 접점에 최소 1개. **3층까지 한 번도 끊기지 않게** — 이것이 인벤토리를 5종으로 묶어둔 이유다.
+
+### 외부 3종의 공통 문법
+
+- **워드마크 가로형 단독**. 심볼은 존재하지 않는다(`brand.md`의 「01. Logo」).
+- 타입 태그 순서는 실물 기준 **`WORK │ GATHERING │ CLASS`** 로 통일(태그 프레임 3개, 대문자, Paperlogy).
+- 소개 카피는 **영문 단독**. 층 표기는 `3F`(국문 `3층` 아님).
+- `Powered by NMWC` — 모회사 표기는 E-1·E-2에만. E-3(계단)은 최소 정보(워드마크 + 픽토 + 층)만.
+
+---
+
+## 03. 안내문 템플릿 (I-1)
+
+실내 안내문은 **세로 A5 420×595** 를 기본으로 한다. 규격 정본은 `04-signage/notice-template.md`, 생성기는 `04-signage/gen_notice.py`.
+
+### 확정 8종
+
+| 판형 | 안내문 | 부착 |
+|---|---|---|
+| 세로 A5 (420×595) | 와이파이(QR) · 냉난방기 · 블루투스 스피커 · TV · 조명 | 자석 안내판 레이어드 |
+| 가로 A5 (595×420) | 신발장 · 쓰레기 처리 방법 · 소변기 사용 금지 | 벽·기물 직접 부착 |
+
+아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.
+
+#### 세로 A5 5종 · 자석 안내판
+
+```tl-sheets zip=type-lounge-notices.zip
+assets/notice/notice-wifi.svg | 와이파이
+assets/notice/notice-aircon.svg | 냉난방기
+assets/notice/notice-bluetooth.svg | 블루투스 스피커
+assets/notice/notice-tv.svg | TV
+assets/notice/notice-light.svg | 조명
+```
+
+#### 가로 A5 3종 · 벽 직접부착
+
+같은 요소 순서(픽토 → 제목 → 본문 → 워드마크)를 595×420 판형에 담는다.
+
+```tl-sheets land quiet zip=type-lounge-notices.zip
+assets/notice/notice-shoe.svg | 신발장
+assets/notice/notice-trash.svg | 쓰레기 처리 방법
+assets/notice/notice-urinal.svg | 소변기 사용 금지
+```
+
+- 원본 SVG: `04-signage/out/notice-*.svg` (브랜드북 사본 `07-brand-book/assets/notice/`)
+- **가로형은 세로형을 눕힌 게 아니라 자체 판형이다** — 요소 순서(픽토 → 제목 → 본문 → 워드마크)는 같지만 제목 14px, 본문 상단 `y 254`, 로고 `y 367`.
+- **소변기 안내문은 경고문 변형** — 본문 없이 제목만 24px 2줄(행간 28), 픽토 `no` 53×53에 세로중심 `y 86.5`. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 쓴다.
+- 와이파이 QR 페이로드: `WIFI:T:WPA;S:TYPE LOUNGE;P:075C62183A;H:false;;` (`04-signage/wifi-qr.png`)
+
+| 요소 | 사양 |
+|---|---|
+| 픽토그램 | 가로 중앙, 세로 중심 `y 72`, 높이 40 전후(고유 비율 유지) |
+| 제목 | Paperlogy **600** · 15px · 자간 0.45 · 가운데 · `y = 픽토 하단 + 18` |
+| 본문 | Paperlogy **400** · 11px · 행간 16 · 자간 0.44 · 가운데 · 상단 `y 405` 고정 |
+| 로고 락업 | 워드마크 가로형 `76 × 8.46`, 가운데, `y 539` |
+| 색 | 전부 `spine/ink` |
+| 부가 이미지 | QR 등 `60 × 60`, 가운데, `y 329` |
+
+- 본문은 **2줄이 기본, 최대 3줄**(권장값 — 넘겨야 할 내용이면 그대로 진행한다).
+- 한 줄 최대폭 **325px**.
+- 출력: **세로 A5 트레이싱지** → 자석보드에 레이어드 부착. 벽에 직접 붙이는 안내문만 **가로 A5 두꺼운 종이**(별도 요청 시).
+- 글자는 **Paperlogy 아웃라인(벡터)** 으로 구워서 납품한다 — 폰트 설치 환경에 좌우되지 않는다.
+
+### 부착 방식이 디자인의 일부다
+
+트레이싱지 안내문을 **원형 실버 자석 · 실버 클립 · 오렌지 마스킹테이프**로 겹쳐 고정한다. 각인·프레임 인쇄를 쓰지 않는 이유는 비용만이 아니라, 겹쳐 쌓인 층이 곧 브랜드 컨셉("모드의 겹침")이기 때문이다. **오렌지는 이 오브제에만** 등장한다.
+
+---
+
+## 04. 픽토그램
+
+세트 **20종** (`04-signage/picto-*.svg`), 색 3종(`기본 잉크` / `-white` / `-current`).
+
+```tl-pictos zip=type-lounge-pictograms.zip
+assets/picto/picto-wifi.svg | 와이파이
+assets/picto/picto-tv.svg | TV
+assets/picto/picto-aircon.svg | 냉난방
+assets/picto/picto-bluetooth.svg | 블루투스
+assets/picto/picto-speaker.svg | 스피커
+assets/picto/picto-power.svg | 전원
+assets/picto/picto-light.svg | 조명
+assets/picto/picto-phone.svg | 전화기
+assets/picto/picto-notouch.svg | 손대지 마세요
+assets/picto/picto-no.svg | 금지
+assets/picto/picto-nosmoke.svg | 금연
+assets/picto/picto-shoe.svg | 신발장
+assets/picto/picto-trash.svg | 쓰레기통
+assets/picto/picto-toilet.svg | 화장실
+assets/picto/picto-room.svg | 룸·공간
+assets/picto/picto-stairs.svg | 계단
+assets/picto/picto-coffee.svg | 탕비·커피
+assets/picto/picto-bbq.svg | 바베큐
+assets/picto/picto-umbrella.svg | 우산
+assets/picto/picto-extinguisher.svg | 소화기
+```
+
+- viewBox 100×100 · 각진 모노라인 · square 캡 · miter 조인 · 선 두께 2.7.
+- 납품 SVG는 **stroke를 아웃라인(면)으로 변환** — 어떤 크기·환경에서도 선 굵기가 정확히 비례한다.
+- 기본 파일은 리터럴 잉크(`#16130F`). 디자인 툴이 `currentColor`를 검정으로 떨구는 문제를 피하려는 선택이다.
+- **`tv · aircon · speaker · trash · shoe` 5종은 Figma 확정본이 정본**(2026-08-06). 레포 세트 개정이 Figma에 반영되지 않아 어긋나 있었고, 실제 부착된 것이 Figma라 그쪽으로 맞췄다 — `04-signage/figma_to_picto.py`.
+- 안내문에 쓰는 픽토는 **이름이 아니라 실물을 따른다** — "블루투스 스피커" 안내문의 픽토는 `bluetooth`(룬)가 아니라 `speaker`(박스+우퍼)다.
+- **라벨 없이 단독 사용 금지** (KWCAG — 색·기호만으로 정보 전달 금지).
+- 세트에 없는 주제가 필요하면 **먼저 픽토를 만든다** — `04-signage/gen_new_pictos.py`에 정의를 추가하고 3색으로 출력, `pictograms.md`에 등재.
+
+---
+
+## 05. 재질 · 부착 위계
+
+| 요소 | 재질(발주 사양) | 부착 |
+|---|---|---|
+| 1층 입간판 | T형 아이보리 철제 | 자립(T자 베이스) |
+| 대문 현판 · 계단 현판 | 무광 아크릴 | 벽면 · 간유리면 직접 부착 |
+| 자석 안내판 | 블랙 프레임 스틸 자석보드 | 벽면 고정 |
+| 안내문 인쇄 | **반투명 트레이싱지** (세로 A5) | 자석 레이어드 |
+| 문 라벨 | 트레이싱지 | 실버 자석 메모홀더 클립 바 |
+| 포인트 | 오렌지 마스킹테이프 · 실버 클립 · 원형 자석 | — |
+
+### 형태 토큰
+
+`radius/sm` 2px · `radius/md` 8px · `space/*` 4·8·16·24·40·64px(8px 베이스). 값의 정본은 `product.md`의 「03. 형태 토큰」이다.
+---
+
+## 06. 문구
+
+문구 정본은 `04-signage/notice-copy.md`. 보이스 기준은 `bx.md` Tone of Voice.
+
+핵심 원칙 — **정보량은 최대, 수식어는 절제**:
+
+1. 어미는 **허용형** — "~해주세요"보다 "~하시면 돼요".
+2. 필수 규칙만 요청형으로 쓰고, 이유·맥락을 한 문장 안에 둔다.
+3. 자명한 관습(실내 슬리퍼 등)에 이유를 붙이지 않는다 — 가르치는 톤이 된다.
+4. 기기 식별은 **색·크기·위치**로 (리모컨이 둘이면 반드시 구분자).
+5. **부사 대신 사실** — "꾹" 자리에 초 수·장소·신호.
+6. 확실하지 않은 수치는 쓰지 않는다.
+7. 동작이 2단계면 순서어("먼저 → 다음")를 명시.
+
+---
+
+## 07. 확장 절차
+
+새 안내문이 필요할 때:
+
+1. **문구 확정** → `notice-copy.md`에 등재 (「06. 문구」 원칙 적용).
+2. **픽토 확인** → 없으면 먼저 제작 (「04. 픽토그램」).
+3. **생성** → `python 04-signage/gen_notice.py <key>` → `out/notice-<key>.html`로 실물 크기 확인.
+4. **Figma 등재** → SVG를 `TYPE LOUNGE` 파일 `최종` 페이지에 임포트(기존 프레임 오른쪽 `x + 452`).
+5. **출력·부착** → 세로 A5 트레이싱지 → 자석보드 레이어드.
+
+### 하지 말 것
+
+- 사인 **종류를 늘리지 않는다** — 새 정보는 기존 5종 안에서 해결한다(대개 I-1 안내문 한 장).
+- 안내문이 길다고 **프레임을 늘리거나 폰트를 줄이지 않는다** — 문구를 줄인다.
+- **오렌지를 소형 본문 텍스트에 쓰지 않는다**(대비 부족). 마스킹테이프·면·대형 타이포에만.
+- 워드마크 **비율 변형·3선 변경·심볼 추가** 금지.
+- 천장 행잉·돌출 사인 금지(층고 약 2m).

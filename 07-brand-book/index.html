@@ -112,6 +112,35 @@
   .mk .cap b{font-weight:600;font-size:14px;display:block}
   .mk .cap span{font-size:12px;color:rgba(22,19,15,.6);line-height:1.4;display:block;margin-top:3px}
 
+  /* 설치 실물 사진 — 세로 사진이 잘리지 않게 contain */
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:20px 0}
+  .shot{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column}
+  .shot .ph{background:#EFEDE9;display:flex;align-items:center;justify-content:center;height:300px}
+  .shot .ph img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .shot .cap{padding:11px 13px;border-top:1px solid var(--line)}
+  .shot .cap .tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--orange);margin-bottom:4px}
+  .shot .cap b{font-weight:600;font-size:14.5px;display:block}
+  .shot .cap span{font-size:12.5px;color:rgba(22,19,15,.62);line-height:1.45;display:block;margin-top:4px}
+  .shots.wide{grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+  .shots.wide .ph{height:340px}
+
+  /* A5 안내문 실제 디자인 — 벡터 SVG, 클릭하면 내려받아진다 */
+  .sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;margin:18px 0}
+  .sheets.land{grid-template-columns:repeat(auto-fill,minmax(224px,1fr))}
+  .sheet{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper);
+         text-decoration:none;color:inherit;display:block;transition:.12s ease-out}
+  .sheet:hover{border-color:var(--orange)}
+  .sheet img{width:100%;height:auto;display:block;background:#fff}
+  .sheet .cap{padding:8px 10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+  .sheet .cap b{font-weight:600;font-size:12.5px}
+  .sheet .cap small{font-size:9px;letter-spacing:.06em;color:var(--orange);opacity:0;transition:.12s;white-space:nowrap}
+  .sheet:hover .cap small{opacity:1}
+
+  .seq{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:18px 0;
+       font-size:13.5px;line-height:1.9;overflow-x:auto;white-space:nowrap}
+  .seq b{font-weight:600}
+  .seq .ar{color:var(--orange);margin:0 8px}
+
   .note{background:var(--paper);border-left:3px solid var(--orange);padding:12px 16px;border-radius:0 4px 4px 0;font-size:14px;margin:16px 0}
   .foot{padding:40px 0 0;font-size:13px;color:rgba(22,19,15,.5)}
   @media(max-width:600px){.hero{padding:48px 0 30px}section{padding:40px 0}}
@@ -125,6 +154,7 @@
     <div class="tabs">
       <button data-tab="brand" class="on">Brand</button>
       <button data-tab="bx">BX</button>
+      <button data-tab="signage">Signage</button>
       <button data-tab="product">Product</button>
     </div>
   </div>
@@ -374,23 +404,145 @@
 </div>
 
 <!-- ==================== PRODUCT ==================== -->
-<div class="page" id="product">
+<!-- ==================== SIGNAGE ==================== -->
+<div class="page" id="signage">
   <div class="hero">
     <div class="kicker">Design System · 03</div>
+    <h1>Signage</h1>
+    <p>공간 사이니지 — <strong>설치 완료·확정본</strong>(2026-08-06). 외부 3종 + 실내 2종, 안내문은 세로 A5 한 종류로 통일. 아래 사진이 실제 설치 상태다.</p>
+  </div>
+
+  <section>
+    <div class="snum">01 — INVENTORY</div>
+    <h2>확정 5종 · 설치 실물</h2>
+    <p class="lead">사인 <strong>종류를 늘리지 않는다</strong>. 새 정보는 이 5종 안에서 해결하며, 대개 자석 안내판에 종이 한 장을 더하는 것으로 끝난다.</p>
+    <div class="shots wide">
+      <div class="shot"><div class="ph"><img src="assets/photo/stand-1f.jpg" alt="1층 T형 아이보리 철제 입간판"></div>
+        <div class="cap"><span class="tag">E-1 · 외부</span><b>1층 입간판</b><span>T형 아이보리 철제(T자 베이스 자립) · 계단 픽토 + 워드마크 + 타입 태그 + <code>3F</code> + 영문 카피 + Powered by NMWC</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/plate-gate.jpg" alt="대문 무광 아크릴 현판"></div>
+        <div class="cap"><span class="tag">E-2 · 외부</span><b>대문 현판</b><span>무광 아크릴 · 3층 출입문 옆 벽면 · 워드마크 + 타입 태그 + 영문 카피 + Powered by NMWC</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/plate-stairs.jpg" alt="계단 중간 무광 아크릴 현판"></div>
+        <div class="cap"><span class="tag">E-3 · 외부</span><b>계단 중간 현판</b><span>무광 아크릴 · 계단 참 간유리면 부착 · 워드마크(우측 정렬) + 계단 픽토 + <code>3F</code>. 최소 정보만</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/board-magnet.jpg" alt="자석 안내판"></div>
+        <div class="cap"><span class="tag">I-1 · 실내</span><b>자석 안내판</b><span>블랙 프레임 스틸 자석보드 + 세로 A5 트레이싱지 안내문 · 원형 실버 자석 · 실버 클립 · <strong>오렌지 마스킹테이프</strong>로 레이어드 고정</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/label-staffroom.jpg" alt="스태프룸 라벨"></div>
+        <div class="cap"><span class="tag">I-2 · 실내</span><b>문 라벨 · 스태프룸</b><span>트레이싱지 라벨 + 실버 자석 메모홀더 클립 바 · 픽토 + <code>STAFF ROOM / Do not enter</code></span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/label-restroom.jpg" alt="화장실 라벨"></div>
+        <div class="cap"><span class="tag">I-2 · 실내</span><b>문 라벨 · 화장실</b><span>같은 문법 · 픽토 + <code>TOILET</code>. 문 옆 시선 높이</span></div></div>
+    </div>
+    <table>
+      <tr><th>#</th><th>사인</th><th>위치</th><th>물성 (확정)</th></tr>
+      <tr><td>E-1</td><td><strong>1층 입간판</strong></td><td>건물 앞 보행 동선, 자립</td><td><strong>T형 아이보리 철제</strong></td></tr>
+      <tr><td>E-2</td><td><strong>대문 현판</strong></td><td>3층 출입문 옆 벽면</td><td><strong>무광 아크릴</strong></td></tr>
+      <tr><td>E-3</td><td><strong>계단 중간 현판</strong></td><td>계단 참 간유리면</td><td><strong>무광 아크릴</strong></td></tr>
+      <tr><td>I-1</td><td><strong>자석 안내판</strong></td><td>실내 벽, 시선 높이</td><td>블랙 프레임 스틸 자석보드</td></tr>
+      <tr><td>I-2</td><td><strong>문 라벨</strong></td><td>스태프룸 · 화장실 문 옆</td><td>트레이싱지 + 실버 자석 클립 바</td></tr>
+    </table>
+    <div class="note"><strong>외부 3종 공통 문법</strong> · 워드마크 가로형 단독(심볼 없음) · 타입 태그 순서는 실물 기준 <code>WORK │ GATHERING │ CLASS</code> · 소개 카피는 영문 단독 · 층 표기는 <code>3F</code>(국문 <code>3층</code> 아님) · <code>Powered by NMWC</code>는 E-1·E-2에만.</div>
+  </section>
+
+  <section>
+    <div class="snum">02 — PRINCIPLES</div>
+    <h2>사이니지 6원칙</h2>
+    <ul>
+      <li><strong>자가안내 우선</strong> — 무인 자동화 운영. 사인이 곧 안내 데스크.</li>
+      <li><strong>찾아오게 만들기</strong> — 합정역 앞 <strong>3층</strong>, 1층 노출 없음. 유도가 첫 임무.</li>
+      <li><strong>도형이 글자보다 먼저</strong> — 단 픽토는 항상 라벨과 병행.</li>
+      <li><strong>소수·정밀·절제</strong> — 전용 52.49㎡. 종류를 늘리지 않고 같은 문법을 반복.</li>
+      <li><strong>레이어 분리</strong> — 외부는 아이보리·화이트 면 + 잉크 레터링. <strong>오렌지는 실내 고정 오브제에만.</strong></li>
+      <li><strong>낮은 층고(약 2m)</strong> — 시선 1.4~1.6m, 천장 행잉·돌출 없음.</li>
+    </ul>
+    <p class="lead" style="margin-top:22px">유도 시퀀스 — 3층까지 한 번도 끊기지 않게. 각 접점에 최소 1개.</p>
+    <div class="seq">
+      <b>길 위 보행자</b><span class="ar">→</span><b>E-1 1층 입간판</b><span class="ar">→</span><b>E-3 계단 참 현판</b><span class="ar">→</span><b>E-2 대문 현판</b><span class="ar">→</span><b>I-1 안내판 · I-2 라벨</b>
+    </div>
+  </section>
+
+  <section>
+    <div class="snum">03 — NOTICE TEMPLATE</div>
+    <h2>실내 안내문 · 세로 A5 고정 규격</h2>
+    <p class="lead">실내 안내문은 <strong>420×595 세로 A5</strong> 한 종류로 통일한다. 좌표가 코드에 박혀 있어 어긋날 수 없다 — 규격 정본 <code>04-signage/notice-template.md</code>, 생성기 <code>04-signage/gen_notice.py</code>.</p>
+    <table>
+      <tr><th>요소</th><th>사양</th></tr>
+      <tr><td>픽토그램</td><td>가로 중앙 · 세로 중심 <code>y 72</code> · 높이 40 전후(고유 비율 유지)</td></tr>
+      <tr><td>제목</td><td>Paperlogy <strong>600</strong> · 15px · 자간 0.45 · 가운데 · <code>y = 픽토 하단 + 18</code></td></tr>
+      <tr><td>본문</td><td>Paperlogy <strong>400</strong> · 11px · 행간 16 · 자간 0.44 · 가운데 · 상단 <code>y 405</code> 고정</td></tr>
+      <tr><td>로고 락업</td><td>워드마크 가로형 <code>76 × 8.46</code> · 가운데 · <code>y 539</code></td></tr>
+      <tr><td>부가 이미지</td><td>QR 등 <code>60 × 60</code> · 가운데 · <code>y 329</code></td></tr>
+    </table>
+    <ul style="font-size:14px">
+      <li>본문은 <strong>2줄 기본, 최대 3줄</strong>(권장값 — 넘겨야 할 내용이면 그대로 진행) · 한 줄 최대폭 <strong>325px</strong></li>
+      <li>출력 = <strong>세로 A5 트레이싱지</strong> → 자석보드 레이어드. 벽에 직접 붙이는 것만 가로 A5 두꺼운 종이(별도 요청 시)</li>
+      <li>글자는 <strong>Paperlogy 아웃라인(벡터)</strong>으로 구워 납품 — 폰트 설치 환경에 좌우되지 않는다</li>
+    </ul>
+    <div class="note"><strong>부착 방식이 디자인의 일부다</strong> · 트레이싱지를 원형 실버 자석 · 실버 클립 · 오렌지 마스킹테이프로 겹쳐 고정한다. 각인을 쓰지 않는 이유는 비용만이 아니라, 겹쳐 쌓인 층이 곧 브랜드 컨셉(<strong>모드의 겹침</strong>)이기 때문이다.</div>
+
+    <h3>세로 A5 5종 · 자석 안내판</h3>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6);margin-bottom:4px">아래는 인쇄 원본 그대로다 — 글자까지 벡터라 확대해도 깨지지 않는다. 시트를 클릭하면 SVG가 내려받아진다.</p>
+    <div class="sheets">
+      <a class="sheet" href="assets/notice/notice-wifi.svg" download><img src="assets/notice/notice-wifi.svg" alt="와이파이 안내문"><div class="cap"><b>와이파이</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-aircon.svg" download><img src="assets/notice/notice-aircon.svg" alt="냉난방기 안내문"><div class="cap"><b>냉난방기</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-bluetooth.svg" download><img src="assets/notice/notice-bluetooth.svg" alt="블루투스 스피커 안내문"><div class="cap"><b>블루투스 스피커</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-tv.svg" download><img src="assets/notice/notice-tv.svg" alt="TV 안내문"><div class="cap"><b>TV</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-light.svg" download><img src="assets/notice/notice-light.svg" alt="조명 안내문"><div class="cap"><b>조명</b><small>SVG ↓</small></div></a>
+    </div>
+
+    <h3>가로 A5 3종 · 벽 직접부착</h3>
+    <p style="font-size:13.5px;color:rgba(22,19,15,.6);margin-bottom:4px">같은 요소 순서(픽토 → 제목 → 본문 → 워드마크)를 595×420 판형에 담는다. 제목은 14px, 본문 상단 <code>y 254</code>, 로고 <code>y 367</code>.</p>
+    <div class="sheets land">
+      <a class="sheet" href="assets/notice/notice-shoe.svg" download><img src="assets/notice/notice-shoe.svg" alt="신발장 안내문"><div class="cap"><b>신발장</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-trash.svg" download><img src="assets/notice/notice-trash.svg" alt="쓰레기 처리 방법 안내문"><div class="cap"><b>쓰레기 처리 방법</b><small>SVG ↓</small></div></a>
+      <a class="sheet" href="assets/notice/notice-urinal.svg" download><img src="assets/notice/notice-urinal.svg" alt="소변기 사용 금지 안내문"><div class="cap"><b>소변기 사용 금지</b><small>SVG ↓</small></div></a>
+    </div>
+    <div class="note"><strong>소변기 안내문은 경고문 변형</strong> · 본문 없이 제목만 24px 2줄(행간 28), 픽토는 금지 표시 53×53에 세로중심 <code>y 86.5</code>. 나머지 7종과 규격이 다르니 새 경고문을 만들 때만 이 변형을 쓴다.</div>
+  </section>
+
+  <section>
+    <div class="snum">04 — MATERIALS</div>
+    <h2>재질 · 부착 위계</h2>
+    <table>
+      <tr><th>요소</th><th>재질(발주 사양)</th><th>부착</th></tr>
+      <tr><td>1층 입간판</td><td><strong>T형 아이보리 철제</strong></td><td>자립(T자 베이스)</td></tr>
+      <tr><td>대문 현판 · 계단 현판</td><td><strong>무광 아크릴</strong></td><td>벽면 · 간유리면 직접 부착</td></tr>
+      <tr><td>자석 안내판</td><td>블랙 프레임 스틸 자석보드</td><td>벽면 고정</td></tr>
+      <tr><td>안내문 인쇄</td><td>반투명 트레이싱지 (세로 A5)</td><td>자석 레이어드</td></tr>
+      <tr><td>문 라벨</td><td>트레이싱지</td><td>실버 자석 메모홀더 클립 바</td></tr>
+      <tr><td>포인트</td><td>오렌지 마스킹테이프</td><td>실버 클립 · 원형 자석과 함께</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="snum">05 — WORKFLOW</div>
+    <h2>새 안내문 만드는 절차</h2>
+    <ul>
+      <li><strong>1. 문구 확정</strong> — <code>04-signage/notice-copy.md</code>에 등재. 어미는 허용형("~하시면 돼요"), 부사 대신 사실(초 수·색·위치), 확실하지 않은 수치는 쓰지 않는다.</li>
+      <li><strong>2. 픽토 확인</strong> — 세트 20종에 없으면 <strong>먼저 만든다</strong>(<code>gen_new_pictos.py</code>, 선 두께 2.7 · viewBox 100 · 3색 출력).</li>
+      <li><strong>3. 생성</strong> — <code>python 04-signage/gen_notice.py &lt;key&gt;</code> → <code>out/notice-&lt;key&gt;.html</code>로 실물 크기 확인.</li>
+      <li><strong>4. Figma 등재</strong> — SVG를 <code>TYPE LOUNGE</code> 파일 <code>최종</code> 페이지에 임포트(기존 프레임 오른쪽 <code>x + 452</code>).</li>
+      <li><strong>5. 출력·부착</strong> — 세로 A5 트레이싱지 → 자석보드 레이어드.</li>
+    </ul>
+    <div class="note"><strong>Don'ts</strong> · 사인 종류를 늘리지 않는다(새 정보는 안내문 한 장으로) · 안내문이 길다고 프레임을 늘리거나 폰트를 줄이지 않는다(문구를 줄인다) · 오렌지를 소형 본문 텍스트에 쓰지 않는다 · 워드마크 비율 변형·3선 변경·심볼 추가 금지 · 천장 행잉·돌출 사인 금지.</div>
+  </section>
+</div>
+
+<!-- ==================== PRODUCT ==================== -->
+<div class="page" id="product">
+  <div class="hero">
+    <div class="kicker">Design System · 04</div>
     <h1>Product</h1>
-    <p>컴포넌트 시스템 — 현재 프로덕트는 공간 사이니지·인쇄물. 예약 웹/앱은 추후 확장. Atom 먼저, Molecule/Organism은 조합으로.</p>
+    <p>컴포넌트 시스템 — Atom 먼저, Molecule/Organism은 조합으로. 예약 웹/앱은 추후 확장. <strong>공간 사이니지의 확정 사양·설치 실물·안내문 규격은 Signage 탭이 정본이다.</strong></p>
   </div>
 
   <section>
     <div class="snum">01 — PRINCIPLES</div>
-    <h2>사이니지 5원칙</h2>
+    <h2>컴포넌트 작성 원칙</h2>
     <ul>
-      <li><strong>자가안내 우선</strong> — 무인 운영. 사인이 곧 안내 데스크.</li>
-      <li><strong>도형이 글자보다 먼저</strong> — 도형·컬러블록 직관 길찾기.</li>
-      <li><strong>소수·정밀·절제</strong> — 52.49㎡ 작은 공간, 꼭 필요한 사인만.</li>
-      <li><strong>레이어 분리</strong> — 외부 컬러블록, 실내 물성 중심.</li>
-      <li><strong>낮은 층고(약 2m)</strong> — 시선 1.4~1.6m, 천장 행잉 지양.</li>
+      <li><strong>Atom 먼저</strong> — Molecule/Organism은 Atom 조합으로만 정의한다.</li>
+      <li><strong>이름은 실제 클래스·토큰을 그대로</strong> — <code>.panel .mode .floor .logo .arrow</code> · <code>--spine-*</code>. 새 이름을 발명하지 않는다.</li>
+      <li><strong>색·크기는 토큰으로 지시</strong> — "버튼은 파란색" ❌ → <code>.mode</code> active, <code>var(--spine-orange)</code> ✅.</li>
+      <li><strong>추정 금지</strong> — 실제 화면·Figma가 생기면 그때의 이름을 그대로 채운다.</li>
     </ul>
+    <div class="note"><strong>사이니지 6원칙</strong>(자가안내 · 찾아오게 만들기 · 도형이 글자보다 먼저 · 소수·정밀·절제 · 레이어 분리 · 낮은 층고)은 <strong>Signage 탭</strong>이 정본이다. 양쪽에 복사해두면 한쪽만 고쳐져 조용히 어긋난다.</div>
   </section>
 
   <section>
@@ -402,7 +554,7 @@
       <tr><td><strong>Color Token</strong></td><td><code>var(--spine-orange)</code> 외</td><td>모든 색의 단일 출처</td><td>—</td><td>HEX 하드코딩</td></tr>
       <tr><td><strong>Wordmark</strong></td><td><code>.logo</code> (SVG)</td><td>로고 배치</td><td>ink / white / current</td><td>비율 변형·3선 변경</td></tr>
       <tr><td><strong>Type Tag</strong></td><td><code>.mode</code> / <code>.modes</code></td><td>3타입 표기</td><td>default / active</td><td>소문자·옵션 워딩</td></tr>
-      <tr><td><strong>Pictogram</strong></td><td><code>picto-*.svg</code> 18종</td><td>편의·방향 안내</td><td>단색 / 포인트</td><td>라벨 없이 단독</td></tr>
+      <tr><td><strong>Pictogram</strong></td><td><code>picto-*.svg</code> 20종</td><td>편의·방향 안내</td><td>단색 / 포인트</td><td>라벨 없이 단독</td></tr>
       <tr><td><strong>Directional Arrow</strong></td><td><code>.arrow</code> (도형)</td><td>길찾기</td><td>up / down / side</td><td>글자만으로 안내</td></tr>
     </table>
     <p style="font-size:13px;color:rgba(22,19,15,.6);margin:14px 0 6px"><strong>Type Tag</strong> 아톰의 상태 예시 — 버튼 UI가 아니라, 현재 타입을 <code>active</code>(오렌지)로 표시하는 사이니지 태그다.</p>
@@ -414,18 +566,23 @@
   <section>
     <div class="snum">03 — MOLECULES / ORGANISMS</div>
     <h2>조합 → 사인 인벤토리</h2>
-    <p><strong>Molecules</strong> · Floor Header(Arrow+층+sub) · Type Board(Tag×3+픽토) · Guide Row(픽토+라벨) · Business Card(Wordmark+색면).</p>
+    <p><strong>Molecules</strong> · Floor Header(Arrow+층+sub) · Type Board(Tag×3+픽토) · Guide Row(픽토+라벨) · <strong>Notice Sheet</strong>(픽토+제목+본문+워드마크 · 세로 A5) · Business Card(Wordmark+색면).</p>
+    <p class="lead"><strong>Organisms — 2026-08-06 설치 확정 5종.</strong> 목업 단계의 "실버 알루미늄 + 반투명 골판 아크릴" 사양은 폐기됐다. 사진·유도 시퀀스·안내문 규격은 <strong>Signage</strong> 탭이 정본이다.</p>
     <table>
-      <tr><th>사인</th><th>물성</th><th>내용</th></tr>
-      <tr><td><strong>입간판 · 외부 명판</strong></td><td>실버 알루미늄 프레임 + 반투명 골판 아크릴</td><td>층 화살표 + <code>3층</code> · TYPE LOUNGE · 멀티유즈 라운지·합정 · WORK·CLASS·GATHERING</td></tr>
-      <tr><td><strong>자석 안내판</strong><br>(이용 가이드)</td><td>실버 자석보드 + 반투명 트레이싱지 인쇄물을 <strong>자석으로 레이어드 겹침</strong></td><td>간단한 가운데정렬 레이아웃 + 픽토그램 — WIFI(ID/PW), 타입별 안내(WORK TYPE 등)</td></tr>
-      <tr><td><strong>아크릴 명패</strong><br>(시설 표기)</td><td>반투명 아크릴 + <strong>투명 스티커 부착</strong></td><td>오렌지 픽토 + 화장실 · 대문 TYPE LOUNGE 등 이용시설 표기</td></tr>
+      <tr><th>#</th><th>사인</th><th>조합</th><th>물성 (확정)</th></tr>
+      <tr><td>E-1</td><td><strong>1층 입간판</strong></td><td>Floor Header + Wordmark + Type Board</td><td><strong>T형 아이보리 철제</strong>(T자 베이스 자립)</td></tr>
+      <tr><td>E-2</td><td><strong>대문 현판</strong></td><td>Wordmark + Type Board</td><td><strong>무광 아크릴</strong></td></tr>
+      <tr><td>E-3</td><td><strong>계단 중간 현판</strong></td><td>Wordmark + Floor Header</td><td><strong>무광 아크릴</strong></td></tr>
+      <tr><td>I-1</td><td><strong>자석 안내판</strong></td><td>Notice Sheet × N</td><td>블랙 프레임 스틸 자석보드 + 트레이싱지 자석 레이어드</td></tr>
+      <tr><td>I-2</td><td><strong>문 라벨</strong></td><td>Pictogram + <code>label</code></td><td>트레이싱지 + 실버 자석 메모홀더 클립 바</td></tr>
     </table>
-    <div class="mockups">
-      <div class="mk"><img src="assets/mockup/stand-signage-mockup.png" alt="입간판 목업"><div class="cap"><b>입간판 · 외부 명판</b><span>실버 프레임 + 반투명 골판 아크릴</span></div></div>
-      <div class="mk"><img src="assets/mockup/notice-board-mockup.png" alt="자석 안내판 목업"><div class="cap"><b>자석 안내판</b><span>트레이싱지 인쇄물 자석 레이어드</span></div></div>
-      <div class="mk"><img src="assets/mockup/restroom-signage-mockup.png" alt="화장실 명패 목업"><div class="cap"><b>아크릴 명패 · 화장실</b><span>반투명 아크릴 + 오렌지 픽토</span></div></div>
-      <div class="mk"><img src="assets/mockup/door-plate-mockup.png" alt="대문 명판 목업"><div class="cap"><b>대문 명판</b><span>외벽 반투명 아크릴 명판</span></div></div>
+    <div class="shots">
+      <div class="shot"><div class="ph"><img src="assets/photo/stand-1f.jpg" alt="1층 입간판"></div><div class="cap"><span class="tag">E-1</span><b>1층 입간판</b><span>T형 아이보리 철제</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/plate-gate.jpg" alt="대문 현판"></div><div class="cap"><span class="tag">E-2</span><b>대문 현판</b><span>무광 아크릴</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/plate-stairs.jpg" alt="계단 중간 현판"></div><div class="cap"><span class="tag">E-3</span><b>계단 중간 현판</b><span>무광 아크릴 · 간유리면</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/board-magnet.jpg" alt="자석 안내판"></div><div class="cap"><span class="tag">I-1</span><b>자석 안내판</b><span>세로 A5 트레이싱지 자석 레이어드</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/label-staffroom.jpg" alt="스태프룸 라벨"></div><div class="cap"><span class="tag">I-2</span><b>문 라벨 · 스태프룸</b><span>자석 메모홀더 클립 바</span></div></div>
+      <div class="shot"><div class="ph"><img src="assets/photo/label-restroom.jpg" alt="화장실 라벨"></div><div class="cap"><span class="tag">I-2</span><b>문 라벨 · 화장실</b><span>같은 문법</span></div></div>
     </div>
   </section>
 
@@ -434,13 +591,14 @@
     <h2>물리 재질 위계</h2>
     <table>
       <tr><th>요소</th><th>재질</th><th>비고</th></tr>
-      <tr><td>입간판 · 외부 명판 프레임</td><td>실버 알루미늄 프로파일(철제)</td><td>반투명 골판 아크릴 패널</td></tr>
-      <tr><td>이용 가이드 보드</td><td>실버 자석보드</td><td>반투명 트레이싱지 인쇄물 자석 부착</td></tr>
-      <tr><td>시설 명패</td><td>반투명 아크릴</td><td>투명 스티커 부착(각인 대체)</td></tr>
-      <tr><td>안내물 인쇄</td><td>종이 · 반투명 트레이싱지</td><td>한 겹 쌓인 레이어드 톤</td></tr>
-      <tr><td>포인트</td><td>오렌지 스티커 · 문구 오브제</td><td>클립·자석·마스킹테이프</td></tr>
+      <tr><td>1층 입간판</td><td><strong>T형 아이보리 철제</strong></td><td>자립(T자 베이스)</td></tr>
+      <tr><td>대문 현판 · 계단 중간 현판</td><td><strong>무광 아크릴</strong></td><td>벽면 · 간유리면 직접 부착</td></tr>
+      <tr><td>이용 가이드 보드</td><td>블랙 프레임 스틸 자석보드</td><td>반투명 트레이싱지 인쇄물 자석 부착</td></tr>
+      <tr><td>문 라벨</td><td>트레이싱지</td><td>실버 자석 메모홀더 클립 바</td></tr>
+      <tr><td>안내물 인쇄</td><td><strong>반투명 트레이싱지</strong> (세로 A5)</td><td>한 겹 쌓인 레이어드 톤</td></tr>
+      <tr><td>포인트</td><td>오렌지 마스킹테이프</td><td>실버 클립 · 원형 자석과 함께</td></tr>
     </table>
-    <div class="note"><strong>레이어드 메커니즘</strong> · 반투명 아크릴·트레이싱지에 인쇄해 <strong>자석으로 겹쳐 쌓는</strong> 방식(고가 각인 대체) · 문구 오브제로 레이어를 고정하고 장식 · 포인트 컬러는 스티커로.</div>
+    <div class="note"><strong>레이어드 메커니즘</strong> · 트레이싱지 인쇄물을 <strong>자석으로 겹쳐 쌓는</strong> 방식(각인 대체) — 겹쳐진 층이 곧 "모드의 겹침" 컨셉이다(비용 절감이 1차 이유가 아니다) · 내용이 바뀌면 종이 한 장만 다시 뽑아 갈아 끼운다 · <strong>오렌지는 고정 오브제에만</strong>.</div>
   </section>
 
   <section>
@@ -465,7 +623,7 @@
   </section>
 </div>
 
-<div class="foot">TYPE LOUNGE Brand Book · No More Work Company · 2026-07 · 최종 확정본</div>
+<div class="foot">TYPE LOUNGE Brand Book · No More Work Company · 2026-08 · 사이니지 설치 확정본</div>
 </main>
 
 <script>
