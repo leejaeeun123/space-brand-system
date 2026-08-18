@@ -17,7 +17,8 @@ BOOK = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.join(BOOK, "site")
 OUT = os.path.join(SITE, "standalone")
 # 단일 파일은 외부를 타지 않는다 — 자산·zip 을 전부 내장한다.
-# (typelounge.vercel.app/brand 는 배포돼 있지 않아 절대 URL 로 돌리면 404 다)
+# (typelounge.vercel.app/brand 는 이제 배포돼 있지만, 이 파일은 메신저·Figma 로 넘기는 사본이다
+#  — 오프라인에서도 다운로드가 되도록 절대 URL 이 아니라 내장을 유지한다)
 
 PAGES = ["index.html", "bx.html", "signage.html", "product.html"]
 SLUG = {"index.html": "brand", "bx.html": "bx", "signage.html": "signage", "product.html": "product"}
