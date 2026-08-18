@@ -73,6 +73,8 @@ def data_uri(rel):
 def build():
     os.makedirs(OUT, exist_ok=True)
     srcs = {p: open(os.path.join(SITE, p), encoding="utf-8").read() for p in PAGES}
+    # site 페이지에는 배포 경로 <base> 가 박혀 있다. 단일 파일은 어디서 열려도 자립해야 하므로 뺀다.
+    srcs = {k: re.sub(r'<base [^>]*>\s*', "", v) for k, v in srcs.items()}
 
     # ---- 폰트: 네 페이지의 글자 합집합으로 한 번만 subset ----
     charset = set().union(*(set(t) for t in srcs.values()))

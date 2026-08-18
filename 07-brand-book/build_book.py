@@ -386,6 +386,7 @@ def build_page(slug, outname, kicker, desc, shell, tabs_html, others_html, kit_s
         "{{OTHER}}": others_html,
         "{{SLUG}}": slug,
         # 단일 파일은 네 탭을 한 문서에 담은 한 개다 — 오프라인에서도 SVG·MD 가 전부 저장된다
+        "{{BASE}}": '<base href="/brand/">',
         "{{STANDALONE}}": "standalone/index.html",
         "{{KITSIZE}}": kit_size,
         # 받아둔 파일이 언제 것인지 파일명에서 바로 보이게 한다
