@@ -58,6 +58,15 @@
     background:var(--ink);color:var(--white);border:0;border-radius:8px;
     padding:14px 24px;cursor:pointer;min-height:48px;
   }
+  /* 키보드 전환구. 입장 버튼과 같은 무게로 그리면 눌러야 하는 것처럼 보인다 — 평소엔
+     안 쓰는 탈출구이므로 글자 링크로 둔다. `#gate button`의 검은 버튼 규칙을 덮는다. */
+  #gate .kbd-toggle{
+    display:block;margin:8px auto 0;padding:4px 6px;min-height:0;
+    background:transparent;color:var(--ink);border:0;border-radius:0;
+    font-family:inherit;font-weight:400;font-size:12px;opacity:.6;
+    text-decoration:underline;cursor:pointer;
+  }
+  #gate .kbd-toggle:hover{opacity:1;}
   #gate .error{color:var(--orange);font-size:13px;height:16px;}
 
   /* App shell */
@@ -379,16 +388,21 @@
 <div id="gate">
   <div class="wordmark">TYP<svg class="eIcon" viewBox="0 0 56 70" aria-hidden="true"><rect x="0" y="1.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="29.75" width="56" height="10.5" fill="currentColor"/><rect x="0" y="57.75" width="56" height="10.5" fill="currentColor"/></svg> LOUNGE</div>
   <div>
-    <!-- 길이·문자 종류를 여기서 제한하지 않는다. inputmode=numeric과 maxlength=12였던 시절엔
-         숫자 PIN을 전제했고, 회전 후 값이 길어지면서 그 두 속성이 입력 자체를 막았다(#83).
-         최소 길이 바닥도 이제 없으므로(20260817000000) 짧은 값·긴 값·숫자·영문이 다 들어와야
-         한다 — 판정은 서버(admin_check)가 하고, 화면은 받아 넘기는 일만 한다.
+    <!-- 길이·문자 종류를 여기서 제한하지 않는다. 최소 길이 바닥이 없으므로(20260817000000)
+         짧은 값·긴 값·숫자·영문이 다 들어와야 한다 — 판정은 서버(admin_check)가 하고,
+         화면은 받아 넘기는 일만 한다.
+         inputmode=numeric은 **제한이 아니라 첫 화면의 기본값**이다. 지금 쓰는 값이 숫자라
+         휴대폰에서 전체 키보드가 뜨면 매번 숫자 탭으로 옮겨야 해서 붙였다. 그런데 이 속성만
+         두면 숫자 키패드에 문자 키가 없어 영문이 섞인 값을 심는 순간 입력 자체가 막힌다 —
+         inputmode=numeric과 maxlength=12를 함께 두었다가 회전 후 값이 길어지며 겪은 일이다(#83).
+         그래서 아래 전환 버튼이 이 속성의 짝이다. 버튼 없이 inputmode만 되돌리지 말 것.
          maxlength=72인 이유: 서버는 상한이 없지만 bcrypt는 72바이트까지만 본다 — 그보다 긴
          값을 심으면 73번째 글자부터는 있으나 없으나 통과라, 화면이 72에서 자르는 것이
          '심은 값과 입력한 값이 다른데 로그인이 된다'는 혼란보다 낫다. 64였던 시절에는
          65자 이상을 심으면 화면이 입력을 잘라 #83과 같은 함정이 상한만 옮겨져 남아 있었다. -->
 
-    <input type="password" id="pw" placeholder="비밀번호" maxlength="72">
+    <input type="password" id="pw" placeholder="비밀번호" inputmode="numeric" maxlength="72">
+    <button type="button" id="kbdToggle" class="kbd-toggle">영문·기호 키보드로 바꾸기</button>
   </div>
   <button onclick="tryUnlock()">입장</button>
   <div class="error" id="pwError"></div>
@@ -1003,6 +1017,47 @@
   document.getElementById('pw').addEventListener('keydown', function(e){
     if(e.key === 'Enter') tryUnlock();
   });
+
+  // 숫자 키패드 ↔ 전체 키보드. 비밀번호에 문자 종류 제한이 없어(빈 값만 거부) 숫자만 칠 수
+  // 있는 화면은 #83과 같은 함정이 된다 — 그래서 inputmode는 기본값일 뿐이고 전환구가 항상 있다.
+  (function(){
+    var KBD_KEY = 'tl_admin_pw_kbd';
+    var pwInput = document.getElementById('pw');
+    var toggle = document.getElementById('kbdToggle');
+
+    // 사파리 프라이빗 등에서 localStorage 접근 자체가 던진다. 취향 하나 때문에 게이트가
+    // 통째로 죽으면 안 되므로 실패는 삼키고 기본값으로 간다.
+    function readPref(){
+      try{ return localStorage.getItem(KBD_KEY); }catch(_){ return null; }
+    }
+    function writePref(v){
+      try{ localStorage.setItem(KBD_KEY, v); }catch(_){}
+    }
+
+    // sessionStorage가 아니라 localStorage인 이유: 영문 섞인 값을 쓰는 사람이 세션마다 다시
+    // 눌러야 하면 전환구가 있으나 마나다. 담기는 건 'text'/'numeric' 뿐이라 비밀은 안 남는다.
+    function apply(mode, refocus){
+      pwInput.setAttribute('inputmode', mode);
+      toggle.textContent = mode === 'text' ? '숫자 키패드로 바꾸기' : '영문·기호 키보드로 바꾸기';
+      // inputmode를 포커스된 입력에서 바꿔도 이미 뜬 소프트 키보드는 그대로다.
+      // blur → focus로 다시 띄워야 실제로 바뀐다 — 속성만 바꾸면 아무 일도 안 일어난다.
+      if(refocus){ pwInput.blur(); pwInput.focus(); }
+    }
+
+    apply(readPref() === 'text' ? 'text' : 'numeric', false);
+
+    // 탭이 입력의 포커스를 먼저 빼앗으면 위 focus()와 경합해 키보드가 안 바뀐 채 닫힌다.
+    // pointerdown이 아니라 mousedown에서 막는다 — 포커스가 옮겨가는 지점이 mousedown이고,
+    // pointerdown을 취소하면 사파리가 뒤따르는 마우스 호환 이벤트를 통째로 안 내보내
+    // 아이폰에서 click이 사용자 제스처 밖으로 밀릴 수 있다. 그러면 위 focus()가 키보드를
+    // 다시 못 띄운다 — 전환구가 눌리기는 하는데 키보드는 그대로인 최악의 모양이 된다.
+    toggle.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    toggle.addEventListener('click', function(){
+      var next = pwInput.getAttribute('inputmode') === 'numeric' ? 'text' : 'numeric';
+      writePref(next);
+      apply(next, true);
+    });
+  })();
 
   function refresh(){
     return Promise.all([
